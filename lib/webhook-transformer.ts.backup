@@ -1,0 +1,554 @@
+/**
+ * Transformador de datos del webhook SCADA al formato MachineStatus
+ * Versión actualizada para el nuevo formato limpio del N8N
+ */
+import {
+  WebhookMachineData,
+  WebhookScadaData,
+  WebhookScadaResponse
+} from '../types/webhook-scada';
+import { MachineStatus } from '../types/machine';
+
+/**
+ * Interface para o formato ATUAL que o N8N está retornando
+ */
+interface CurrentWebhookFormat {
+  Cod_maquina: string;
+  oee_turno: number;
+  disponibilidad_turno: number;
+  rendimiento_turno: number;
+  calidad_turno: number;
+  ok_turno: number;
+  nok_turno: number;
+  rw_turno: number;
+  ok_of: number;
+  nok_of: number;
+  rw_of: number;
+  Rt_Seg_produccion_turno: number;
+  Rt_Seg_paro_turno: number;
+  Rt_Rendimientonominal1: number;
+  Rt_Unidades_planning: number;
+  f_velocidad: number;
+  Rt_Cod_of: string;
+  metricas_agregadas?: any[];
+}
+
+/**
+ * Transforma o formato ATUAL do webhook para MachineStatus
+ * Este formato tem os dados no nível raiz com metricas_agregadas
+ */
+export function transformCurrentWebhookToMachineStatus(
+  webhookData: CurrentWebhookFormat
+): MachineStatus {
+  // Determinar estado baseado nos dados disponíveis
+  const hasProduction = webhookData.ok_turno > 0 || webhookData.Rt_Seg_produccion_turno > 0;
+  const hasDowntime = webhookData.Rt_Seg_paro_turno > 0;
+
+  let status = 'ACTIVA';
+  if (hasProduction) {
+    status = 'PRODUCIENDO';
+  } else if (hasDowntime) {
+    status = 'PARADA';
+  }
+
+  // Calcular totais
+  const totalProducaoOF = webhookData.ok_of + webhookData.nok_of + webhookData.rw_of;
+  const totalProducaoTurno = webhookData.ok_turno + webhookData.nok_turno + webhookData.rw_turno;
+
+  // Calcular eficiência
+  const efficiency = Math.round(webhookData.oee_turno || 0);
+
+  console.log('🔧 [transformer-current] Transformando máquina:', webhookData.Cod_maquina, {
+    oee_turno: webhookData.oee_turno,
+    disponibilidad: webhookData.disponibilidad_turno,
+    status
+  });
+
+  const machineStatus: MachineStatus = {
+    machine: {
+      id_maquina: 0,
+      Cod_maquina: webhookData.Cod_maquina,
+      desc_maquina: webhookData.Cod_maquina, // Usar código como descrição por enquanto
+      activo: true,
+      Rt_Unidades_planning: webhookData.Rt_Unidades_planning,
+      Rt_Unidades_ok_of: webhookData.ok_of,
+      Rt_Unidades_nok_of: webhookData.nok_of,
+      Rt_Unidades_repro_of: webhookData.rw_of,
+      Rt_Rendimientonominal1: webhookData.Rt_Rendimientonominal1,
+      Rt_Desc_producto: 'N/A',
+      Rt_Desc_actividad: hasProduction ? 'PRODUCCION' : 'PARADA',
+      Rt_Fecha_ini: '',
+      Rt_Fecha_fin: '',
+    },
+    currentOF: webhookData.Rt_Cod_of === '--' ? undefined : webhookData.Rt_Cod_of,
+    product: {
+      code: '',
+      description: '',
+    },
+    rt_Desc_producto: '',
+    production: {
+      ok: webhookData.ok_of,
+      nok: webhookData.nok_of,
+      rw: webhookData.rw_of,
+      total: totalProducaoOF,
+    },
+    efficiency,
+    oee_of: webhookData.oee_turno, // Usar OEE turno como proxy
+    oee_turno: webhookData.oee_turno,
+    disponibilidad: webhookData.disponibilidad_turno,
+    disponibilidad_of: webhookData.disponibilidad_turno,
+    rendimiento: webhookData.rendimiento_turno,
+    rendimiento_of: webhookData.rendimiento_turno,
+    calidad: webhookData.calidad_turno,
+    calidad_of: webhookData.calidad_turno,
+    velocity: {
+      current: webhookData.f_velocidad,
+      nominal: webhookData.Rt_Rendimientonominal1,
+      ratio: webhookData.f_velocidad / webhookData.Rt_Rendimientonominal1,
+    },
+    order: {
+      code: webhookData.Rt_Cod_of === '--' ? null : webhookData.Rt_Cod_of,
+      shift: '',
+    },
+    rt_desc_turno: '',
+    operator: null,
+    operatorFull: null,
+    status,
+    downtime: hasDowntime ? {
+      active: 'Parada',
+      duration: webhookData.Rt_Seg_paro_turno,
+    } : null,
+    Rt_Unidades_planning: webhookData.Rt_Unidades_planning,
+    rt_Unidades_ok: webhookData.ok_of,
+    rt_Unidades_nok: webhookData.nok_of,
+    rt_Unidades_rw: webhookData.rw_of,
+    rt_fecha_inicio: '',
+    rt_fecha_fin_estimada: '',
+    productionOF: {
+      remainingPieces: Math.max(0, webhookData.Rt_Unidades_planning - totalProducaoOF),
+      remainingTime: calculateRemainingTimeFromCurrent(webhookData),
+    },
+    ofInfo: {
+      parosMinutes: Math.round(webhookData.Rt_Seg_paro_turno / 60),
+    },
+    turnoOk: webhookData.ok_turno,
+    turnoNok: webhookData.nok_turno,
+    turnoRwk: webhookData.rw_turno,
+    turnoTotal: totalProducaoTurno,
+  };
+
+  return machineStatus;
+}
+
+function calculateRemainingTimeFromCurrent(data: CurrentWebhookFormat): string {
+  const remainingPieces = Math.max(0, data.Rt_Unidades_planning - (data.ok_of + data.nok_of + data.rw_of));
+
+  if (remainingPieces === 0) {
+    return '0h';
+  }
+
+  const velocity = data.f_velocidade || data.Rt_Rendimientonominal1 || 50;
+
+  if (velocity <= 0) {
+    return '—';
+  }
+
+  const hoursRemaining = remainingPieces / velocity;
+
+  if (hoursRemaining < 1) {
+    return `${Math.round(hoursRemaining * 60)}m`;
+  }
+
+  const hours = Math.floor(hoursRemaining);
+  const minutes = Math.round((hoursRemaining - hours) * 60);
+
+  if (minutes > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+
+  return `${hours}h`;
+}
+
+/**
+ * Transforma los datos del nuevo formato limpio del webhook al formato MachineStatus
+ * Este es el transformer principal para el nuevo formato del N8N
+ *
+ * @param webhookData - Datos de la máquina en el nuevo formato limpio
+ */
+export function transformNewWebhookToMachineStatus(
+  webhookData: WebhookMachineData
+): MachineStatus {
+  const {
+    info_maquina,
+    estado_actual,
+    metricas_oee_turno,
+    produccion_turno,
+    produccion_of,
+    tiempos_segundos,
+    parametros_velocidad,
+    contexto_adicional,
+    producto,
+    fechas
+  } = webhookData;
+
+  // Determinar el estado de la máquina
+  const isProducing = estado_actual.actividad?.toUpperCase().includes('PRODUCCION');
+  const hasDowntime = estado_actual.motivo_parada && estado_actual.motivo_parada !== '';
+
+  let status = 'ACTIVA';
+  if (hasDowntime && !isProducing) {
+    status = 'PARADA';
+  } else if (isProducing) {
+    status = 'PRODUCIENDO';
+  }
+
+  // Calcular total de producción
+  const totalProduccionOF = produccion_of.unidades_ok + produccion_of.unidades_nok + produccion_of.unidades_repro;
+  const totalProduccionTurno = produccion_turno.unidades_ok + produccion_turno.unidades_nok + produccion_turno.unidades_repro;
+
+  // Calcular eficiencia basada en OEE del turno
+  const efficiency = Math.round(metricas_oee_turno.oee_turno || 0);
+
+  // Planning - usar do contexto_adicional se disponível
+  const planning = contexto_adicional?.planning || 0;
+
+  console.log('🔧 [transformer-new] Transformando máquina:', info_maquina.codigo, {
+    oee_turno: metricas_oee_turno.oee_turno,
+    disponibilidad: metricas_oee_turno.disponibilidad_turno,
+    status,
+    planning,
+    turno: contexto_adicional?.turno,
+    operador: contexto_adicional?.operador
+  });
+
+  // Construir objeto MachineStatus
+  const machineStatus: MachineStatus = {
+    machine: {
+      Cod_maquina: info_maquina.codigo,
+      desc_maquina: info_maquina.descripcion,
+      Rt_Unidades_planning: planning,
+      Rt_Unidades_ok_of: produccion_of.unidades_ok,
+      Rt_Unidades_nok_of: produccion_of.unidades_nok,
+      Rt_Unidades_repro_of: produccion_of.unidades_repro,
+      Rt_Rendimientonominal1: parametros_velocidad.velocidad_nominal,
+      Rt_Desc_producto: producto?.descripcion || '',
+      Rt_Desc_actividad: estado_actual.actividad,
+      Rt_Fecha_ini: fechas?.fecha_inicio_of || '',
+      Rt_Fecha_fin: fechas?.fecha_fin_of || '',
+    },
+    currentOF: info_maquina.orden_fabricacion === '--' ? null : info_maquina.orden_fabricacion,
+    product: {
+      code: producto?.codigo || null,
+      description: producto?.descripcion || null,
+    },
+    rt_Desc_producto: producto?.descripcion || '',
+    production: {
+      ok: produccion_of.unidades_ok,
+      nok: produccion_of.unidades_nok,
+      rw: produccion_of.unidades_repro,
+      total: totalProduccionOF,
+    },
+    efficiency,
+    oee_of: metricas_oee_turno.oee_turno,
+    oee_turno: metricas_oee_turno.oee_turno,
+    disponibilidad: metricas_oee_turno.disponibilidad_turno,
+    disponibilidad_of: metricas_oee_turno.disponibilidad_turno,
+    rendimiento: metricas_oee_turno.rendimiento_turno,
+    rendimiento_of: metricas_oee_turno.rendimiento_turno,
+    calidad: metricas_oee_turno.calidad_turno,
+    calidad_of: metricas_oee_turno.calidad_turno,
+    velocity: {
+      current: webhookData.f_velocidad,
+      nominal: webhookData.Rt_Rendimientonominal1,
+      ratio: webhookData.f_velocidad / webhookData.Rt_Rendimientonominal1,
+    },
+      current: parametros_velocidad.velocidad_actual,
+      nominal: parametros_velocidad.velocidad_nominal,
+      ratio: parametros_velocidad.velocidad_nominal > 0 ? parametros_velocidad.velocidad_actual / parametros_velocidad.velocidad_nominal : 0,
+    } as any,
+    order: {
+      code: info_maquina.orden_fabricacion === '--' ? null : info_maquina.orden_fabricacion,
+      shift: contexto_adicional?.turno || '',
+    },
+    rt_desc_turno: contexto_adicional?.turno || '',
+    operator: contexto_adicional?.operador || null,
+    operatorFull: contexto_adicional?.operador || null,
+    status,
+    downtime: hasDowntime ? {
+      active: estado_actual.motivo_parada,
+      duration: tiempos_segundos.paro_actual,
+    } : null,
+    Rt_Unidades_planning: planning,
+    rt_Unidades_ok: produccion_of.unidades_ok,
+    rt_Unidades_nok: produccion_of.unidades_nok,
+    rt_Unidades_rw: produccion_of.unidades_repro,
+    rt_fecha_inicio: fechas?.fecha_inicio_of || '',
+    rt_fecha_fin_estimada: fechas?.fecha_fin_of || '',
+    productionOF: {
+      remainingPieces: Math.max(0, planning - totalProduccionOF),
+      remainingTime: calculateRemainingTimeNew(totalProduccionOF, planning, parametros_velocidad.velocidad_actual || parametros_velocidad.velocidad_nominal),
+    },
+    ofInfo: {
+      parosMinutes: Math.round(tiempos_segundos.paro_turno / 60),
+    },
+    // Datos adicionales del turno
+    turnoOk: produccion_turno.unidades_ok,
+    turnoNok: produccion_turno.unidades_nok,
+    turnoRwk: produccion_turno.unidades_repro,
+    turnoTotal: totalProduccionTurno,
+  };
+
+  return machineStatus;
+}
+
+/**
+ * Calcula el tiempo restante estimado
+ */
+function calculateRemainingTimeNew(totalProduced: number, planning: number, velocity: number): string {
+  const remainingPieces = Math.max(0, planning - totalProduced);
+
+  if (remainingPieces === 0 || planning === 0) {
+    return '0h';
+  }
+
+  if (velocity <= 0) {
+    return '—';
+  }
+
+  const hoursRemaining = remainingPieces / velocity;
+
+  if (hoursRemaining < 1) {
+    return `${Math.round(hoursRemaining * 60)}m`;
+  }
+
+  const hours = Math.floor(hoursRemaining);
+  const minutes = Math.round((hoursRemaining - hours) * 60);
+
+  if (minutes > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+
+  return `${hours}h`;
+}
+
+/**
+ * Encuentra y transforma una máquina específica del nuevo formato
+ *
+ * @param webhookResponse - Array de datos de máquinas en el nuevo formato
+ * @param machineId - Código de la máquina a buscar
+ */
+export function findMachineInNewWebhookData(
+  webhookResponse: WebhookScadaResponse,
+  machineId: string
+): MachineStatus | null {
+  const machineData = webhookResponse.find(m => m.info_maquina.codigo === machineId);
+
+  if (!machineData) {
+    return null;
+  }
+
+  return transformNewWebhookToMachineStatus(machineData);
+}
+
+/**
+ * Transforma todos los datos del nuevo formato
+ *
+ * @param webhookResponse - Array de datos de máquinas en el nuevo formato
+ */
+export function transformAllNewWebhookData(
+  webhookResponse: WebhookScadaResponse
+): MachineStatus[] {
+  return webhookResponse.map(transformNewWebhookToMachineStatus);
+}
+
+// ============================================
+// FUNCIONES LEGADAS (compatibilidad)
+// ============================================
+
+/**
+ * @deprecated Usar transformNewWebhookToMachineStatus
+ * Transforma los datos del webhook al formato MachineStatus esperado por los componentes
+ *
+ * @param webhookData - Datos base de la máquina
+ * @param metricasTurno - Métricas del turno (opcional, si vienen del n8n)
+ * @param metricasOF - Métricas de la OF (opcional, si vienen del n8n)
+ */
+export function transformWebhookToMachineStatus(
+  webhookData: WebhookScadaData,
+  metricasTurno?: MetricasTurno,
+  metricasOF?: MetricasOF
+): MachineStatus {
+  // Determinar el estado de la máquina
+  const isProducing = webhookData.Rt_Desc_actividad?.toUpperCase().includes('PRODUCCION');
+  const isClosed = webhookData.Rt_Desc_actividad?.toUpperCase().includes('CERRADA');
+  const hasDowntime = webhookData.rt_desc_paro && webhookData.rt_desc_paro !== '' && webhookData.rt_id_paro !== 0;
+
+  let status = 'ACTIVA';
+  if (isClosed) {
+    status = 'CERRADA';
+  } else if (hasDowntime) {
+    status = 'PARADA';
+  } else if (isProducing) {
+    status = 'PRODUCIENDO';
+  }
+
+  // Usar métricas del turno si vienen del n8n, sino usar las del webhook base
+  const oee_turno = metricasTurno?.oee_turno ?? webhookData.Ag_Rt_Oee_Turno;
+  const disponibilidad_turno = metricasTurno?.disponibilidad_turno ?? webhookData.Ag_Rt_Disp_Turno;
+  const rendimiento_turno = metricasTurno?.rendimiento_turno ?? webhookData.Ag_Rt_Rend_Turno;
+  const calidad_turno = metricasTurno?.calidad_turno ?? webhookData.Ag_Rt_Cal_Turno;
+
+  // Usar métricas de OF si vienen del n8n, sino usar las del turno como proxy
+  const oee_of = metricasOF?.oee_of ?? oee_turno;
+  const disponibilidad_of = metricasOF?.disponibilidad_of ?? disponibilidad_turno;
+  const rendimiento_of = metricasOF?.rendimiento_of ?? rendimiento_turno;
+  const calidad_of = metricasOF?.calidad_of ?? calidad_turno;
+
+  // Calcular eficiencia basada en OEE
+  const efficiency = Math.round(oee_turno || 0);
+
+  console.log('🔧 [transformer] Transformando máquina:', webhookData.Cod_maquina, {
+    hasMetricasTurno: !!metricasTurno,
+    hasMetricasOF: !!metricasOF,
+    oee_turno,
+    oee_of
+  });
+
+  // Construir objeto MachineStatus
+  const machineStatus: MachineStatus = {
+    machine: {
+      Cod_maquina: webhookData.Cod_maquina,
+      desc_maquina: webhookData.desc_maquina,
+      Rt_Unidades_planning: webhookData.Rt_Unidades_planning,
+      Rt_Unidades_ok_of: webhookData.Rt_Unidades_ok_of,
+      Rt_Unidades_nok_of: webhookData.Rt_Unidades_nok_of,
+      Rt_Unidades_repro_of: webhookData.Rt_Unidades_repro_of,
+      Rt_Rendimientonominal1: webhookData.Rt_Rendimientonominal1,
+      Rt_Desc_producto: webhookData.Rt_Desc_producto || '',
+      Rt_Desc_actividad: webhookData.Rt_Desc_actividad,
+      Rt_Fecha_ini: webhookData.Rt_Fecha_ini,
+      Rt_Fecha_fin: webhookData.Rt_Fecha_fin,
+    },
+    currentOF: webhookData.Rt_Cod_of === '--' ? null : webhookData.Rt_Cod_of,
+    product: {
+      code: webhookData.codigo_producto === '--' ? null : webhookData.codigo_producto,
+      description: webhookData.Rt_Desc_producto === '--' ? null : webhookData.Rt_Desc_producto,
+    },
+    rt_Desc_producto: webhookData.Rt_Desc_producto || '',
+    production: {
+      ok: webhookData.Rt_Unidades_ok_of,
+      nok: webhookData.Rt_Unidades_nok_of,
+      rw: webhookData.Rt_Unidades_repro_of,
+      total: webhookData.Rt_Unidades_ok_of + webhookData.Rt_Unidades_nok_of + webhookData.Rt_Unidades_repro_of,
+    },
+    efficiency,
+    oee_of,
+    oee_turno,
+    disponibilidad: disponibilidad_turno,
+    disponibilidad_of,
+    rendimiento: rendimiento_turno,
+    rendimiento_of,
+    calidad: calidad_turno,
+    calidad_of,
+    velocity: {
+      current: webhookData.f_velocidad,
+      nominal: webhookData.Rt_Rendimientonominal1,
+      ratio: webhookData.f_velocidad / webhookData.Rt_Rendimientonominal1,
+    },
+      current: webhookData.f_velocidad,
+      nominal: webhookData.Rt_Rendimientonominal1,
+      ratio: webhookData.f_velocidad / webhookData.Rt_Rendimientonominal1,
+    },
+    order: {
+      code: webhookData.Rt_Cod_of === '--' ? null : webhookData.Rt_Cod_of,
+      shift: webhookData.rt_desc_turno,
+    },
+    rt_desc_turno: webhookData.rt_desc_turno,
+    operator: webhookData.Rt_Desc_operario || null,
+    operatorFull: webhookData.Rt_Desc_operario || null,
+    status,
+    downtime: hasDowntime ? {
+      active: webhookData.rt_desc_paro,
+      duration: webhookData.Rt_Seg_paro,
+    } : null,
+    Rt_Unidades_planning: webhookData.Rt_Unidades_planning,
+    rt_Unidades_ok: webhookData.Rt_Unidades_ok_of,
+    rt_Unidades_nok: webhookData.Rt_Unidades_nok_of,
+    rt_Unidades_rw: webhookData.Rt_Unidades_repro_of,
+    rt_fecha_inicio: webhookData.Rt_Fecha_ini,
+    rt_fecha_fin_estimada: webhookData.Rt_Fecha_fin,
+    productionOF: {
+      remainingPieces: Math.max(0, webhookData.Rt_Unidades_planning - (webhookData.Rt_Unidades_ok_of + webhookData.Rt_Unidades_nok_of + webhookData.Rt_Unidades_repro_of)),
+      remainingTime: calculateRemainingTime(webhookData),
+    },
+    ofInfo: {
+      parosMinutes: Math.round(webhookData.Rt_Seg_paro_turno / 60),
+    },
+    // Datos adicionales del turno
+    turnoOk: webhookData.Rt_Unidades_ok_turno,
+    turnoNok: webhookData.Rt_Unidades_nok_turno,
+    turnoRwk: webhookData.Rt_Unidades_repro_turno,
+    turnoTotal: webhookData.Rt_Unidades_ok_turno + webhookData.Rt_Unidades_nok_turno + webhookData.Rt_Unidades_repro_turno,
+  };
+
+  return machineStatus;
+}
+
+/**
+ * Calcula el tiempo restante estimado para completar la OF
+ */
+function calculateRemainingTime(data: WebhookScadaData): string {
+  const remainingPieces = Math.max(0, data.Rt_Unidades_planning - (data.Rt_Unidades_ok_of + data.Rt_Unidades_nok_of + data.Rt_Unidades_repro_of));
+
+  if (remainingPieces === 0) {
+    return '0h';
+  }
+
+  const velocity = data.f_velocidad || data.Rt_Rendimientonominal1 || 50;
+
+  if (velocity <= 0) {
+    return '—';
+  }
+
+  const hoursRemaining = remainingPieces / velocity;
+
+  if (hoursRemaining < 1) {
+    return `${Math.round(hoursRemaining * 60)}m`;
+  }
+
+  const hours = Math.floor(hoursRemaining);
+  const minutes = Math.round((hoursRemaining - hours) * 60);
+
+  if (minutes > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+
+  return `${hours}h`;
+}
+
+/**
+ * Transforma un array de datos del webhook filtrando por código de máquina
+ *
+ * @param webhookResponse - Array de datos base de máquinas
+ * @param machineId - Código de la máquina a buscar
+ * @param metricasTurnoArray - Array de métricas de turno (opcional)
+ * @param metricasOFArray - Array de métricas de OF (opcional)
+ */
+export function findMachineInWebhookData(
+  webhookResponse: WebhookScadaData[],
+  machineId: string,
+  metricasTurnoArray?: MetricasTurno[],
+  metricasOFArray?: MetricasOF[]
+): MachineStatus | null {
+  const machineData = webhookResponse.find(m => m.Cod_maquina === machineId);
+
+  if (!machineData) {
+    return null;
+  }
+
+  // Buscar métricas correspondientes a esta máquina
+  const metricasTurno = metricasTurnoArray?.find(m => m.Cod_maquina === machineId);
+  const metricasOF = metricasOFArray?.find(m => m.Cod_maquina === machineId);
+
+  return transformWebhookToMachineStatus(machineData, metricasTurno, metricasOF);
+}

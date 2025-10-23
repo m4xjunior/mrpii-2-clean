@@ -1,0 +1,21 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "tempo-modificado",
+              "name": "tempo_restante_com_2h",
+              "value": "={{ new Date(new Date($json.tempo.tempo_restante_horas).getTime() + (2 * 60 * 60 * 1000)).toISOString() }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.set",
+      "name": "Modificar Tempo +2h"
+    }
+  ]
+}
+

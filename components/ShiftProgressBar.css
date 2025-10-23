@@ -1,0 +1,413 @@
+/* ShiftProgressBar.css */
+
+.shift-progress-container {
+  background: white;
+  border-radius: 6px;
+  padding: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin: 4px 0;
+  border: 1px solid #e5e7eb;
+}
+
+/* ========================================
+   BARRA DE PROGRESSO
+   ======================================== */
+
+.shift-progress-bar {
+  width: 100%;
+  height: 20px;
+  display: flex;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+  margin-bottom: 6px;
+}
+
+.progress-segment {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  min-width: 2px; /* Mínimo para segmentos muy pequeños */
+}
+
+.progress-segment:hover {
+  filter: brightness(1.1);
+  transform: scaleY(1.02);
+  z-index: 1;
+}
+
+.segment-label {
+  font-size: 8px;
+  font-weight: 600;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  position: relative;
+  z-index: 2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* PREP - Preparação/Setup */
+.progress-segment.prep {
+  background: linear-gradient(135deg, #FFA726 0%, #FF9800 100%);
+}
+
+/* PROD - Produção */
+.progress-segment.prod {
+  background: linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%);
+}
+
+/* AJUST - Ajuste/Manutenção */
+.progress-segment.ajust {
+  background: linear-gradient(135deg, #42A5F5 0%, #2196F3 100%);
+}
+
+/* PAROS - Paradas */
+.progress-segment.paros {
+  background: linear-gradient(135deg, #EF5350 0%, #F44336 100%);
+  cursor: pointer;
+}
+
+.progress-segment.paros:hover {
+  box-shadow: 0 0 0 2px rgba(244, 67, 54, 0.4);
+}
+
+/* IDLE - Ocioso */
+.progress-segment.idle {
+  background: linear-gradient(135deg, #BDBDBD 0%, #9E9E9E 100%);
+}
+
+/* PRODUCTION-SUMMARY - Barra de produção com quantidades */
+.progress-segment.production-summary {
+  background: linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%);
+  cursor: default;
+}
+
+.production-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ========================================
+   LEGENDA ULTRA-COMPACTA
+   ======================================== */
+
+.shift-progress-compact-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 9px;
+  line-height: 1.2;
+  margin-top: 2px;
+}
+
+.legend-compact-item {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+.legend-compact-color {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;
+}
+
+.legend-compact-color.prep {
+  background: linear-gradient(135deg, #FFA726 0%, #FF9800 100%);
+}
+
+.legend-compact-color.prod {
+  background: linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%);
+}
+
+.legend-compact-color.ajust {
+  background: linear-gradient(135deg, #42A5F5 0%, #2196F3 100%);
+}
+
+.legend-compact-color.paros {
+  background: linear-gradient(135deg, #EF5350 0%, #F44336 100%);
+}
+
+.legend-compact-color.idle {
+  background: linear-gradient(135deg, #BDBDBD 0%, #9E9E9E 100%);
+}
+
+.legend-compact-text {
+  color: #374151;
+  font-weight: 500;
+  font-size: 9px;
+}
+
+/* ========================================
+   PAINEL DE DETALHES DAS PARADAS
+   ======================================== */
+
+.downtime-details-panel {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 2px solid #e5e7eb;
+}
+
+.downtime-details-panel h5 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+
+/* Filtros por Categoria */
+.downtime-category-filters {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.category-filter-btn {
+  padding: 6px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 16px;
+  background: white;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+  color: #374151;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.category-filter-btn:hover {
+  border-color: #2196F3;
+  background: #EFF6FF;
+}
+
+.category-filter-btn.active {
+  border-color: #2196F3;
+  background: #2196F3;
+  color: white;
+}
+
+.category-minutes {
+  background: rgba(0, 0, 0, 0.1);
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.category-filter-btn.active .category-minutes {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.unjustified-badge {
+  background: #F44336;
+  color: white;
+  padding: 1px 5px;
+  border-radius: 8px;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+/* Lista de Paradas */
+.downtime-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.downtime-item {
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 10px;
+  background: #fafafa;
+  transition: all 0.2s;
+}
+
+.downtime-item:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.downtime-item.ongoing {
+  border-color: #FF9800;
+  background: #FFF3E0;
+}
+
+.downtime-item-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.downtime-color-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.downtime-type-name {
+  font-weight: 600;
+  font-size: 12px;
+  color: #111827;
+}
+
+.downtime-category {
+  font-size: 10px;
+  color: #6b7280;
+  background: rgba(0, 0, 0, 0.05);
+  padding: 1px 6px;
+  border-radius: 8px;
+}
+
+.unjustified-tag {
+  margin-left: auto;
+  background: #F44336;
+  color: white;
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.ongoing-tag {
+  background: #FF9800;
+  color: white;
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 600;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.downtime-item-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.downtime-time {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.downtime-duration {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.downtime-duration strong {
+  color: #F44336;
+  font-size: 12px;
+}
+
+.downtime-duration span {
+  color: #9ca3af;
+  font-size: 10px;
+}
+
+.downtime-observations {
+  margin-top: 4px;
+  padding: 6px;
+  background: white;
+  border-radius: 4px;
+  font-size: 10px;
+  color: #374151;
+  font-style: italic;
+}
+
+/* Loading */
+.shift-progress-loading {
+  padding: 32px;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.shift-progress-loading::before {
+  content: '';
+  width: 16px;
+  height: 16px;
+  border: 2px solid #e5e7eb;
+  border-top: 2px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .shift-progress-container {
+    padding: 4px;
+  }
+
+  .shift-progress-compact-legend {
+    gap: 4px;
+    font-size: 8px;
+  }
+
+  .legend-compact-color {
+    width: 6px;
+    height: 6px;
+  }
+
+  .legend-compact-text {
+    font-size: 8px;
+  }
+
+  .downtime-category-filters {
+    flex-direction: column;
+  }
+
+  .category-filter-btn {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .shift-progress-bar {
+    height: 18px;
+  }
+
+  .segment-label {
+    font-size: 7px;
+  }
+}

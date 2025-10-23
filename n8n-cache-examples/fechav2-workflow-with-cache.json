@@ -1,0 +1,217 @@
+{
+  "name": "fechav2 - COM CACHE",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "fechav2",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [384, 0],
+      "id": "663043ce-6367-4495-8f5c-604d013517e4",
+      "name": "Webhook",
+      "webhookId": "92458dad-85b8-45fe-baec-67710799ca89"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6dc3373a-624e-4520-aaa5-87d63ee10aaf",
+              "name": "cof",
+              "value": "={{ $json.body[0].body.codigo_of }}",
+              "type": "string"
+            },
+            {
+              "id": "19d71023-0370-4e36-b94f-8cbb8713b6f9",
+              "name": "machineId",
+              "value": "={{ $json.body[0].body.machineId }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [560, 0],
+      "id": "3392056b-a427-45e1-98bf-28305be6e53a",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "key": "=cache:fechas:{{ $json.cof }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [720, 0],
+      "id": "redis-get-fechas",
+      "name": "Redis Get",
+      "credentials": {
+        "redis": {
+          "id": "Lrhc8rOAXwUSQ4SQ",
+          "name": "REDISLOCAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "cache-exists-check",
+              "leftValue": "={{ $json.propertyName }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "isNotEmpty"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [880, 0],
+      "id": "if-cache-exists",
+      "name": "IF"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n    ho.cod_of as codigo_of,\n    ho.Desc_of as descricao,\n    ho.Fecha_ini as data_inicio_planejada,\n    ho.Fecha_fin as data_fim_planejada,\n    ho.Fecha_entrega as data_entrega,\n    \n    -- Data de início REAL (primeira produção)\n    MIN(hp.fecha_ini) as data_inicio_real,\n    \n    -- Tempo médio por peça (em segundos)\n    CASE \n        WHEN SUM(hp.unidades_ok + hp.unidades_nok + hp.unidades_repro) > 0 \n        THEN CAST(\n            SUM(DATEDIFF(SECOND, hp.fecha_ini, hp.fecha_fin)) * 1.0 / \n            SUM(hp.unidades_ok + hp.unidades_nok + hp.unidades_repro)\n            AS DECIMAL(10,2))\n        ELSE 0 \n    END as tiempo_medio_por_pieza_segundos,\n    \n    -- Data fim estimada (baseada na velocidade real)\n    CASE \n        WHEN SUM(hp.unidades_ok + hp.unidades_nok + hp.unidades_repro) > 0 \n        THEN DATEADD(SECOND,\n                CAST(\n                    (SUM(DATEDIFF(SECOND, hp.fecha_ini, hp.fecha_fin)) * 1.0 / \n                     SUM(hp.unidades_ok + hp.unidades_nok + hp.unidades_repro)) *\n                    (ho.Unidades_planning - SUM(hp.unidades_ok + hp.unidades_nok + hp.unidades_repro))\n                    AS BIGINT),\n                GETDATE())\n        ELSE NULL\n    END as data_fim_estimada,\n    \n    -- Tempo restante em horas\n    CASE \n        WHEN SUM(hp.unidades_ok + hp.unidades_nok + hp.unidades_repro) > 0 \n        THEN CAST(\n                (SUM(DATEDIFF(SECOND, hp.fecha_ini, hp.fecha_fin)) * 1.0 / \n                 SUM(hp.unidades_ok + hp.unidades_nok + hp.unidades_repro)) *\n                (ho.Unidades_planning - SUM(hp.unidades_ok + hp.unidades_nok + hp.unidades_repro)) / 3600.0\n                AS DECIMAL(10,2))\n        ELSE 0 \n    END as tiempo_restante_horas,\n    \n    ho.Unidades_planning as quantidade_planejada,\n    SUM(hp.unidades_ok) as unidades_ok,\n    SUM(hp.unidades_nok) as unidades_nok,\n    SUM(hp.unidades_repro) as unidades_rw,\n    SUM(hp.unidades_ok + hp.unidades_nok + hp.unidades_repro) as total_producido,\n    ho.Unidades_planning - SUM(hp.unidades_ok + hp.unidades_nok + hp.unidades_repro) as piezas_faltantes,\n    \n    -- Percentual de conclusão\n    CASE \n        WHEN ho.Unidades_planning > 0 \n        THEN CAST(\n            (SUM(hp.unidades_ok + hp.unidades_nok + hp.unidades_repro) * 100.0 / ho.Unidades_planning)\n            AS DECIMAL(5,2))\n        ELSE 0 \n    END as porcentaje_completado,\n    \n    ho.Activo as ativo\n\nFROM his_of ho WITH (NOLOCK)\nINNER JOIN his_fase hf WITH (NOLOCK) ON ho.id_his_of = hf.id_his_of\nINNER JOIN his_prod hp WITH (NOLOCK) ON hf.id_his_fase = hp.id_his_fase\n\nWHERE ho.Activo = 1\n    AND ho.cod_of = '{{ $('Edit Fields').item.json.cof }}' \n    AND (hp.unidades_ok + hp.unidades_nok + hp.unidades_repro) > 0\n    AND YEAR(ho.Fecha_ini) >= YEAR(GETDATE())\n    \nGROUP BY \n    ho.cod_of, \n    ho.Desc_of, \n    ho.Unidades_planning,\n    ho.Fecha_ini,\n    ho.Fecha_fin,\n    ho.Fecha_entrega,\n    ho.Activo\n    \nORDER BY MIN(hp.fecha_ini) DESC;"
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.1,
+      "position": [1040, 120],
+      "id": "5a0f70ee-8a7c-447f-8ba2-8e1c93a288c5",
+      "name": "Microsoft SQL",
+      "credentials": {
+        "microsoftSql": {
+          "id": "op1E2bL9q09CUAxH",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * N8N Function Node - Calculadora de OFs\n * ✅ UNIVERSAL: Aceita dados do SQL OU do Redis Cache\n */\n\nconst items = $input.all();\n\n// ===== DETECTAR SE VEM DO CACHE OU DO SQL =====\nfunction parseInput(item) {\n    const data = item.json;\n\n    // Se tem propertyName, é cache (Redis)\n    if (data.propertyName) {\n        console.log('✅ Dados vindos do CACHE');\n        try {\n            // Parse do JSON armazenado no Redis\n            const cached = typeof data.propertyName === 'string'\n                ? JSON.parse(data.propertyName)\n                : data.propertyName;\n\n            // Se o cache já está processado (tem campo 'producao'), retornar direto\n            if (cached.producao) {\n                console.log('✅ Cache já processado, retornando direto');\n                return { skipProcessing: true, data: cached };\n            }\n\n            // Se não, é SQL cru no cache, processar\n            return { skipProcessing: false, data: cached };\n        } catch (err) {\n            console.error('❌ Erro ao fazer parse do cache:', err);\n            throw err;\n        }\n    }\n\n    // Se não tem propertyName, vem direto do SQL\n    console.log('✅ Dados vindos do SQL');\n    return { skipProcessing: false, data };\n}\n\n// ===== FUNÇÕES AUXILIARES =====\nfunction formatDateBR(dateString) {\n    if (!dateString) return 'N/A';\n    const date = new Date(dateString);\n    if (isNaN(date.getTime())) return 'N/A';\n    const dd = String(date.getDate()).padStart(2, '0');\n    const mm = String(date.getMonth() + 1).padStart(2, '0');\n    const yyyy = date.getFullYear();\n    const hh = String(date.getHours()).padStart(2, '0');\n    const mi = String(date.getMinutes()).padStart(2, '0');\n    const ss = String(date.getSeconds()).padStart(2, '0');\n    return `${dd}/${mm}/${yyyy} ${hh}:${mi}:${ss}`;\n}\n\nfunction formatDuration(h) {\n    if (h <= 0) return '0m';\n    if (h < 1) return `${Math.round(h * 60)}m`;\n    const hh = Math.floor(h);\n    const mm = Math.round((h - hh) * 60);\n    return mm > 0 ? `${hh}h ${mm}m` : `${hh}h`;\n}\n\nfunction formatDurationSCADA(h) {\n    if (h <= 0) return '0.00h';\n    return `${h.toFixed(2)}h`;\n}\n\n// ===== PROCESSAMENTO =====\nreturn items.map(item => {\n    const parsed = parseInput(item);\n\n    // Se cache já está processado, retornar direto\n    if (parsed.skipProcessing) {\n        return { json: parsed.data };\n    }\n\n    // Processar dados (SQL ou cache de SQL cru)\n    const data = parsed.data;\n    const now = new Date();\n\n    const planning = parseInt(data.quantidade_planejada) || 0;\n    const ok = parseInt(data.unidades_ok) || 0;\n    const nok = parseInt(data.unidades_nok) || 0;\n    const rw = parseInt(data.unidades_rw) || 0;\n    const total_producido = ok + nok + rw;\n    const piezas_faltantes = Math.max(0, planning - total_producido);\n\n    const seg_por_pieza = parseFloat(data.tiempo_medio_por_pieza_segundos) || 0;\n    const velocidad_piezas_hora = seg_por_pieza > 0 ? 3600 / seg_por_pieza : 0;\n\n    const tiempo_restante_segundos = piezas_faltantes * seg_por_pieza;\n    const tiempo_restante_horas = tiempo_restante_segundos / 3600;\n    const fecha_fin_estimada = new Date(now.getTime() + (tiempo_restante_segundos * 1000));\n\n    const data_inicio_real = new Date(data.data_inicio_real);\n    const tiempo_decorrido_ms = now - data_inicio_real;\n    const tiempo_decorrido_horas = tiempo_decorrido_ms / (1000 * 60 * 60);\n\n    const porcentaje_completado = planning > 0 ? (total_producido / planning * 100) : 0;\n\n    let status;\n    if (porcentaje_completado >= 100) {\n        status = 'FINALIZADA';\n    } else if (total_producido > 0) {\n        status = 'EN_PRODUCCION';\n    } else {\n        status = 'PENDIENTE';\n    }\n\n    const data_fim_planejada = new Date(data.data_fim_planejada);\n    const esta_atrasada = fecha_fin_estimada > data_fim_planejada;\n    const atraso_ms = fecha_fin_estimada - data_fim_planejada;\n    const atraso_horas = atraso_ms / (1000 * 60 * 60);\n\n    return {\n        json: {\n            codigo_of: data.codigo_of,\n            descricao: data.descricao,\n            status: status,\n            ativo: Boolean(data.ativo),\n\n            producao: {\n                planejadas: planning,\n                ok: ok,\n                nok: nok,\n                rw: rw,\n                total_producido: total_producido,\n                faltantes: piezas_faltantes,\n                completado: `${porcentaje_completado.toFixed(2)}%`\n            },\n\n            velocidade: {\n                piezas_hora: Math.round(velocidad_piezas_hora),\n                segundos_pieza: seg_por_pieza.toFixed(2),\n                formato_scada: `${Math.round(velocidad_piezas_hora)} u/h ${seg_por_pieza.toFixed(2)} seg/pza`\n            },\n\n            tempo: {\n                inicio_real: formatDateBR(data_inicio_real),\n                fim_estimado: formatDateBR(fecha_fin_estimada),\n                tempo_decorrido: formatDuration(tiempo_decorrido_horas),\n                tempo_decorrido_horas: tiempo_decorrido_horas.toFixed(2),\n                tempo_restante: formatDurationSCADA(tiempo_restante_horas),\n                tempo_restante_horas: tiempo_restante_horas.toFixed(2),\n                tempo_restante_formato: formatDuration(tiempo_restante_horas)\n            },\n\n            planejamento: {\n                inicio_planejado: formatDateBR(data.data_inicio_planejada),\n                fim_planejado: formatDateBR(data.data_fim_planejada),\n                data_entrega: formatDateBR(data.data_entrega),\n                esta_atrasada: esta_atrasada,\n                atraso_horas: esta_atrasada ? atraso_horas.toFixed(2) : 0\n            },\n\n            display: {\n                linha1: `Produto: ${data.descricao}`,\n                linha2: `Ordem: ${data.codigo_of}`,\n                linha3: `Status: ${status}`,\n                linha4: `Velocidad: ${Math.round(velocidad_piezas_hora)} u/h ${seg_por_pieza.toFixed(2)} seg/pza`,\n                linha5: `Completado: ${porcentaje_completado.toFixed(2)}%`,\n                linha6: `Tiempo restante: ${tiempo_restante_horas.toFixed(2)}h`,\n                linha7: `Fecha Inicio: ${formatDateBR(data_inicio_real)}`,\n                linha8: `Fecha fin est.: ${formatDateBR(fecha_fin_estimada)}`,\n                linha9: `${planning} Planificadas | ${ok} OK | ${nok} NOK | ${rw} RW`\n            },\n\n            raw: {\n                data_inicio_real_iso: data_inicio_real.toISOString(),\n                data_fim_estimada_iso: fecha_fin_estimada.toISOString(),\n                tempo_restante_segundos: tiempo_restante_segundos,\n                velocidad_real: velocidad_piezas_hora,\n                porcentaje_decimal: porcentaje_completado / 100\n            }\n        }\n    };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, 0],
+      "id": "e8533d18-341d-498d-96da-feabe05fed6b",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "=cache:fechas:{{ $('Edit Fields').item.json.cof }}",
+        "value": "={{ JSON.stringify($json) }}",
+        "options": {
+          "ttl": 30
+        }
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [1360, 0],
+      "id": "redis-set-fechas",
+      "name": "Redis Set",
+      "credentials": {
+        "redis": {
+          "id": "Lrhc8rOAXwUSQ4SQ",
+          "name": "REDISLOCAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "39c0d6b1-f4a1-4f5c-9d6f-7e4c5163101b",
+              "name": "fechaini",
+              "value": "={{ $json.tempo.inicio_real }}",
+              "type": "string"
+            },
+            {
+              "id": "e43d8aaa-1a72-4671-97c5-d64d814533a0",
+              "name": "fechafin",
+              "value": "={{ $json.tempo.fim_estimado }}",
+              "type": "string"
+            },
+            {
+              "id": "6967f923-23fe-43f7-9feb-c0707e1217b4",
+              "name": "tiempoRestante",
+              "value": "={{ $json.tempo.tempo_restante_horas }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1520, 0],
+      "id": "1ae780e7-dce5-449b-8161-752832e44a7a",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [1680, 0],
+      "id": "63312f38-0ba1-4384-a67b-bd62c5415064",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{"node": "Edit Fields", "type": "main", "index": 0}]]
+    },
+    "Edit Fields": {
+      "main": [[{"node": "Redis Get", "type": "main", "index": 0}]]
+    },
+    "Redis Get": {
+      "main": [[{"node": "IF", "type": "main", "index": 0}]]
+    },
+    "IF": {
+      "main": [
+        [{"node": "Code in JavaScript", "type": "main", "index": 0}],
+        [{"node": "Microsoft SQL", "type": "main", "index": 0}]
+      ]
+    },
+    "Microsoft SQL": {
+      "main": [[{"node": "Code in JavaScript", "type": "main", "index": 0}]]
+    },
+    "Code in JavaScript": {
+      "main": [[{"node": "Redis Set", "type": "main", "index": 0}]]
+    },
+    "Redis Set": {
+      "main": [[{"node": "Edit Fields1", "type": "main", "index": 0}]]
+    },
+    "Edit Fields1": {
+      "main": [[{"node": "Respond to Webhook", "type": "main", "index": 0}]]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a47d38144e61f639f29ccdc41787eaad1b89ad7254afa020eb6c0046795752ab"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node test-n8n-performance.js:*)",
+      "Bash(node test-network-latency.js:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

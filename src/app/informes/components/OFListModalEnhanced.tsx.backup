@@ -1,0 +1,2051 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import Calendar from 'react-calendar';
+import 'react-calendar/dist/Calendar.css';
+import { motion, AnimatePresence } from 'framer-motion';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
+import { FaChartLine, FaChartBar, FaTable, FaPlay, FaPause, FaCog, FaEllipsisV, FaExclamationTriangle, FaCheckCircle } from 'react-icons/fa';
+
+interface OF {
+  codOf: string;
+  descProducto: string;
+  fechaInicio: string | null;
+  fechaFin: string | null;
+  estado: string;
+  unidadesPlanning: number;
+  unidadesOk: number;
+  unidadesNok: number;
+  duracionMinutos: number;
+  progreso: number;
+}
+
+interface DetalleProduccionDia {
+  fecha: string;
+  turno: string;
+  descTurno: string;
+  unidadesOk: number;
+  unidadesNok: number;
+  unidadesRepro: number;
+  tiempoProduccionMin: number;
+  tiempoParoMin: number;
+  actividad: string;
+  descActividad: string;
+  velocidadMedia: number;
+  registros: number;
+}
+
+interface ParoData {
+  id: string;
+  fecha: string;
+  turno: string;
+  descTurno: string;
+  codOf: string;
+  descProducto: string;
+  tipoParo: string;
+  descTipoParo: string;
+  tiempoMin: number;
+  causa: string;
+  descCausa: string;
+  estado: string;
+  operador: string;
+}
+
+interface ParosResponse {
+  success: boolean;
+  data: ParoData[];
+  totalMinutos: number;
+  count: number;
+  error?: string;
+}
+
+interface DetallesOF {
+  of: {
+    codOf: string;
+    descProducto: string;
+    fechaInicio: string | null;
+    fechaFin: string | null;
+    estado: string;
+    unidadesPlanning: number;
+    progreso: number;
+  };
+  produccionPorDia: DetalleProduccionDia[];
+  totales: {
+    unidadesOk: number;
+    unidadesNok: number;
+    unidadesRepro: number;
+    tiempoProduccionHoras: number;
+    tiempoParoHoras: number;
+    eficiencia: number;
+    calidad: number;
+  };
+  graficos: {
+    fechas: string[];
+    ok: number[];
+    nok: number[];
+    tiempoProduccion: number[];
+  };
+}
+
+interface OFListModalEnhancedProps {
+  isOpen: boolean;
+  onClose: () => void;
+  machineCode: string;
+  machineName: string;
+  initialStartDate?: Date | null;
+  initialEndDate?: Date | null;
+}
+
+export function OFListModalEnhanced({
+  isOpen,
+  onClose,
+  machineCode,
+  machineName,
+  initialStartDate,
+  initialEndDate
+}: OFListModalEnhancedProps) {
+  const [ofs, setOfs] = useState<OF[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+
+  // Filtros de fecha
+  const [fechaInicio, setFechaInicio] = useState<Date | null>(initialStartDate || null);
+  const [fechaFin, setFechaFin] = useState<Date | null>(initialEndDate || null);
+  const [showStartCalendar, setShowStartCalendar] = useState(false);
+  const [showEndCalendar, setShowEndCalendar] = useState(false);
+
+  // Detalles expandibles
+  const [expandedOf, setExpandedOf] = useState<string | null>(null);
+  const [detallesOf, setDetallesOf] = useState<DetallesOF | null>(null);
+  const [loadingDetalles, setLoadingDetalles] = useState(false);
+
+  // Estados para paros
+  const [parosOf, setParosOf] = useState<ParoData[]>([]);
+  const [parosTurno, setParosTurno] = useState<ParoData[]>([]);
+  const [loadingParosOf, setLoadingParosOf] = useState(false);
+  const [loadingParosTurno, setLoadingParosTurno] = useState(false);
+  const [showParosOf, setShowParosOf] = useState(false);
+  const [showParosTurno, setShowParosTurno] = useState(false);
+  const [selectedTurnoForParos, setSelectedTurnoForParos] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen && machineCode) {
+      fetchOFs();
+    }
+  }, [isOpen, machineCode, fechaInicio, fechaFin]);
+
+  const fetchOFs = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      let url = `/api/machines/ofs?machineCode=${machineCode}`;
+
+      if (fechaInicio) {
+        url += `&fechaInicio=${fechaInicio.toISOString()}`;
+      }
+      if (fechaFin) {
+        url += `&fechaFin=${fechaFin.toISOString()}`;
+      }
+
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data.success) {
+        setOfs(data.data);
+        setCurrentPage(1); // Reset a primera página al cambiar filtros
+      } else {
+        setError(data.error || 'Error al cargar OFs');
+      }
+    } catch (err) {
+      console.error('Error al buscar OFs:', err);
+      setError('Error al cargar datos');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchDetallesOF = async (codOf: string) => {
+    setLoadingDetalles(true);
+
+    try {
+      let url = `/api/machines/of-details?machineCode=${machineCode}&codOf=${codOf}`;
+
+      if (fechaInicio) {
+        url += `&fechaInicio=${fechaInicio.toISOString()}`;
+      }
+      if (fechaFin) {
+        url += `&fechaFin=${fechaFin.toISOString()}`;
+      }
+
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data.success) {
+        setDetallesOf(data.data);
+      } else {
+        console.error('Error al cargar detalles:', data.error);
+      }
+    } catch (err) {
+      console.error('Error al buscar detalles:', err);
+    } finally {
+      setLoadingDetalles(false);
+    }
+  };
+
+  const fetchParosOf = async (codOf: string) => {
+    setLoadingParosOf(true);
+
+    try {
+      let url = `/api/machines/paros-of?machineCode=${machineCode}&codOf=${codOf}`;
+
+      if (fechaInicio) {
+        url += `&fechaInicio=${fechaInicio.toISOString()}`;
+      }
+      if (fechaFin) {
+        url += `&fechaFin=${fechaFin.toISOString()}`;
+      }
+
+      const response = await fetch(url);
+      const data: ParosResponse = await response.json();
+
+      if (data.success) {
+        setParosOf(data.data);
+        setShowParosOf(true);
+      } else {
+        console.error('Error al cargar paros de OF:', data.error);
+      }
+    } catch (err) {
+      console.error('Error al buscar paros de OF:', err);
+    } finally {
+      setLoadingParosOf(false);
+    }
+  };
+
+  const fetchParosTurno = async (turno: string, fecha: string) => {
+    setLoadingParosTurno(true);
+
+    try {
+      let url = `/api/machines/paros-turno?machineCode=${machineCode}&turno=${turno}&fecha=${fecha}`;
+
+      if (fechaInicio) {
+        url += `&fechaInicio=${fechaInicio.toISOString()}`;
+      }
+      if (fechaFin) {
+        url += `&fechaFin=${fechaFin.toISOString()}`;
+      }
+
+      const response = await fetch(url);
+      const data: ParosResponse = await response.json();
+
+      if (data.success) {
+        setParosTurno(data.data);
+        setShowParosTurno(true);
+      } else {
+        console.error('Error al cargar paros de turno:', data.error);
+      }
+    } catch (err) {
+      console.error('Error al buscar paros de turno:', err);
+    } finally {
+      setLoadingParosTurno(false);
+    }
+  };
+
+  const calcularEficienciaReal = (detalles: DetallesOF) => {
+    const tiempoTotal = detalles.totales.tiempoProduccionHoras + (detalles.totales.tiempoParoHoras || 0);
+    if (tiempoTotal === 0) return 0;
+
+    const tiempoProductivo = detalles.totales.tiempoProduccionHoras;
+    const unidadesEsperadas = detalles.of.unidadesPlanning;
+    const unidadesProducidas = detalles.totales.unidadesOk + detalles.totales.unidadesRepro;
+
+    if (unidadesEsperadas === 0) return 0;
+
+    // Eficiência = (tempo productivo / tempo total) * (unidades produzidas / unidades esperadas) * 100
+    const eficienciaTiempo = (tiempoProductivo / tiempoTotal) * 100;
+    const eficienciaProduccion = (unidadesProducidas / unidadesEsperadas) * 100;
+
+    return Math.round(eficienciaTiempo * eficienciaProduccion / 100);
+  };
+
+  const handleToggleExpand = (codOf: string) => {
+    if (expandedOf === codOf) {
+      setExpandedOf(null);
+      setDetallesOf(null);
+      setParosOf([]);
+      setParosTurno([]);
+      setShowParosOf(false);
+      setShowParosTurno(false);
+    } else {
+      setExpandedOf(codOf);
+      setParosOf([]);
+      setParosTurno([]);
+      setShowParosOf(false);
+      setShowParosTurno(false);
+      fetchDetallesOF(codOf);
+    }
+  };
+
+  const handleShowParosOf = (codOf: string) => {
+    fetchParosOf(codOf);
+  };
+
+  const handleShowParosTurno = (turno: string, fecha: string) => {
+    setSelectedTurnoForParos(`${turno}-${fecha}`);
+    fetchParosTurno(turno, fecha);
+  };
+
+  const exportToCSV = () => {
+    // Crear CSV con las OFs
+    const headers = ['Código OF', 'Producto', 'Estado', 'Fecha Inicio', 'Fecha Fin', 'Planejado', 'OK', 'NOK', 'Progreso'];
+    const csvData = ofs.map(of => [
+      of.codOf,
+      of.descProducto,
+      of.estado,
+      of.fechaInicio || '',
+      of.fechaFin || '',
+      of.unidadesPlanning,
+      of.unidadesOk,
+      of.unidadesNok,
+      `${of.progreso}%`
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...csvData.map(row => row.join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `OFs_${machineCode}_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const clearFilters = () => {
+    setFechaInicio(null);
+    setFechaFin(null);
+  };
+
+  if (!isOpen) return null;
+
+  // Calcular paginación
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentOFs = ofs.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(ofs.length / itemsPerPage);
+
+  const getEstadoColor = (estado: string) => {
+    switch (estado?.toUpperCase()) {
+      case 'TERMINADA':
+      case 'FINALIZADA':
+        return '#10b981';
+      case 'EN CURSO':
+      case 'ACTIVA':
+        return '#3b82f6';
+      case 'PAUSADA':
+      case 'PENDIENTE':
+        return '#f59e0b';
+      case 'CANCELADA':
+        return '#ef4444';
+      default:
+        return '#6b7280';
+    }
+  };
+
+  const formatDuration = (minutes: number) => {
+    if (minutes === 0) return '-';
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+  };
+
+  return (
+    <>
+      <motion.div
+        className="modal-backdrop"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+      />
+      <motion.div
+        className="of-list-modal-enhanced"
+        initial={{ opacity: 0, scale: 0.9, y: 50 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9, y: 50 }}
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+      >
+        {/* Header */}
+        <div className="of-modal-header">
+          <div className="of-modal-title">
+            <i className="fas fa-clipboard-list"></i>
+            <div>
+              <h2>Órdenes de Fabricación</h2>
+              <p className="of-modal-subtitle">
+                {machineName} ({machineCode})
+              </p>
+            </div>
+          </div>
+          <button onClick={onClose} className="of-modal-close">
+            <i className="fas fa-times"></i>
+          </button>
+        </div>
+
+        {/* Filtros y acciones */}
+        <div className="of-filters-section">
+          <div className="of-filters">
+            <div className="filter-group">
+              <label>Fecha Inicio</label>
+              <div className="filter-input-wrapper">
+                <button
+                  onClick={() => setShowStartCalendar(!showStartCalendar)}
+                  className="filter-date-btn"
+                >
+                  <i className="fas fa-calendar-alt"></i>
+                  {fechaInicio ? fechaInicio.toLocaleDateString('es-ES') : 'Seleccionar'}
+                </button>
+                {showStartCalendar && (
+                  <div className="calendar-dropdown">
+                    <Calendar
+                      onChange={(date) => {
+                        setFechaInicio(date as Date);
+                        setShowStartCalendar(false);
+                      }}
+                      value={fechaInicio}
+                      maxDate={fechaFin || undefined}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="filter-group">
+              <label>Fecha Fin</label>
+              <div className="filter-input-wrapper">
+                <button
+                  onClick={() => setShowEndCalendar(!showEndCalendar)}
+                  className="filter-date-btn"
+                >
+                  <i className="fas fa-calendar-check"></i>
+                  {fechaFin ? fechaFin.toLocaleDateString('es-ES') : 'Seleccionar'}
+                </button>
+                {showEndCalendar && (
+                  <div className="calendar-dropdown">
+                    <Calendar
+                      onChange={(date) => {
+                        setFechaFin(date as Date);
+                        setShowEndCalendar(false);
+                      }}
+                      value={fechaFin}
+                      minDate={fechaInicio || undefined}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {(fechaInicio || fechaFin) && (
+              <button onClick={clearFilters} className="clear-filters-btn">
+                <i className="fas fa-times-circle"></i>
+                Limpiar Filtros
+              </button>
+            )}
+          </div>
+
+          <div className="of-actions">
+            <button onClick={exportToCSV} className="export-btn" disabled={ofs.length === 0}>
+              <i className="fas fa-file-csv"></i>
+              Exportar CSV
+            </button>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="of-modal-body">
+          {loading && (
+            <div className="of-loading">
+              <div className="of-spinner"></div>
+              <p>Cargando OFs...</p>
+            </div>
+          )}
+
+          {error && (
+            <div className="of-error">
+              <i className="fas fa-exclamation-circle"></i>
+              <p>{error}</p>
+            </div>
+          )}
+
+          {!loading && !error && ofs.length === 0 && (
+            <div className="of-empty">
+              <i className="fas fa-inbox"></i>
+              <p>No se encontraron OFs para esta máquina</p>
+              {(fechaInicio || fechaFin) && (
+                <button onClick={clearFilters} className="clear-filters-btn-large">
+                  Limpiar filtros de fecha
+                </button>
+              )}
+            </div>
+          )}
+
+          {!loading && !error && currentOFs.length > 0 && (
+            <>
+              <div className="of-table-container">
+                <table className="of-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: '50px' }}></th>
+                      <th>Código OF</th>
+                      <th>Producto</th>
+                      <th>Estado</th>
+                      <th>Fecha Inicio</th>
+                      <th>Fecha Fin</th>
+                      <th>Duración</th>
+                      <th>Planejado</th>
+                      <th>OK</th>
+                      <th>NOK</th>
+                      <th>Progreso</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {currentOFs.map((of, index) => (
+                      <React.Fragment key={`${of.codOf}-${index}`}>
+                        <tr className={expandedOf === of.codOf ? 'expanded-row' : ''}>
+                          <td>
+                            <div className="action-buttons">
+                              <button
+                                onClick={() => handleToggleExpand(of.codOf)}
+                                className="expand-btn"
+                                title="Ver detalles"
+                              >
+                                <i className={`fas fa-chevron-${expandedOf === of.codOf ? 'down' : 'right'}`}></i>
+                              </button>
+                              <div className="dropdown-menu">
+                                <button
+                                  className="menu-btn"
+                                  title="Más acciones"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    // Toggle menu visibility (implementar estado para controlar)
+                                  }}
+                                >
+                                  <FaEllipsisV />
+                                </button>
+                                <div className="dropdown-content">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleShowParosOf(of.codOf);
+                                    }}
+                                    className="dropdown-item"
+                                  >
+                                    <FaPause /> Ver Paros da OF
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="of-code">
+                            <i className="fas fa-file-alt"></i>
+                            {of.codOf}
+                          </td>
+                          <td className="of-product">{of.descProducto || '-'}</td>
+                          <td>
+                            <span
+                              className="of-estado-badge"
+                              style={{ backgroundColor: getEstadoColor(of.estado) }}
+                            >
+                              {of.estado}
+                            </span>
+                          </td>
+                          <td className="of-date">{of.fechaInicio || '-'}</td>
+                          <td className="of-date">{of.fechaFin || '-'}</td>
+                          <td className="of-duration">{formatDuration(of.duracionMinutos)}</td>
+                          <td className="of-number">{of.unidadesPlanning.toLocaleString()}</td>
+                          <td className="of-number of-ok">{of.unidadesOk.toLocaleString()}</td>
+                          <td className="of-number of-nok">{of.unidadesNok.toLocaleString()}</td>
+                          <td className="of-progress">
+                            <div className="progress-bar-container">
+                              <div
+                                className="progress-bar-fill"
+                                style={{ width: `${Math.min(of.progreso, 100)}%` }}
+                              />
+                            </div>
+                            <span className="progress-text">{of.progreso}%</span>
+                          </td>
+                        </tr>
+                        {expandedOf === of.codOf && (
+                          <tr className="detail-row">
+                            <td colSpan={11}>
+                              <div className="detail-content">
+                                {loadingDetalles && (
+                                  <div className="detail-loading">
+                                    <div className="detail-spinner"></div>
+                                    <p>Cargando detalles...</p>
+                                  </div>
+                                )}
+                                {!loadingDetalles && detallesOf && (
+                                  <div className="detail-sections">
+                                    {/* Totales */}
+                                    <motion.div
+                                      className="detail-section"
+                                      initial={{ opacity: 0, y: 20 }}
+                                      animate={{ opacity: 1, y: 0 }}
+                                      transition={{ delay: 0.1 }}
+                                    >
+                                      <h4><FaChartBar /> Totales</h4>
+                                      <div className="totales-grid">
+                                        <motion.div
+                                          className="total-card ok"
+                                          whileHover={{ scale: 1.05 }}
+                                          whileTap={{ scale: 0.95 }}
+                                        >
+                                          <span className="total-label">Unidades OK</span>
+                                          <span className="total-value">{detallesOf.totales.unidadesOk.toLocaleString()}</span>
+                                          <FaCheckCircle className="total-icon" />
+                                        </motion.div>
+                                        <motion.div
+                                          className="total-card nok"
+                                          whileHover={{ scale: 1.05 }}
+                                          whileTap={{ scale: 0.95 }}
+                                        >
+                                          <span className="total-label">Unidades NOK</span>
+                                          <span className="total-value">{detallesOf.totales.unidadesNok.toLocaleString()}</span>
+                                          <FaExclamationTriangle className="total-icon" />
+                                        </motion.div>
+                                        <motion.div
+                                          className="total-card repro"
+                                          whileHover={{ scale: 1.05 }}
+                                          whileTap={{ scale: 0.95 }}
+                                        >
+                                          <span className="total-label">Reproceso</span>
+                                          <span className="total-value">{detallesOf.totales.unidadesRepro.toLocaleString()}</span>
+                                          <FaCog className="total-icon" />
+                                        </motion.div>
+                                        <motion.div
+                                          className="total-card time"
+                                          whileHover={{ scale: 1.05 }}
+                                          whileTap={{ scale: 0.95 }}
+                                        >
+                                          <span className="total-label">Tiempo Producción</span>
+                                          <span className="total-value">{Math.round(detallesOf.totales.tiempoProduccionHoras)}h</span>
+                                          <FaPlay className="total-icon" />
+                                        </motion.div>
+                                        <motion.div
+                                          className="total-card efficiency"
+                                          whileHover={{ scale: 1.05 }}
+                                          whileTap={{ scale: 0.95 }}
+                                        >
+                                          <span className="total-label">Eficiencia Real</span>
+                                          <span className="total-value">{calcularEficienciaReal(detallesOf)}%</span>
+                                          <FaChartLine className="total-icon" />
+                                        </motion.div>
+                                        <motion.div
+                                          className="total-card quality"
+                                          whileHover={{ scale: 1.05 }}
+                                          whileTap={{ scale: 0.95 }}
+                                        >
+                                          <span className="total-label">Calidad</span>
+                                          <span className="total-value">{Math.round(detallesOf.totales.calidad)}%</span>
+                                          <FaCheckCircle className="total-icon" />
+                                        </motion.div>
+                                      </div>
+                                    </motion.div>
+
+                                    {/* Gráfico interativo com Recharts */}
+                                    {detallesOf.graficos.fechas.length > 0 && (
+                                      <motion.div
+                                        className="detail-section"
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: 0.3 }}
+                                      >
+                                        <h4><FaChartLine /> Evolución de Producción por Día</h4>
+                                        <div className="recharts-container">
+                                          <ResponsiveContainer width="100%" height={300}>
+                                            <BarChart
+                                              data={detallesOf.graficos.fechas.map((fecha, idx) => ({
+                                                fecha: new Date(fecha).toLocaleDateString('es-ES', {
+                                                  day: '2-digit',
+                                                  month: '2-digit'
+                                                }),
+                                                ok: detallesOf.graficos.ok[idx],
+                                                nok: detallesOf.graficos.nok[idx],
+                                                tiempoProduccion: detallesOf.graficos.tiempoProduccion[idx] || 0
+                                              }))}
+                                              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                                            >
+                                              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                                              <XAxis
+                                                dataKey="fecha"
+                                                fontSize={12}
+                                                tick={{ fill: '#64748b' }}
+                                              />
+                                              <YAxis
+                                                fontSize={12}
+                                                tick={{ fill: '#64748b' }}
+                                              />
+                                              <Tooltip
+                                                contentStyle={{
+                                                  backgroundColor: '#ffffff',
+                                                  border: '1px solid #e2e8f0',
+                                                  borderRadius: '8px',
+                                                  boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)'
+                                                }}
+                                                formatter={(value, name) => [
+                                                  typeof value === 'number' ? value.toLocaleString() : value,
+                                                  name === 'ok' ? 'Unidades OK' : name === 'nok' ? 'Unidades NOK' : name
+                                                ]}
+                                              />
+                                              <Bar
+                                                dataKey="ok"
+                                                fill="#10b981"
+                                                name="ok"
+                                                radius={[4, 4, 0, 0]}
+                                              />
+                                              <Bar
+                                                dataKey="nok"
+                                                fill="#ef4444"
+                                                name="nok"
+                                                radius={[4, 4, 0, 0]}
+                                              />
+                                            </BarChart>
+                                          </ResponsiveContainer>
+                                        </div>
+                                        <div className="chart-legend">
+                                          <span className="legend-item ok">
+                                            <span className="legend-color"></span> Unidades OK
+                                          </span>
+                                          <span className="legend-item nok">
+                                            <span className="legend-color"></span> Unidades NOK
+                                          </span>
+                                        </div>
+                                      </motion.div>
+                                    )}
+
+                                    {/* Tabla de producción por día */}
+                                    <motion.div
+                                      className="detail-section"
+                                      initial={{ opacity: 0, y: 20 }}
+                                      animate={{ opacity: 1, y: 0 }}
+                                      transition={{ delay: 0.4 }}
+                                    >
+                                      <h4><FaTable /> Producción por Día y Turno</h4>
+                                      <div className="detail-table-container">
+                                        <table className="detail-table">
+                                          <thead>
+                                            <tr>
+                                              <th>Fecha</th>
+                                              <th>Turno</th>
+                                              <th>OK</th>
+                                              <th>NOK</th>
+                                              <th>Repro</th>
+                                              <th>Tiempo Prod.</th>
+                                              <th>Actividad</th>
+                                              <th>Velocidad</th>
+                                              <th>Acciones</th>
+                                            </tr>
+                                          </thead>
+                                          <tbody>
+                                            {detallesOf.produccionPorDia.map((dia, idx) => (
+                                              <tr key={idx}>
+                                                <td>{dia.fecha}</td>
+                                                <td>{dia.descTurno}</td>
+                                                <td className="ok-value">{dia.unidadesOk.toLocaleString()}</td>
+                                                <td className="nok-value">{dia.unidadesNok.toLocaleString()}</td>
+                                                <td>{dia.unidadesRepro.toLocaleString()}</td>
+                                                <td>{formatDuration(dia.tiempoProduccionMin)}</td>
+                                                <td><span className="actividad-badge">{dia.descActividad}</span></td>
+                                                <td>{dia.velocidadMedia.toFixed(2)} u/h</td>
+                                                <td>
+                                                  <button
+                                                    onClick={() => handleShowParosTurno(dia.turno, dia.fecha)}
+                                                    className="action-btn-turno"
+                                                    title="Ver paros deste turno"
+                                                  >
+                                                    <FaEllipsisV />
+                                                  </button>
+                                                </td>
+                                              </tr>
+                                            ))}
+                                          </tbody>
+                                        </table>
+                                      </div>
+                                    </motion.div>
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Paginación */}
+              {totalPages > 1 && (
+                <div className="pagination">
+                  <button
+                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                    className="pagination-btn"
+                  >
+                    <i className="fas fa-chevron-left"></i>
+                  </button>
+
+                  <div className="pagination-info">
+                    Página {currentPage} de {totalPages} ({ofs.length} OFs totales)
+                  </div>
+
+                  <button
+                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                    disabled={currentPage === totalPages}
+                    className="pagination-btn"
+                  >
+                    <i className="fas fa-chevron-right"></i>
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="of-modal-footer">
+          <div className="of-count">
+            <i className="fas fa-list"></i>
+            <span>{ofs.length} {ofs.length === 1 ? 'OF encontrada' : 'OFs encontradas'}</span>
+          </div>
+          <button onClick={onClose} className="of-close-btn">
+            Cerrar
+          </button>
+        </div>
+      </div>
+
+      {/* Modal de paros da OF */}
+      <AnimatePresence>
+        {showParosOf && (
+          <motion.div
+            className="paros-modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowParosOf(false)}
+          >
+            <motion.div
+              className="paros-modal-content"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="paros-modal-header">
+                <h3><FaPause /> Paros da OF: {expandedOf}</h3>
+                <button
+                  onClick={() => setShowParosOf(false)}
+                  className="paros-modal-close"
+                >
+                  <i className="fas fa-times"></i>
+                </button>
+              </div>
+              <div className="paros-modal-body">
+                {loadingParosOf ? (
+                  <div className="paros-loading">
+                    <div className="paros-spinner"></div>
+                    <p>Cargando paros...</p>
+                  </div>
+                ) : parosOf.length > 0 ? (
+                  <div className="paros-list">
+                    {parosOf.map((paro, idx) => (
+                      <div key={idx} className="paro-item">
+                        <div className="paro-header">
+                          <span className="paro-fecha">{paro.fecha} - {paro.descTurno}</span>
+                          <span className="paro-tiempo">{formatDuration(paro.tiempoMin)}</span>
+                        </div>
+                        <div className="paro-details">
+                          <div className="paro-info">
+                            <strong>{paro.descTipoParo}</strong>
+                            {paro.descCausa && <span className="paro-causa"> • {paro.descCausa}</span>}
+                          </div>
+                          {paro.operador && (
+                            <div className="paro-operador">
+                              <i className="fas fa-user"></i> {paro.operador}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="paros-empty">
+                    <i className="fas fa-check-circle"></i>
+                    <p>No se encontraron paros para esta OF</p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal de paros do turno */}
+      <AnimatePresence>
+        {showParosTurno && (
+          <motion.div
+            className="paros-modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowParosTurno(false)}
+          >
+            <motion.div
+              className="paros-modal-content"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="paros-modal-header">
+                <h3><FaPause /> Paros do Turno: {selectedTurnoForParos}</h3>
+                <button
+                  onClick={() => setShowParosTurno(false)}
+                  className="paros-modal-close"
+                >
+                  <i className="fas fa-times"></i>
+                </button>
+              </div>
+              <div className="paros-modal-body">
+                {loadingParosTurno ? (
+                  <div className="paros-loading">
+                    <div className="paros-spinner"></div>
+                    <p>Cargando paros...</p>
+                  </div>
+                ) : parosTurno.length > 0 ? (
+                  <div className="paros-list">
+                    {parosTurno.map((paro, idx) => (
+                      <div key={idx} className="paro-item">
+                        <div className="paro-header">
+                          <span className="paro-of">OF: {paro.codOf} - {paro.descProducto}</span>
+                          <span className="paro-tiempo">{formatDuration(paro.tiempoMin)}</span>
+                        </div>
+                        <div className="paro-details">
+                          <div className="paro-info">
+                            <strong>{paro.descTipoParo}</strong>
+                            {paro.descCausa && <span className="paro-causa"> • {paro.descCausa}</span>}
+                          </div>
+                          {paro.operador && (
+                            <div className="paro-operador">
+                              <i className="fas fa-user"></i> {paro.operador}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="paros-empty">
+                    <i className="fas fa-check-circle"></i>
+                    <p>No se encontraron paros para este turno</p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <style jsx>{`
+        .modal-backdrop {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(241, 245, 249, 0.85);
+          z-index: 9998;
+          backdrop-filter: blur(4px);
+        }
+
+        .of-list-modal-enhanced {
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background: white;
+          border-radius: 20px;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+          z-index: 9999;
+          width: 98%;
+          max-width: 1600px;
+          max-height: 90vh;
+          display: flex;
+          flex-direction: column;
+          animation: modalSlideIn 0.3s ease-out;
+        }
+
+        @keyframes modalSlideIn {
+          from {
+            opacity: 0;
+            transform: translate(-50%, -45%);
+          }
+          to {
+            opacity: 1;
+            transform: translate(-50%, -50%);
+          }
+        }
+
+        .of-modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 1.5rem 2rem;
+          border-bottom: 2px solid #f1f5f9;
+          background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+          border-radius: 20px 20px 0 0;
+        }
+
+        .of-modal-title {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+        }
+
+        .of-modal-title i {
+          font-size: 1.8rem;
+          color: #8b5cf6;
+        }
+
+        .of-modal-title h2 {
+          margin: 0;
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: #1e293b;
+        }
+
+        .of-modal-subtitle {
+          margin: 0.25rem 0 0 0;
+          font-size: 0.95rem;
+          color: #64748b;
+          font-weight: 500;
+        }
+
+        .of-modal-close {
+          background: white;
+          border: 2px solid #e2e8f0;
+          width: 40px;
+          height: 40px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.2s;
+          color: #64748b;
+          font-size: 1.2rem;
+        }
+
+        .of-modal-close:hover {
+          background: #fee2e2;
+          border-color: #fecaca;
+          color: #dc2626;
+          transform: scale(1.05);
+        }
+
+        .of-filters-section {
+          padding: 1.5rem 2rem;
+          border-bottom: 1px solid #f1f5f9;
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-end;
+          flex-wrap: wrap;
+          gap: 1rem;
+        }
+
+        .of-filters {
+          display: flex;
+          gap: 1rem;
+          flex-wrap: wrap;
+          align-items: flex-end;
+        }
+
+        .filter-group {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
+        .filter-group label {
+          font-size: 0.875rem;
+          font-weight: 600;
+          color: #475569;
+        }
+
+        .filter-input-wrapper {
+          position: relative;
+        }
+
+        .filter-date-btn {
+          background: white;
+          border: 2px solid #e2e8f0;
+          padding: 0.625rem 1rem;
+          border-radius: 10px;
+          font-size: 0.875rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          color: #475569;
+          min-width: 160px;
+        }
+
+        .filter-date-btn:hover {
+          border-color: #8b5cf6;
+          color: #8b5cf6;
+        }
+
+        .calendar-dropdown {
+          position: absolute;
+          top: 100%;
+          left: 0;
+          margin-top: 0.5rem;
+          z-index: 10000;
+          background: white;
+          border-radius: 12px;
+          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+          padding: 1rem;
+        }
+
+        .clear-filters-btn {
+          background: #fef2f2;
+          border: 2px solid #fecaca;
+          color: #dc2626;
+          padding: 0.625rem 1rem;
+          border-radius: 10px;
+          font-size: 0.875rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .clear-filters-btn:hover {
+          background: #fee2e2;
+          transform: translateY(-1px);
+        }
+
+        .of-actions {
+          display: flex;
+          gap: 0.75rem;
+        }
+
+        .export-btn {
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          color: white;
+          border: none;
+          padding: 0.625rem 1.25rem;
+          border-radius: 10px;
+          font-weight: 600;
+          font-size: 0.875rem;
+          cursor: pointer;
+          transition: all 0.2s;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .export-btn:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
+        }
+
+        .export-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .of-modal-body {
+          flex: 1;
+          overflow-y: auto;
+          padding: 1.5rem 2rem;
+          min-height: 400px;
+        }
+
+        .of-loading,
+        .of-error,
+        .of-empty {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          min-height: 400px;
+          gap: 1rem;
+        }
+
+        .of-spinner, .detail-spinner {
+          width: 50px;
+          height: 50px;
+          border: 4px solid #f1f5f9;
+          border-top-color: #8b5cf6;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        }
+
+        .detail-spinner {
+          width: 30px;
+          height: 30px;
+          border-width: 3px;
+        }
+
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        .of-loading p,
+        .of-error p,
+        .of-empty p {
+          font-size: 1.1rem;
+          color: #64748b;
+          margin: 0;
+        }
+
+        .of-error i,
+        .of-empty i {
+          font-size: 3rem;
+          color: #cbd5e1;
+        }
+
+        .of-error i {
+          color: #f87171;
+        }
+
+        .clear-filters-btn-large {
+          margin-top: 1rem;
+          background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+          color: white;
+          border: none;
+          padding: 0.75rem 1.5rem;
+          border-radius: 10px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .clear-filters-btn-large:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 10px 25px rgba(139, 92, 246, 0.3);
+        }
+
+        .of-table-container {
+          overflow-x: auto;
+          border-radius: 12px;
+          border: 1px solid #e2e8f0;
+          margin-bottom: 1.5rem;
+        }
+
+        .of-table {
+          width: 100%;
+          border-collapse: collapse;
+          background: white;
+        }
+
+        .of-table thead {
+          background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+          color: white;
+        }
+
+        .of-table th {
+          padding: 1rem;
+          text-align: left;
+          font-weight: 600;
+          font-size: 0.9rem;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          white-space: nowrap;
+        }
+
+        .of-table tbody tr {
+          border-bottom: 1px solid #f1f5f9;
+          transition: background 0.2s;
+        }
+
+        .of-table tbody tr:hover:not(.detail-row) {
+          background: #f8fafc;
+        }
+
+        .of-table tbody tr.expanded-row {
+          background: #f0fdf4;
+        }
+
+        .of-table tbody tr:last-child {
+          border-bottom: none;
+        }
+
+        .of-table td {
+          padding: 1rem;
+          font-size: 0.9rem;
+          color: #334155;
+        }
+
+        .expand-btn {
+          background: none;
+          border: none;
+          cursor: pointer;
+          color: #8b5cf6;
+          font-size: 1rem;
+          padding: 0.25rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s;
+        }
+
+        .expand-btn:hover {
+          color: #7c3aed;
+          transform: scale(1.2);
+        }
+
+        .of-code {
+          font-weight: 600;
+          color: #1e293b;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .of-code i {
+          color: #8b5cf6;
+          font-size: 0.9rem;
+        }
+
+        .of-product {
+          max-width: 250px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .of-estado-badge {
+          display: inline-block;
+          padding: 0.4rem 0.8rem;
+          border-radius: 8px;
+          color: white;
+          font-weight: 600;
+          font-size: 0.8rem;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          white-space: nowrap;
+        }
+
+        .of-date {
+          color: #64748b;
+          font-size: 0.85rem;
+          white-space: nowrap;
+        }
+
+        .of-duration {
+          font-weight: 600;
+          color: #8b5cf6;
+        }
+
+        .of-number {
+          text-align: right;
+          font-weight: 600;
+          font-variant-numeric: tabular-nums;
+        }
+
+        .of-ok {
+          color: #10b981;
+        }
+
+        .of-nok {
+          color: #ef4444;
+        }
+
+        .of-progress {
+          min-width: 150px;
+        }
+
+        .progress-bar-container {
+          height: 8px;
+          background: #f1f5f9;
+          border-radius: 4px;
+          overflow: hidden;
+          margin-bottom: 0.25rem;
+        }
+
+        .progress-bar-fill {
+          height: 100%;
+          background: linear-gradient(90deg, #8b5cf6 0%, #7c3aed 100%);
+          transition: width 0.3s ease;
+          border-radius: 4px;
+        }
+
+        .progress-text {
+          font-size: 0.8rem;
+          font-weight: 600;
+          color: #64748b;
+        }
+
+        .detail-row {
+          background: #f8fafc !important;
+        }
+
+        .detail-content {
+          padding: 2rem;
+          border-top: 2px solid #e2e8f0;
+        }
+
+        .detail-loading {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 1rem;
+          padding: 2rem;
+        }
+
+        .detail-sections {
+          display: flex;
+          flex-direction: column;
+          gap: 2rem;
+        }
+
+        .detail-section h4 {
+          margin: 0 0 1rem 0;
+          color: #1e293b;
+          font-size: 1.1rem;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .detail-section h4 i {
+          color: #8b5cf6;
+        }
+
+        .totales-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+          gap: 1rem;
+        }
+
+        .total-card {
+          background: white;
+          border: 2px solid #e2e8f0;
+          border-radius: 12px;
+          padding: 1rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
+        .total-card.ok {
+          border-color: #10b981;
+          background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+        }
+
+        .total-card.nok {
+          border-color: #ef4444;
+          background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+        }
+
+        .total-card.repro {
+          border-color: #f59e0b;
+          background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+        }
+
+        .total-card.time {
+          border-color: #3b82f6;
+          background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+        }
+
+        .total-card.efficiency, .total-card.quality {
+          border-color: #8b5cf6;
+          background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+        }
+
+        .total-label {
+          font-size: 0.875rem;
+          color: #64748b;
+          font-weight: 500;
+        }
+
+        .total-value {
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: #1e293b;
+        }
+
+        .simple-chart {
+          display: flex;
+          gap: 1rem;
+          padding: 2rem 1rem;
+          background: #f8fafc;
+          border-radius: 12px;
+          align-items: flex-end;
+          min-height: 200px;
+          overflow-x: auto;
+        }
+
+        .chart-bar-group {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.5rem;
+          min-width: 60px;
+        }
+
+        .chart-bars {
+          display: flex;
+          gap: 4px;
+          align-items: flex-end;
+          height: 150px;
+        }
+
+        .chart-bar {
+          width: 20px;
+          border-radius: 4px 4px 0 0;
+          transition: all 0.3s;
+          cursor: pointer;
+          min-height: 2px;
+        }
+
+        .chart-bar.ok-bar {
+          background: linear-gradient(to top, #10b981, #34d399);
+        }
+
+        .chart-bar.nok-bar {
+          background: linear-gradient(to top, #ef4444, #f87171);
+        }
+
+        .chart-bar:hover {
+          opacity: 0.8;
+          transform: scaleY(1.05);
+        }
+
+        .chart-label {
+          font-size: 0.75rem;
+          color: #64748b;
+          font-weight: 500;
+        }
+
+        .chart-legend {
+          display: flex;
+          justify-content: center;
+          gap: 2rem;
+          margin-top: 1rem;
+        }
+
+        .legend-item {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-size: 0.875rem;
+          color: #64748b;
+          font-weight: 500;
+        }
+
+        .legend-item .legend-color {
+          width: 20px;
+          height: 12px;
+          border-radius: 4px;
+        }
+
+        .legend-item.ok .legend-color {
+          background: #10b981;
+        }
+
+        .legend-item.nok .legend-color {
+          background: #ef4444;
+        }
+
+        .detail-table-container {
+          overflow-x: auto;
+          border-radius: 12px;
+          border: 1px solid #e2e8f0;
+        }
+
+        .detail-table {
+          width: 100%;
+          border-collapse: collapse;
+        }
+
+        .detail-table thead {
+          background: #f8fafc;
+        }
+
+        .detail-table th {
+          padding: 0.75rem 1rem;
+          text-align: left;
+          font-weight: 600;
+          font-size: 0.875rem;
+          color: #475569;
+          border-bottom: 2px solid #e2e8f0;
+        }
+
+        .detail-table td {
+          padding: 0.75rem 1rem;
+          font-size: 0.875rem;
+          color: #334155;
+          border-bottom: 1px solid #f1f5f9;
+        }
+
+        .detail-table tbody tr:hover {
+          background: #f8fafc;
+        }
+
+        .ok-value {
+          color: #10b981;
+          font-weight: 600;
+        }
+
+        .nok-value {
+          color: #ef4444;
+          font-weight: 600;
+        }
+
+        .actividad-badge {
+          background: #f1f5f9;
+          padding: 0.25rem 0.5rem;
+          border-radius: 6px;
+          font-size: 0.75rem;
+          font-weight: 500;
+          color: #64748b;
+        }
+
+        .pagination {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          gap: 1rem;
+          padding: 1rem;
+          border-top: 1px solid #f1f5f9;
+        }
+
+        .pagination-btn {
+          background: white;
+          border: 2px solid #e2e8f0;
+          width: 36px;
+          height: 36px;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.2s;
+          color: #64748b;
+        }
+
+        .pagination-btn:hover:not(:disabled) {
+          border-color: #8b5cf6;
+          color: #8b5cf6;
+          transform: scale(1.05);
+        }
+
+        .pagination-btn:disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
+        }
+
+        .pagination-info {
+          font-size: 0.875rem;
+          color: #64748b;
+          font-weight: 500;
+        }
+
+        .of-modal-footer {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 1.5rem 2rem;
+          border-top: 2px solid #f1f5f9;
+          background: #f8fafc;
+          border-radius: 0 0 20px 20px;
+        }
+
+        .of-count {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          color: #64748b;
+          font-weight: 600;
+        }
+
+        .of-count i {
+          color: #8b5cf6;
+        }
+
+        .of-close-btn {
+          background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+          color: white;
+          border: none;
+          padding: 0.75rem 2rem;
+          border-radius: 10px;
+          font-weight: 600;
+          font-size: 1rem;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .of-close-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 10px 25px rgba(139, 92, 246, 0.3);
+        }
+
+        @media (max-width: 1200px) {
+          .of-list-modal-enhanced {
+            width: 98%;
+            max-height: 95vh;
+          }
+
+          .totales-grid {
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+          }
+        }
+
+        /* Novos estilos para componentes melhorados */
+
+        .action-buttons {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .menu-btn {
+          background: transparent;
+          border: 1px solid #e2e8f0;
+          width: 32px;
+          height: 32px;
+          border-radius: 6px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          color: #64748b;
+          font-size: 0.9rem;
+          transition: all 0.2s;
+        }
+
+        .menu-btn:hover {
+          background: #f8fafc;
+          border-color: #8b5cf6;
+          color: #8b5cf6;
+        }
+
+        .dropdown-menu {
+          position: relative;
+        }
+
+        .dropdown-content {
+          position: absolute;
+          top: 100%;
+          right: 0;
+          background: white;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          min-width: 160px;
+          z-index: 1000;
+          opacity: 0;
+          visibility: hidden;
+          transform: translateY(-10px);
+          transition: all 0.2s ease;
+        }
+
+        .dropdown-menu:hover .dropdown-content {
+          opacity: 1;
+          visibility: visible;
+          transform: translateY(0);
+        }
+
+        .dropdown-item {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.75rem 1rem;
+          border: none;
+          background: none;
+          cursor: pointer;
+          width: 100%;
+          text-align: left;
+          font-size: 0.875rem;
+          color: #475569;
+          transition: background 0.2s;
+        }
+
+        .dropdown-item:hover {
+          background: #f8fafc;
+          color: #8b5cf6;
+        }
+
+        .dropdown-item:first-child {
+          border-radius: 8px 8px 0 0;
+        }
+
+        .dropdown-item:last-child {
+          border-radius: 0 0 8px 8px;
+        }
+
+        .total-icon {
+          font-size: 1.2rem;
+          margin-left: auto;
+        }
+
+        .recharts-container {
+          background: #f8fafc;
+          border-radius: 12px;
+          padding: 1rem;
+          margin: 1rem 0;
+        }
+
+        .action-btn-turno {
+          background: transparent;
+          border: 1px solid #e2e8f0;
+          width: 28px;
+          height: 28px;
+          border-radius: 4px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          color: #64748b;
+          font-size: 0.8rem;
+          transition: all 0.2s;
+        }
+
+        .action-btn-turno:hover {
+          background: #8b5cf6;
+          border-color: #8b5cf6;
+          color: white;
+        }
+
+        /* Modais de paros */
+        .paros-modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 10000;
+        }
+
+        .paros-modal-content {
+          background: white;
+          border-radius: 16px;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+          max-width: 600px;
+          width: 90%;
+          max-height: 80vh;
+          display: flex;
+          flex-direction: column;
+          animation: modalSlideIn 0.3s ease-out;
+        }
+
+        .paros-modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 1.5rem 2rem;
+          border-bottom: 1px solid #e2e8f0;
+          background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+          border-radius: 16px 16px 0 0;
+        }
+
+        .paros-modal-header h3 {
+          margin: 0;
+          font-size: 1.25rem;
+          font-weight: 600;
+          color: #1e293b;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .paros-modal-close {
+          background: white;
+          border: 1px solid #e2e8f0;
+          width: 36px;
+          height: 36px;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          color: #64748b;
+          transition: all 0.2s;
+        }
+
+        .paros-modal-close:hover {
+          background: #fee2e2;
+          border-color: #fecaca;
+          color: #dc2626;
+        }
+
+        .paros-modal-body {
+          flex: 1;
+          overflow-y: auto;
+          padding: 1.5rem 2rem;
+          max-height: 500px;
+        }
+
+        .paros-loading,
+        .paros-empty {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 3rem 1rem;
+          gap: 1rem;
+        }
+
+        .paros-spinner {
+          width: 40px;
+          height: 40px;
+          border: 3px solid #f1f5f9;
+          border-top-color: #8b5cf6;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        }
+
+        .paros-loading p,
+        .paros-empty p {
+          color: #64748b;
+          margin: 0;
+          font-size: 1rem;
+        }
+
+        .paros-empty i {
+          font-size: 2.5rem;
+          color: #10b981;
+        }
+
+        .paros-list {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        .paro-item {
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          padding: 1rem;
+          transition: all 0.2s;
+        }
+
+        .paro-item:hover {
+          border-color: #8b5cf6;
+          box-shadow: 0 4px 12px rgba(139, 92, 246, 0.1);
+        }
+
+        .paro-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 0.5rem;
+        }
+
+        .paro-fecha,
+        .paro-of {
+          font-weight: 600;
+          color: #1e293b;
+          font-size: 0.9rem;
+        }
+
+        .paro-tiempo {
+          background: #8b5cf6;
+          color: white;
+          padding: 0.25rem 0.5rem;
+          border-radius: 6px;
+          font-size: 0.8rem;
+          font-weight: 600;
+        }
+
+        .paro-details {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
+        .paro-info {
+          font-size: 0.9rem;
+          color: #475569;
+        }
+
+        .paro-causa {
+          color: #64748b;
+        }
+
+        .paro-operador {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-size: 0.85rem;
+          color: #64748b;
+        }
+
+        .paro-operador i {
+          color: #8b5cf6;
+        }
+
+        @media (max-width: 768px) {
+          .of-filters-section {
+            flex-direction: column;
+            align-items: stretch;
+          }
+
+          .of-filters {
+            flex-direction: column;
+          }
+
+          .of-actions {
+            width: 100%;
+          }
+
+          .export-btn {
+            width: 100%;
+            justify-content: center;
+          }
+
+          .totales-grid {
+            grid-template-columns: 1fr 1fr;
+          }
+
+          .recharts-container {
+            padding: 0.5rem;
+          }
+
+          .paros-modal-content {
+            width: 95%;
+            max-height: 90vh;
+          }
+
+          .paros-modal-header,
+          .paros-modal-body {
+            padding: 1rem 1.5rem;
+          }
+        }
+      `}</style>
+    </>
+  );
+}
