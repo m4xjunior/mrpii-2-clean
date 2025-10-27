@@ -1028,6 +1028,7 @@ export default function DashboardOrderCard({
 
   // Estado para controlar exibição da descrição do status
   const [showStatusDescription, setShowStatusDescription] = useState(false);
+  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const [statusElapsedSeconds, setStatusElapsedSeconds] = useState(0);
   const [statusSegments, setStatusSegments] = useState<StatusSegment[]>([]);
   const statusSegmentsRef = useRef<StatusSegment[]>([]);
@@ -1623,6 +1624,23 @@ export default function DashboardOrderCard({
     }
   }, [ofCode]);
 
+  // Fechar menu de opções ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showOptionsMenu) {
+        setShowOptionsMenu(false);
+      }
+    };
+
+    if (showOptionsMenu) {
+      document.addEventListener("click", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("click", handleClickOutside);
+    };
+  }, [showOptionsMenu]);
+
   if (loading && !data) {
     return (
       <div className="ff-card ff-card--loading" title={machineId}>
@@ -1771,6 +1789,137 @@ export default function DashboardOrderCard({
               <span className="ff-card__machine" title={data.machineCode}>
                 {data.machineName}
               </span>
+            </div>
+            {/* Menu de opções (três pontinhos) */}
+            <div style={{ position: "relative", marginLeft: "auto" }}>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowOptionsMenu(!showOptionsMenu);
+                }}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: "4px 8px",
+                  fontSize: "18px",
+                  color: "#64748b",
+                  transition: "color 0.2s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "#334155";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "#64748b";
+                }}
+                title="Opciones"
+                aria-label="Opciones del card"
+              >
+                ⋮
+              </button>
+              {showOptionsMenu && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "100%",
+                    right: "0",
+                    marginTop: "4px",
+                    background: "white",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "8px",
+                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+                    minWidth: "180px",
+                    zIndex: 1000,
+                    overflow: "hidden",
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowOptionsMenu(false);
+                      if (effectiveData) {
+                        onSelect?.(effectiveData);
+                      }
+                    }}
+                    style={{
+                      width: "100%",
+                      padding: "12px 16px",
+                      border: "none",
+                      background: "transparent",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      fontSize: "14px",
+                      color: "#334155",
+                      transition: "background-color 0.2s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = "#f8fafc";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = "transparent";
+                    }}
+                  >
+                    <i className="fas fa-info-circle" style={{ marginRight: "8px" }}></i>
+                    Ver detalles
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowOptionsMenu(false);
+                      // Adicione ação aqui
+                    }}
+                    style={{
+                      width: "100%",
+                      padding: "12px 16px",
+                      border: "none",
+                      background: "transparent",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      fontSize: "14px",
+                      color: "#334155",
+                      transition: "background-color 0.2s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = "#f8fafc";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = "transparent";
+                    }}
+                  >
+                    <i className="fas fa-chart-line" style={{ marginRight: "8px" }}></i>
+                    Ver estadísticas
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowOptionsMenu(false);
+                      // Adicione ação aqui
+                    }}
+                    style={{
+                      width: "100%",
+                      padding: "12px 16px",
+                      border: "none",
+                      background: "transparent",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      fontSize: "14px",
+                      color: "#334155",
+                      transition: "background-color 0.2s",
+                      borderTop: "1px solid #e2e8f0",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = "#f8fafc";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = "transparent";
+                    }}
+                  >
+                    <i className="fas fa-cog" style={{ marginRight: "8px" }}></i>
+                    Configurar
+                  </button>
+                </div>
+              )}
             </div>
             <div style={{ position: "relative", display: "inline-block" }}>
               <span
