@@ -14,7 +14,7 @@ import { NextRequest, NextResponse } from 'next/server';
 /**
  * ⚠️ API DESATIVADA - USANDO WEBHOOK SCADA
  *
- * Esta API foi substituída pelo webhook em http://localhost:5678/webhook/scada
+ * Esta API foi substituída pelo webhook em https://n8n.lexusfx.com/webhook/scada
  * Os dados de campos das máquinas agora vêm diretamente do webhook via hook useWebhookMachine
  *
  * Data de desativação: 2025-10-15
@@ -25,8 +25,8 @@ export async function POST(request: NextRequest) {
     {
       success: false,
       error: "API desativada",
-      message: "Esta API foi substituída pelo webhook SCADA. Use http://localhost:5678/webhook/scada",
-      redirect: "http://localhost:5678/webhook/scada",
+      message: "Esta API foi substituída pelo webhook SCADA. Use https://n8n.lexusfx.com/webhook/scada",
+      redirect: "https://n8n.lexusfx.com/webhook/scada",
       timestamp: new Date().toISOString(),
     },
     { status: 410 },

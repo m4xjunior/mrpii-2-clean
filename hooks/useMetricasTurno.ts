@@ -30,7 +30,7 @@ export function useMetricasTurno(
   const {
     refreshInterval = 0,
     autoFetch = true,
-    webhookUrl = 'http://localhost:5678/webhook/metricasturno',
+    webhookUrl = 'https://n8n.lexusfx.com/webhook/metricasturno',
   } = options;
 
   const [data, setData] = useState<MetricasTurnoData | null>(null);

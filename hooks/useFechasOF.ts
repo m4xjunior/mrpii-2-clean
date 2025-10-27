@@ -82,7 +82,7 @@ export function useFechasOF(
   const {
     refreshInterval = 0, // Por defecto sin auto-refresh
     autoFetch = true,
-    webhookUrl = 'http://localhost:5678/webhook/fechav2',
+    webhookUrl = 'https://n8n.lexusfx.com/webhook/fechav2',
   } = options;
 
   const [data, setData] = useState<FechasOFData | null>(null);

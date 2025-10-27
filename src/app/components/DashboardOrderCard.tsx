@@ -523,7 +523,7 @@ export default function DashboardOrderCard({
     {
       refreshInterval: 60000,
       autoFetch: true,
-      webhookUrl: 'http://localhost:5678/webhook/fechav2',
+      webhookUrl: 'https://n8n.lexusfx.com/webhook/fechav2',
     }
   );
 
@@ -544,6 +544,30 @@ export default function DashboardOrderCard({
   // Usar baseData diretamente sem combinar velocidade
   const effectiveData = baseData;
 
+  const hasOfMetrics = Boolean(
+    effectiveData &&
+    effectiveData.oee_of !== null && effectiveData.oee_of !== undefined &&
+    effectiveData.disponibilidad_of !== null && effectiveData.disponibilidad_of !== undefined &&
+    effectiveData.rendimiento_of !== null && effectiveData.rendimiento_of !== undefined &&
+    effectiveData.calidad_of !== null && effectiveData.calidad_of !== undefined
+  );
+
+  const hasTurnoMetrics = Boolean(
+    effectiveData &&
+    effectiveData.oee_turno !== null && effectiveData.oee_turno !== undefined &&
+    effectiveData.disponibilidad !== null && effectiveData.disponibilidad !== undefined &&
+    effectiveData.rendimiento !== null && effectiveData.rendimiento !== undefined &&
+    effectiveData.calidad !== null && effectiveData.calidad !== undefined
+  );
+
+  const baseVelocityCurrent = typeof effectiveData?.velocity?.current === 'number'
+    ? effectiveData.velocity.current
+    : null;
+  const baseVelocityNominal = typeof effectiveData?.velocity?.nominal === 'number'
+    ? effectiveData.velocity.nominal
+    : null;
+  const hasVelocity = baseVelocityCurrent !== null && baseVelocityCurrent > 0;
+
   const activeOfCode =
     ofCode ??
     effectiveData?.currentOF ??
@@ -556,9 +580,9 @@ export default function DashboardOrderCard({
     activeOfCode,
     machineId,
     {
-      refreshInterval: 30000, // Atualizar a cada 30 segundos
-      autoFetch: true,
-      webhookUrl: 'http://localhost:5678/webhook/metricasof'
+      refreshInterval: hasOfMetrics ? 0 : 30000,
+      autoFetch: !hasOfMetrics,
+      webhookUrl: 'https://n8n.lexusfx.com/webhook/metricasof'
     }
   );
 
@@ -567,9 +591,9 @@ export default function DashboardOrderCard({
     activeOfCode,
     machineId,
     {
-      refreshInterval: 30000,
-      autoFetch: true,
-      webhookUrl: 'http://localhost:5678/webhook/velocidad'
+      refreshInterval: hasVelocity ? 0 : 30000,
+      autoFetch: !hasVelocity,
+      webhookUrl: 'https://n8n.lexusfx.com/webhook/velocidad'
     }
   );
 
@@ -590,9 +614,9 @@ export default function DashboardOrderCard({
     activeOfCode,
     machineId,
     {
-      refreshInterval: 30000,
-      autoFetch: true,
-      webhookUrl: 'http://localhost:5678/webhook/metricasturno',
+      refreshInterval: hasTurnoMetrics ? 0 : 30000,
+      autoFetch: !hasTurnoMetrics,
+      webhookUrl: 'https://n8n.lexusfx.com/webhook/metricasturno',
     }
   );
 
@@ -606,7 +630,7 @@ export default function DashboardOrderCard({
   } = useCalidadNOK(activeOfCode, machineId, {
     refreshInterval: 30000,
     autoFetch: true,
-    webhookUrl: 'http://localhost:5678/webhook/calidad',
+    webhookUrl: 'https://n8n.lexusfx.com/webhook/calidad',
   });
 
   // Debug básico (remova em produção)
@@ -661,9 +685,8 @@ export default function DashboardOrderCard({
     dispTurno: metricasTurnoData?.disponibilidad_turno ?? effectiveData.disponibilidad ?? (effectiveData.machine as any)?.["Disponibilidad turno"] ?? 0,
     rendTurno: metricasTurnoData?.rendimiento_turno ?? effectiveData.rendimiento ?? (effectiveData.machine as any)?.["Rendimiento turno"] ?? 0,
     calTurno: metricasTurnoData?.calidad_turno ?? effectiveData.calidad ?? (effectiveData.machine as any)?.["Calidad turno"] ?? 0,
-    // ⚠️ DESATIVADO - Dados de velocidade removidos
-    velActualUph: null,
-    velNominalUph: null,
+    velActualUph: baseVelocityCurrent,
+    velNominalUph: baseVelocityNominal,
     productoRef: effectiveData.product?.code ?? null,
     productoDesc: effectiveData.product?.description ?? effectiveData.machine?.Rt_Desc_producto ?? null,
     turnoLabel: effectiveData.order?.shift ?? effectiveData.rt_desc_turno ?? null,
@@ -711,8 +734,8 @@ export default function DashboardOrderCard({
   // 🔥 Parsear velocidad para extraer valores numéricos usando useMemo
   const { velUphNumber, velUpsNumber } = useMemo(() => {
     const velLabel = velocidadData?.velocidad || null;
-    let velUphNumber = 0;
-    let velUpsNumber = 0;
+    let velUphNumber = baseVelocityCurrent && baseVelocityCurrent > 0 ? baseVelocityCurrent : 0;
+    let velUpsNumber = velUphNumber > 0 ? velUphNumber / 3600 : 0;
 
     console.log('🔍 [DashboardOrderCard] useMemo ejecutado');
     console.log('🔍 [DashboardOrderCard] velocidadData completo:', velocidadData);
@@ -756,8 +779,12 @@ export default function DashboardOrderCard({
       console.log('⚠️ [DashboardOrderCard] velLabel es null/undefined, no hay nada que parsear');
     }
 
+    if (velUpsNumber === 0 && velUphNumber > 0) {
+      velUpsNumber = velUphNumber / 3600;
+    }
+
     return { velUphNumber, velUpsNumber };
-  }, [velocidadData?.velocidad]);
+  }, [velocidadData?.velocidad, baseVelocityCurrent]);
 
   // Atualização suave dos valores numéricos
   useEffect(() => {

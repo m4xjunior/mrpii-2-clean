@@ -56,7 +56,7 @@ export function useMetricasTurnoScada(
   const {
     refreshInterval = 0, // Por defecto sin auto-refresh
     autoFetch = true,
-    webhookUrl = 'http://localhost:5678/webhook/scada',
+    webhookUrl = 'https://n8n.lexusfx.com/webhook/scada',
   } = options;
 
   const [data, setData] = useState<MetricasTurnoScada | null>(null);

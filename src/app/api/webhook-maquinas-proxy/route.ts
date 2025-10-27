@@ -1,137 +1,157 @@
+import crypto from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 
-// URL do webhook N8N para buscar TODAS as máquinas de uma vez
-const N8N_WEBHOOK_MAQUINAS_URL = process.env.N8N_WEBHOOK_MAQUINAS_URL || 'http://localhost:5678/webhook/maquinas';
+import { fetchWithCache } from 'lib/server/cache';
 
-// 🔥 OTIMIZAÇÃO: Timeout reduzido para 3 segundos (igual ao N8N)
+const N8N_WEBHOOK_MAQUINAS_URL =
+  process.env.N8N_WEBHOOK_MAQUINAS_URL || 'https://n8n.lexusfx.com/webhook/maquinas';
+
 const REQUEST_TIMEOUT_MS = Math.max(
-  2000, // Mínimo 2 segundos
-  Number.parseInt(process.env.WEBHOOK_PROXY_TIMEOUT_MS ?? '3000', 10) || 3000
+  2000,
+  Number.parseInt(process.env.WEBHOOK_PROXY_TIMEOUT_MS ?? '3000', 10) || 3000,
 );
 
-// Ativar logs apenas em desenvolvimento
 const isDev = process.env.NODE_ENV === 'development';
 
-/**
- * Rota de API que atua como proxy para o webhook de TODAS AS MÁQUINAS do N8N.
- *
- * Este endpoint é otimizado para buscar todas as máquinas de uma vez,
- * em vez de fazer 15 requests individuais.
- *
- * @param req - A requisição recebida pelo Next.js
- */
+const CACHE_TTL_MS = Math.max(1000, Number.parseInt(process.env.WEBHOOK_MAQUINAS_CACHE_TTL_MS ?? '5000', 10));
+const STALE_TTL_MS = Math.max(0, Number.parseInt(process.env.WEBHOOK_MAQUINAS_CACHE_STALE_MS ?? '25000', 10));
+
+const cacheControlHeader = `public, max-age=${Math.floor(CACHE_TTL_MS / 1000)}, stale-while-revalidate=${Math.floor(
+  STALE_TTL_MS / 1000,
+)}`;
+
+const CACHE_KEY = `webhook-maquinas:${crypto.createHash('sha1').update('all-machines').digest('hex')}`;
+
+interface MachinesPayload {
+  payload: unknown;
+  elapsedMs: number;
+}
+
 export async function POST(req: NextRequest) {
   const startTime = Date.now();
 
   try {
-    // 🔥 OTIMIZAÇÃO 1: Obter body sem try-catch desnecessário
     const body = await req.json().catch(() => ({
       includeMetrics: { turno: true, of: true },
     }));
 
-    if (isDev) {
-      console.log('🔄 [API Proxy] Request:', { body, url: N8N_WEBHOOK_MAQUINAS_URL });
-    }
+    const { value, hit, stale } = await fetchWithCache<MachinesPayload>(
+      CACHE_KEY,
+      async () => {
+        if (isDev) {
+          console.log('🔄 [API Proxy] Request:', { body, url: N8N_WEBHOOK_MAQUINAS_URL });
+        }
 
-    // 🔥 OTIMIZAÇÃO 2: Timeout mais agressivo e fetch otimizado
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+        const fetchStart = Date.now();
 
-    let n8nResponse: Response;
-    const fetchStartTime = Date.now();
-    try {
-      n8nResponse = await fetch(N8N_WEBHOOK_MAQUINAS_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify(body),
-        cache: 'no-store',
-        signal: controller.signal,
-        // 🔥 OTIMIZAÇÃO 3: Configurações de conexão otimizadas
-        keepalive: true,
-      });
+        try {
+          const response = await fetch(N8N_WEBHOOK_MAQUINAS_URL, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Accept: 'application/json',
+            },
+            body: JSON.stringify(body),
+            cache: 'no-store',
+            signal: controller.signal,
+            keepalive: true,
+          });
 
-      const fetchTime = Date.now() - fetchStartTime;
-      if (isDev) {
-        console.log(`📡 [API Proxy] N8N respondeu em ${fetchTime}ms`);
-      }
-    } finally {
-      clearTimeout(timeoutId);
-    }
+          if (!response.ok) {
+            const errorBody = await response.text();
+            throw new ProxyRequestError(response.status, response.statusText, errorBody);
+          }
 
-    // 🔥 OTIMIZAÇÃO 4: Verificação rápida de erro
-    if (!n8nResponse.ok) {
-      const errorBody = await n8nResponse.text();
-      if (isDev) {
-        console.error('❌ [API Proxy] N8N Error:', {
-          status: n8nResponse.status,
-          body: errorBody.substring(0, 200),
-        });
-      }
-      return new NextResponse(errorBody, {
-        status: n8nResponse.status,
-        statusText: n8nResponse.statusText,
-      });
-    }
+          const payload = await response.json();
+          const elapsedMs = Date.now() - fetchStart;
 
-    // 🔥 OTIMIZAÇÃO 5: Parse e retorno direto sem logs desnecessários
-    const responseData = await n8nResponse.json();
+          if (isDev) {
+            console.log(`✅ [API Proxy] Sucesso em ${elapsedMs}ms:`, {
+              machines: Array.isArray(payload) ? payload.length : 'N/A',
+            });
+          }
 
-    if (isDev) {
-      const elapsed = Date.now() - startTime;
-      console.log(`✅ [API Proxy] Sucesso em ${elapsed}ms:`, {
-        machines: Array.isArray(responseData) ? responseData.length : 'N/A',
-      });
-    }
+          return { payload, elapsedMs } satisfies MachinesPayload;
+        } catch (error: any) {
+          if (error?.name === 'AbortError') {
+            throw new ProxyTimeoutError(Date.now() - fetchStart);
+          }
+          throw error;
+        } finally {
+          clearTimeout(timeoutId);
+        }
+      },
+      CACHE_TTL_MS,
+      STALE_TTL_MS,
+    );
 
-    // 🔥 OTIMIZAÇÃO 6: Headers de cache otimizados
-    return NextResponse.json(responseData, {
+    const responseTime = value.elapsedMs ?? Date.now() - startTime;
+
+    return NextResponse.json(value.payload, {
       status: 200,
       headers: {
-        'Cache-Control': 'no-store, max-age=0',
-        'X-Response-Time': `${Date.now() - startTime}ms`,
+        'Cache-Control': cacheControlHeader,
+        'X-Response-Time': `${responseTime}ms`,
+        'X-Cache': stale ? 'STALE' : hit ? 'HIT' : 'MISS',
+        'X-Cache-Key': CACHE_KEY,
       },
     });
-
   } catch (error: any) {
     const elapsed = Date.now() - startTime;
 
-    if (error?.name === 'AbortError') {
+    if (error instanceof ProxyTimeoutError) {
       if (isDev) {
-        console.error(`⏱️ [API Proxy] Timeout após ${elapsed}ms (limite: ${REQUEST_TIMEOUT_MS}ms)`);
+        console.error(`⏱️ [API Proxy] Timeout após ${error.elapsedMs}ms (limite: ${REQUEST_TIMEOUT_MS}ms)`);
       }
       return new NextResponse(
         JSON.stringify({
           message: 'Timeout ao contactar o webhook do N8N.',
           timeoutMs: REQUEST_TIMEOUT_MS,
-          elapsedMs: elapsed,
+          elapsedMs: error.elapsedMs,
         }),
         {
           status: 504,
           headers: { 'Content-Type': 'application/json' },
-        }
+        },
       );
     }
 
-    if (isDev) {
-      console.error(`💥 [API Proxy] Erro em ${elapsed}ms:`, error.message);
+    if (error instanceof ProxyRequestError) {
+      if (isDev) {
+        console.error('❌ [API Proxy] N8N Error:', {
+          status: error.status,
+          body: error.body?.slice(0, 200),
+        });
+      }
+      return new NextResponse(error.body ?? '', {
+        status: error.status,
+        statusText: error.statusText,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store',
+        },
+      });
     }
+
+    if (isDev) {
+      console.error(`💥 [API Proxy] Erro em ${elapsed}ms:`, error?.message ?? error);
+    }
+
     return new NextResponse(
       JSON.stringify({
         message: 'Erro interno no servidor proxy.',
-        error: isDev ? error.message : 'Internal server error',
+        error: isDev ? error?.message ?? 'Internal server error' : 'Internal server error',
       }),
       {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
-      }
+      },
     );
   }
 }
 
-// Handler para OPTIONS (CORS preflight)
 export async function OPTIONS(request: NextRequest) {
   return NextResponse.json({}, {
     status: 200,
@@ -141,4 +161,20 @@ export async function OPTIONS(request: NextRequest) {
       'Access-Control-Allow-Headers': 'Content-Type',
     },
   });
+}
+
+class ProxyRequestError extends Error {
+  constructor(
+    public readonly status: number,
+    public readonly statusText: string,
+    public readonly body?: string,
+  ) {
+    super(`Proxy request failed with status ${status}`);
+  }
+}
+
+class ProxyTimeoutError extends Error {
+  constructor(public readonly elapsedMs: number) {
+    super('Proxy request timed out');
+  }
 }

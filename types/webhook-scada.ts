@@ -1,6 +1,6 @@
 /**
  * Novo formato de dados do webhook SCADA (N8N)
- * URL: http://localhost:5678/webhook/scada
+ * URL: https://n8n.lexusfx.com/webhook/scada
  *
  * Este é o formato limpo e simplificado que vem do N8N
  */

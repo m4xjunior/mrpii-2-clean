@@ -62,7 +62,7 @@ export function useMetricasOF(
   const {
     refreshInterval = 0, // Por defecto sin auto-refresh
     autoFetch = true,
-    webhookUrl = 'http://localhost:5678/webhook/metricasof',
+    webhookUrl = 'https://n8n.lexusfx.com/webhook/metricasof',
   } = options;
 
   const [data, setData] = useState<MetricasOFData | null>(null);

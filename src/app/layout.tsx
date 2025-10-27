@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Script from "next/script";
+import React from "react";
 import "./globals.css";
 import { ThemeProvider } from "../../hooks/useTheme";
 
@@ -52,20 +54,47 @@ export default function RootLayout({
       <body>
         <ThemeProvider>{children}</ThemeProvider>
         {/* Removido pace.min.js para resolver erro de hidratação */}
-        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-        <script src="/assets/js/bootstrap.bundle.min.js"></script>
-        <script src="/assets/plugins/simplebar/js/simplebar.min.js"></script>
-        <script src="/assets/plugins/metismenu/js/metisMenu.min.js"></script>
-        <script src="/assets/plugins/perfect-scrollbar/js/perfect-scrollbar.js"></script>
-        <script src="/assets/plugins/vectormap/jquery-jvectormap-2.0.2.min.js"></script>
-        <script src="/assets/plugins/vectormap/jquery-jvectormap-world-mill-en.js"></script>
-        <script src="/assets/plugins/vectormap/jquery-jvectormap-in-mill.js"></script>
-        <script src="/assets/plugins/vectormap/jquery-jvectormap-us-aea-en.js"></script>
-        <script src="/assets/plugins/vectormap/jquery-jvectormap-uk-mill-en.js"></script>
-        <script src="/assets/plugins/vectormap/jquery-jvectormap-au-mill.js"></script>
-        <script src="/assets/plugins/apexcharts-bundle/js/apexcharts.min.js"></script>
-        <script src="/assets/js/index2.js"></script>
-        <script src="/assets/js/app.js"></script>
+        <Script
+          src="https://code.jquery.com/jquery-3.6.0.min.js"
+          strategy="afterInteractive"
+        />
+        <Script src="/assets/js/bootstrap.bundle.min.js" strategy="lazyOnload" />
+        <Script src="/assets/plugins/simplebar/js/simplebar.min.js" strategy="lazyOnload" />
+        <Script src="/assets/plugins/metismenu/js/metisMenu.min.js" strategy="lazyOnload" />
+        <Script
+          src="/assets/plugins/perfect-scrollbar/js/perfect-scrollbar.js"
+          strategy="lazyOnload"
+        />
+        <Script
+          src="/assets/plugins/vectormap/jquery-jvectormap-2.0.2.min.js"
+          strategy="lazyOnload"
+        />
+        <Script
+          src="/assets/plugins/vectormap/jquery-jvectormap-world-mill-en.js"
+          strategy="lazyOnload"
+        />
+        <Script
+          src="/assets/plugins/vectormap/jquery-jvectormap-in-mill.js"
+          strategy="lazyOnload"
+        />
+        <Script
+          src="/assets/plugins/vectormap/jquery-jvectormap-us-aea-en.js"
+          strategy="lazyOnload"
+        />
+        <Script
+          src="/assets/plugins/vectormap/jquery-jvectormap-uk-mill-en.js"
+          strategy="lazyOnload"
+        />
+        <Script
+          src="/assets/plugins/vectormap/jquery-jvectormap-au-mill.js"
+          strategy="lazyOnload"
+        />
+        <Script
+          src="/assets/plugins/apexcharts-bundle/js/apexcharts.min.js"
+          strategy="lazyOnload"
+        />
+        <Script src="/assets/js/index2.js" strategy="lazyOnload" />
+        <Script src="/assets/js/app.js" strategy="lazyOnload" />
       </body>
     </html>
   );
