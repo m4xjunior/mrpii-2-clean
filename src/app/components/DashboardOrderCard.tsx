@@ -213,6 +213,8 @@ interface DashboardOrderCardProps {
   ofCode?: string | null;
   initialStatus?: MachineStatus | null;
   onSelect?: (_machine: MachineStatus) => void;
+  isHidden?: boolean;
+  onToggleHidden?: (_machineId: string) => void;
 }
 
 const numberFormatter = (decimals: number) =>
@@ -604,6 +606,8 @@ export default function DashboardOrderCard({
   ofCode,
   initialStatus,
   onSelect,
+  isHidden = false,
+  onToggleHidden,
 }: DashboardOrderCardProps) {
   // 🔥 USAR initialStatus si está disponible (viene de useWebhookAllMachines)
   // Solo hacer fetch individual si NO hay initialStatus
@@ -1917,6 +1921,37 @@ export default function DashboardOrderCard({
                   >
                     <i className="fas fa-cog" style={{ marginRight: "8px" }}></i>
                     Configurar
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowOptionsMenu(false);
+                      onToggleHidden?.(data.machineCode);
+                    }}
+                    style={{
+                      width: "100%",
+                      padding: "12px 16px",
+                      border: "none",
+                      background: "transparent",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      fontSize: "14px",
+                      color: isHidden ? "#10b981" : "#64748b",
+                      transition: "background-color 0.2s",
+                      borderTop: "1px solid #e2e8f0",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = "#f8fafc";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = "transparent";
+                    }}
+                  >
+                    <i
+                      className={isHidden ? "fas fa-eye" : "fas fa-eye-slash"}
+                      style={{ marginRight: "8px" }}
+                    ></i>
+                    {isHidden ? "Mostrar" : "Ocultar"}
                   </button>
                 </div>
               )}

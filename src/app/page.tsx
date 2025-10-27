@@ -335,6 +335,42 @@ export default function Dashboard() {
   const [titleConfig, setTitleConfig] = useState<TitleConfig>(defaultConfig);
   const [showUnifiedConfig, setShowUnifiedConfig] = useState(false);
 
+  // Estado para controlar máquinas ocultas
+  const [hiddenMachines, setHiddenMachines] = useState<Set<string>>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('hiddenMachines');
+        return saved ? new Set(JSON.parse(saved)) : new Set();
+      } catch {
+        return new Set();
+      }
+    }
+    return new Set();
+  });
+
+  // Salvar máquinas ocultas no localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('hiddenMachines', JSON.stringify([...hiddenMachines]));
+      } catch (error) {
+        console.error("Falha ao salvar máquinas ocultas:", error);
+      }
+    }
+  }, [hiddenMachines]);
+
+  // Função para alternar visibilidade de uma máquina
+  const toggleMachineVisibility = (machineId: string) => {
+    setHiddenMachines(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(machineId)) {
+        newSet.delete(machineId);
+      } else {
+        newSet.add(machineId);
+      }
+      return newSet;
+    });
+  };
 
   // Carrega a configuração do localStorage ao iniciar o componente
   useEffect(() => {
@@ -403,11 +439,17 @@ export default function Dashboard() {
     ];
 
     const ordered = [...machines].sort((a, b) => {
+      // 🔥 PRIORIDADE ABSOLUTA: Máquinas ocultas sempre vão para o final
+      const aIsHidden = hiddenMachines.has(a.machine.Cod_maquina);
+      const bIsHidden = hiddenMachines.has(b.machine.Cod_maquina);
+
+      if (aIsHidden && !bIsHidden) return 1;
+      if (!aIsHidden && bIsHidden) return -1;
+
       // Função auxiliar para determinar se uma máquina tem OF
       const hasOF = (machine: MachineStatus) => {
         const ofCode = machine.currentOF ||
-               machine.machine.Rt_Cod_of ||
-               machine.machine.rt_Cod_of;
+               machine.machine.Rt_Cod_of;
 
         // Verificar se tem OF válido (não vazio, não null, não '--')
         return ofCode &&
@@ -495,7 +537,7 @@ export default function Dashboard() {
       }
       return true;
     });
-  }, [machines, filter]);
+  }, [machines, filter, hiddenMachines]);
 
   // Slider agora controla cards por linha (1-6), não total de cards visíveis
   const sliderMax = 6; // Máximo de cards por linha
@@ -799,6 +841,7 @@ export default function Dashboard() {
               <div className="ff-grid" style={gridStyle}>
                 <AnimatePresence initial={false} mode="popLayout">
                   {visibleMachines.map((machineStatus, index) => {
+                    const isHidden = hiddenMachines.has(machineStatus.machine.Cod_maquina);
                     const offset = ((index % 3) - 1) * 6;
                     const accent = index % 5 === 0;
                     const cardStyle = {
@@ -808,6 +851,8 @@ export default function Dashboard() {
                         ? '0 24px 48px -28px rgba(14, 122, 190, 0.45)'
                         : '0 18px 42px -28px rgba(15, 23, 42, 0.32)',
                       '--ff-card-saturation': accent ? '1.05' : '1',
+                      opacity: isHidden ? 0.4 : 1,
+                      filter: isHidden ? 'grayscale(0.5)' : 'none',
                     } as CSSProperties;
 
                     return (
@@ -817,7 +862,7 @@ export default function Dashboard() {
                         className="ff-grid__item"
                         style={cardStyle}
                         initial={{ opacity: 0, y: 18 }}
-                        animate={{ opacity: 1, y: 0 }}
+                        animate={{ opacity: isHidden ? 0.4 : 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.96 }}
                         transition={{ duration: 0.25, ease: 'easeOut' }}
                       >
@@ -826,6 +871,8 @@ export default function Dashboard() {
                           ofCode={machineStatus.currentOF ?? machineStatus.order?.code}
                           initialStatus={machineStatus}
                           onSelect={handleMachineClick}
+                          isHidden={isHidden}
+                          onToggleHidden={toggleMachineVisibility}
                         />
                       </motion.div>
                     );
