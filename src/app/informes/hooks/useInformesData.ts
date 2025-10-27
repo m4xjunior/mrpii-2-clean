@@ -1,6 +1,8 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
+import { useWebhookAllMachines } from '../../../../hooks/useWebhookMachine';
+import type { MachineStatus } from '../../../../types/machine';
 
 export interface MachineData {
   id: string;
@@ -25,66 +27,89 @@ export interface InformesSummary {
 }
 
 export function useInformesData() {
-  const [machines, setMachines] = useState<MachineData[]>([]);
-  const [summary, setSummary] = useState<InformesSummary>({
-    totalMachines: 0,
-    activeMachines: 0,
-    averageOEE: 0,
-    totalProduction: { ok: 0, nok: 0 }
+  const {
+    data: webhookMachines,
+    loading,
+    error: webhookError,
+    refresh,
+  } = useWebhookAllMachines({
+    autoFetch: true,
+    refreshInterval: 0,
   });
-  const [loading, setLoading] = useState(false); // Não iniciar com loading=true
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch('/api/scada/machines');
+  const machines = useMemo<MachineData[]>(() => {
+    return webhookMachines.map(transformMachineStatusToMachineData);
+  }, [webhookMachines]);
 
-        if (!response.ok) {
-          throw new Error(`Erro na API: ${response.status}`);
-        }
+  const summary = useMemo<InformesSummary>(() => {
+    if (machines.length === 0) {
+      return {
+        totalMachines: 0,
+        activeMachines: 0,
+        averageOEE: 0,
+        totalProduction: { ok: 0, nok: 0 },
+      };
+    }
 
-        const data = await response.json();
-        const machinesData = data.data || [];
+    const totalMachines = machines.length;
+    const activeMachines = machines.filter((machine) => machine.status === 'running').length;
+    const totalOEE = machines.reduce((sum, machine) => sum + (machine.oee || 0), 0);
+    const totalOk = machines.reduce((sum, machine) => sum + (machine.production?.ok || 0), 0);
+    const totalNok = machines.reduce((sum, machine) => sum + (machine.production?.nok || 0), 0);
 
-        setMachines(machinesData);
+    const averageOEE = totalMachines > 0 ? Math.round((totalOEE / totalMachines) * 100) / 100 : 0;
 
-        // Calcular resumo
-        const activeMachines = machinesData.filter((m: any) => m.status?.toLowerCase() === 'running').length;
-        const totalOEE = machinesData.reduce((sum: number, m: any) => sum + (m.oee || 0), 0);
-        const avgOEE = machinesData.length > 0 ? totalOEE / machinesData.length : 0;
-
-        const totalOk = machinesData.reduce((sum: number, m: any) => sum + (m.production?.ok || 0), 0);
-        const totalNok = machinesData.reduce((sum: number, m: any) => sum + (m.production?.nok || 0), 0);
-
-        setSummary({
-          totalMachines: machinesData.length,
-          activeMachines,
-          averageOEE: Math.round(avgOEE * 100) / 100,
-          totalProduction: { ok: totalOk, nok: totalNok }
-        });
-
-        setError(null);
-      } catch (err) {
-        console.error('Erro ao buscar dados dos informes:', err);
-        setError(err instanceof Error ? err.message : 'Erro desconhecido');
-      } finally {
-        setLoading(false);
-      }
+    return {
+      totalMachines,
+      activeMachines,
+      averageOEE,
+      totalProduction: { ok: totalOk, nok: totalNok },
     };
-
-    fetchData();
-  }, []);
+  }, [machines]);
 
   return {
     machines,
     summary,
     loading,
-    error,
-    refetch: () => {
-      setLoading(true);
-      window.location.reload(); // Temporário - implementar refresh adequado depois
-    }
+    error: webhookError ? webhookError.message : null,
+    refetch: refresh,
   };
+}
+
+function transformMachineStatusToMachineData(machineStatus: MachineStatus): MachineData {
+  const machine = machineStatus.machine ?? ({} as MachineStatus['machine']);
+  const status = mapMachineStatus(machineStatus.status);
+
+  const productionOk = machineStatus.production?.ok ?? machineStatus.productionOF?.ok ?? 0;
+  const productionNok = machineStatus.production?.nok ?? machineStatus.productionOF?.nok ?? 0;
+  const productionTotal =
+    machineStatus.production?.total ??
+    machineStatus.productionOF?.total ??
+    productionOk + productionNok + (machineStatus.production?.rw ?? machineStatus.productionOF?.rw ?? 0);
+
+  return {
+    id: machine.Cod_maquina ?? machine.desc_maquina ?? 'unknown-machine',
+    name: machine.desc_maquina ?? machine.Cod_maquina ?? 'Máquina sem nome',
+    status,
+    oee: machineStatus.oee_turno ?? machineStatus.oee ?? machineStatus.aggregatedTurno?.oee ?? 0,
+    production: {
+      ok: productionOk,
+      nok: productionNok,
+      total: productionTotal,
+    },
+  };
+}
+
+function mapMachineStatus(status: MachineStatus['status']): MachineData['status'] {
+  const normalized = status?.toUpperCase() ?? '';
+
+  if (normalized === 'ACTIVA' || normalized === 'PRODUCIENDO') {
+    return 'running';
+  }
+
+  if (normalized === 'MANTENIMIENTO') {
+    return 'maintenance';
+  }
+
+  return 'stopped';
 }

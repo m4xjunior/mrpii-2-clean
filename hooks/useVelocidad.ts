@@ -11,6 +11,10 @@ interface VelocidadData {
   descricao: string;
   /** Velocidad en formato "182 u/h 19.81 seg/pza" */
   velocidad: string;
+  /** Velocidad unidades por hora (ya parseado) */
+  velocidad_uph: string;
+  /** Velocidad segundos por pieza (ya parseado) */
+  velocidad_ups: string;
 }
 
 interface UseVelocidadOptions {
@@ -92,16 +96,10 @@ export function useVelocidad(
     setError(null);
 
     try {
-      // Body de la petición - parámetros necesarios para el webhook
       const requestBody = {
         codigo_of: codigo_of,
         machineId: machineId,
       };
-
-      console.log('🔵 [useVelocidad] Enviando request:', {
-        url: webhookUrl,
-        body: requestBody,
-      });
 
       const response = await fetch(webhookUrl, {
         method: 'POST',
@@ -114,26 +112,16 @@ export function useVelocidad(
         signal: abortControllerRef.current.signal,
       });
 
-      console.log('🔵 [useVelocidad] Response recibido:', {
-        status: response.status,
-        ok: response.ok,
-        statusText: response.statusText
-      });
-
       if (!response.ok) {
         throw new Error(`Error fetching velocidad: ${response.status} ${response.statusText}`);
       }
 
       const webhookResponse: any = await response.json();
-
-      console.log('🔵 [useVelocidad] Webhook response parseado:', webhookResponse);
-
-      // Validar que la respuesta tenga el formato esperado
       const responseData = Array.isArray(webhookResponse) ? webhookResponse[0] : webhookResponse;
 
-      if (!responseData || typeof responseData !== 'object') {
-        console.error('❌ Formato inválido: se esperaba un objeto en la respuesta:', responseData);
-        throw new Error('Formato de respuesta del webhook inválido');
+      // ✅ Se resposta vazia, manter dados antigos (não fazer throw)
+      if (!responseData || typeof responseData !== 'object' || Object.keys(responseData).length === 0) {
+        return; // Sai sem atualizar dados
       }
 
       // El webhook devuelve los datos de velocidad
@@ -141,9 +129,9 @@ export function useVelocidad(
         codigo_of: responseData.codigo_of,
         descricao: responseData.descricao,
         velocidad: responseData.velocidad,
+        velocidad_uph: responseData.velocidad_uph,
+        velocidad_ups: responseData.velocidad_ups,
       };
-
-      console.log('✅ [useVelocidad] Datos de velocidad obtenidos:', velocidadData);
 
       setData(velocidadData);
       setLastUpdate(new Date());
@@ -154,9 +142,9 @@ export function useVelocidad(
         return;
       }
 
-      console.error(`Error fetching velocidad for ${codigo_of}/${machineId}:`, err);
       setError(err instanceof Error ? err : new Error(String(err)));
-      setData(null);
+      // ✅ NÃO limpar dados antigos em caso de erro - manter último valor conhecido
+      // setData(null);
     } finally {
       setLoading(false);
     }

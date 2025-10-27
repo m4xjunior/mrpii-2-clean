@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useMemo,
+} from "react";
 import { useWebhookMachine } from "../../../hooks/useWebhookMachine";
 import { useFechasOF } from "../../../hooks/useFechasOF";
 import { useMetricasOF } from "../../../hooks/useMetricasOF";
@@ -17,20 +23,20 @@ import {
   getGapClasses,
   getPaddingClasses,
   combineClasses,
-} from '../../lib/design-system/proportions';
+} from "../../lib/design-system/proportions";
 
 type Tone = "success" | "warning" | "danger";
 
 // Estado possível da máquina
 type MachineStateType =
-  | 'PRODUCCIÓN'
-  | 'PREPARACIÓN'
-  | 'AJUSTES DE PRODUCCIÓN'
-  | 'MEJORA DE PROCESO'
-  | 'MANTENIMIENTO'
-  | 'CERRADO'
-  | 'PARADA'
-  | 'SIN ESTADO';
+  | "PRODUCCIÓN"
+  | "PREPARACIÓN"
+  | "AJUSTES DE PRODUCCIÓN"
+  | "MEJORA DE PROCESO"
+  | "MANTENIMIENTO"
+  | "CERRADO"
+  | "PARADA"
+  | "SIN ESTADO";
 
 // Interface estendida para incluir campos extras adicionados pelo transformer
 interface ExtendedMachineStatus extends MachineStatus {
@@ -80,9 +86,10 @@ const sanitizeTurnoLabel = (label: string | null | undefined) => {
   if (!label) {
     return "turno";
   }
-  const normalized = typeof label.normalize === "function"
-    ? label.normalize("NFD").replace(/[̀-ͯ]/g, "")
-    : label;
+  const normalized =
+    typeof label.normalize === "function"
+      ? label.normalize("NFD").replace(/[̀-ͯ]/g, "")
+      : label;
   const slug = normalized
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
@@ -123,7 +130,9 @@ const serializeSegments = (segments: StatusSegment[]): StatusSegment[] =>
     endMs: segment.endMs,
   }));
 
-const parseStoredProgress = (raw: string | null): ParsedStoredProgress | null => {
+const parseStoredProgress = (
+  raw: string | null,
+): ParsedStoredProgress | null => {
   if (!raw) {
     return null;
   }
@@ -143,19 +152,24 @@ const parseStoredProgress = (raw: string | null): ParsedStoredProgress | null =>
         if (!segment) {
           return null;
         }
-        const startMs = typeof segment.startMs === "number" ? segment.startMs : Number(segment.startMs);
+        const startMs =
+          typeof segment.startMs === "number"
+            ? segment.startMs
+            : Number(segment.startMs);
         if (!Number.isFinite(startMs)) {
           return null;
         }
-        const endMs = (
+        const endMs =
           segment.endMs === null || segment.endMs === undefined
-        ) ? null : Number(segment.endMs);
+            ? null
+            : Number(segment.endMs);
         if (endMs !== null && !Number.isFinite(endMs)) {
           return null;
         }
         return {
           id: String(segment.id),
-          label: typeof segment.label === "string" ? segment.label : "SIN ESTADO",
+          label:
+            typeof segment.label === "string" ? segment.label : "SIN ESTADO",
           color: typeof segment.color === "string" ? segment.color : "#6c757d",
           startMs,
           endMs,
@@ -193,9 +207,6 @@ const deriveAnchorFromProgressKey = (key: string): string | null => {
   }
   return `${bucketId}:00:00`;
 };
-
-
-
 
 interface DashboardOrderCardProps {
   machineId: string;
@@ -282,11 +293,11 @@ const formatSecondsPerPieceLabel = (
     return "— seg/pza";
   }
   const decimals = value >= 10 ? 1 : 2;
-  
+
   // Converter para unidades por segundo
   const unitsPerSecond = value > 0 ? 1 / value : 0;
   const upsDecimals = unitsPerSecond >= 10 ? 1 : 2;
-  
+
   return `${numberFormatter(upsDecimals).format(unitsPerSecond)} u/s`;
 };
 
@@ -339,13 +350,13 @@ const formatText = (value: string | null | undefined): string => {
 const getMachineStateInfo = (
   actividadDesc: string | null | undefined,
   paroActivoDesc: string | null | undefined,
-  statusLabel: string | null | undefined
+  statusLabel: string | null | undefined,
 ): MachineStateInfo => {
   // Se há descrição de paro ativo, priorizar isso
   if (paroActivoDesc && paroActivoDesc.trim() !== "") {
     return {
-      state: 'PARADA',
-      description: paroActivoDesc.trim()
+      state: "PARADA",
+      description: paroActivoDesc.trim(),
     };
   }
 
@@ -354,33 +365,57 @@ const getMachineStateInfo = (
     const actividad = actividadDesc.toLowerCase().trim();
 
     // Estados de produção
-    if (actividad.includes('producción') || actividad.includes('production') || actividad.includes('produciendo')) {
-      return { state: 'PRODUCCIÓN', description: null };
+    if (
+      actividad.includes("producción") ||
+      actividad.includes("production") ||
+      actividad.includes("produciendo")
+    ) {
+      return { state: "PRODUCCIÓN", description: null };
     }
 
     // Estados de preparação
-    if (actividad.includes('preparación') || actividad.includes('preparation') || actividad.includes('setup')) {
-      return { state: 'PREPARACIÓN', description: null };
+    if (
+      actividad.includes("preparación") ||
+      actividad.includes("preparation") ||
+      actividad.includes("setup")
+    ) {
+      return { state: "PREPARACIÓN", description: null };
     }
 
     // Estados de ajuste
-    if (actividad.includes('ajuste') || actividad.includes('adjustment') || actividad.includes('calibración')) {
-      return { state: 'AJUSTES DE PRODUCCIÓN', description: null };
+    if (
+      actividad.includes("ajuste") ||
+      actividad.includes("adjustment") ||
+      actividad.includes("calibración")
+    ) {
+      return { state: "AJUSTES DE PRODUCCIÓN", description: null };
     }
 
     // Estados de melhoria
-    if (actividad.includes('mejora') || actividad.includes('improvement') || actividad.includes('mejoramiento')) {
-      return { state: 'MEJORA DE PROCESO', description: null };
+    if (
+      actividad.includes("mejora") ||
+      actividad.includes("improvement") ||
+      actividad.includes("mejoramiento")
+    ) {
+      return { state: "MEJORA DE PROCESO", description: null };
     }
 
     // Estados de manutenção
-    if (actividad.includes('mantenimiento') || actividad.includes('maintenance') || actividad.includes('reparación')) {
-      return { state: 'MANTENIMIENTO', description: null };
+    if (
+      actividad.includes("mantenimiento") ||
+      actividad.includes("maintenance") ||
+      actividad.includes("reparación")
+    ) {
+      return { state: "MANTENIMIENTO", description: null };
     }
 
     // Estados fechados/parados
-    if (actividad.includes('cerrado') || actividad.includes('closed') || actividad.includes('parado')) {
-      return { state: 'CERRADO', description: null };
+    if (
+      actividad.includes("cerrado") ||
+      actividad.includes("closed") ||
+      actividad.includes("parado")
+    ) {
+      return { state: "CERRADO", description: null };
     }
   }
 
@@ -388,48 +423,48 @@ const getMachineStateInfo = (
   if (statusLabel) {
     const status = statusLabel.toLowerCase().trim();
 
-    if (status.includes('produciendo') || status.includes('activa')) {
-      return { state: 'PRODUCCIÓN', description: null };
+    if (status.includes("produciendo") || status.includes("activa")) {
+      return { state: "PRODUCCIÓN", description: null };
     }
 
-    if (status.includes('parada') || status.includes('inactiva')) {
-      return { state: 'PARADA', description: null };
+    if (status.includes("parada") || status.includes("inactiva")) {
+      return { state: "PARADA", description: null };
     }
   }
 
   // Estado padrão
-  return { state: 'SIN ESTADO', description: null };
+  return { state: "SIN ESTADO", description: null };
 };
 
 // Função para obter cor baseada no estado
 const getStateColor = (stateText: string): string => {
   const state = stateText.toLowerCase();
 
-  if (state.includes('producción')) {
-    return '#28a745'; // Verde
+  if (state.includes("producción")) {
+    return "#28a745"; // Verde
   }
 
-  if (state.includes('preparación')) {
-    return '#ffd966'; // Amarelo
+  if (state.includes("preparación")) {
+    return "#ffd966"; // Amarelo
   }
 
-  if (state.includes('ajustes')) {
-    return '#f4b183'; // Laranja
+  if (state.includes("ajustes")) {
+    return "#f4b183"; // Laranja
   }
 
-  if (state.includes('mejora')) {
-    return '#6f42c1'; // Roxo
+  if (state.includes("mejora")) {
+    return "#6f42c1"; // Roxo
   }
 
-  if (state.includes('mantenimiento')) {
-    return '#fd7e14'; // Laranja escuro
+  if (state.includes("mantenimiento")) {
+    return "#fd7e14"; // Laranja escuro
   }
 
-  if (state.includes('cerrado') || state.includes('parada')) {
-    return '#dc3545'; // Vermelho
+  if (state.includes("cerrado") || state.includes("parada")) {
+    return "#dc3545"; // Vermelho
   }
 
-  return '#6c757d'; // Cinza padrão
+  return "#6c757d"; // Cinza padrão
 };
 
 const formatDateTime = (iso?: string | null): string => {
@@ -468,20 +503,101 @@ const getOeeBackground = (
 ): string => {
   const percentTone = getPercentTone(percent);
   // Prioriza estado crítico; caso contrário, usa o tom por percentual
-  const effectiveTone: Tone = statusTone === "danger"
-    ? "danger"
-    : statusTone === "warning"
-      ? (percentTone === "success" ? "warning" : percentTone)
-      : percentTone;
+  const effectiveTone: Tone =
+    statusTone === "danger"
+      ? "danger"
+      : statusTone === "warning"
+        ? percentTone === "success"
+          ? "warning"
+          : percentTone
+        : percentTone;
 
   if (effectiveTone === "success") {
-    return 'linear-gradient(135deg, rgba(40, 167, 69, 0.95) 0%, rgba(34, 139, 34, 0.95) 100%)';
+    return "linear-gradient(135deg, rgba(40, 167, 69, 0.95) 0%, rgba(34, 139, 34, 0.95) 100%)";
   }
   if (effectiveTone === "warning") {
-    return 'linear-gradient(135deg, rgba(255, 193, 7, 0.95) 0%, rgba(230, 162, 0, 0.95) 100%)';
+    return "linear-gradient(135deg, rgba(255, 193, 7, 0.95) 0%, rgba(230, 162, 0, 0.95) 100%)";
   }
-  return 'linear-gradient(135deg, rgba(220, 53, 69, 0.95) 0%, rgba(200, 35, 51, 0.95) 100%)';
+  return "linear-gradient(135deg, rgba(220, 53, 69, 0.95) 0%, rgba(200, 35, 51, 0.95) 100%)";
 };
+
+// ✅ Componente memoizado para renderização otimizada de velocidade
+const VelocidadDisplay = React.memo(
+  ({
+    velUph,
+    velUps,
+    loading,
+  }: {
+    velUph: number;
+    velUps: number;
+    loading: boolean;
+  }) => {
+    // ✅ Só mostra loading se NÃO tem valores (primeiro load)
+    // Se já tem valores, mostra eles mesmo durante refresh
+    const hasValues = velUph > 0 || velUps > 0;
+
+    if (loading && !hasValues) {
+      return (
+        <div
+          style={{
+            fontSize: "9px md:text-xs lg:text-sm",
+            fontWeight: 600,
+            color: "#6c757d",
+            textAlign: "center",
+          }}
+        >
+          ...
+        </div>
+      );
+    }
+
+    if (!hasValues) {
+      return (
+        <div
+          style={{
+            fontSize: "9px md:text-xs lg:text-sm",
+            fontWeight: 600,
+            color: "#6c757d",
+            textAlign: "center",
+          }}
+        >
+          —
+        </div>
+      );
+    }
+
+    return (
+      <>
+        {velUph > 0 && (
+          <div
+            style={{
+              fontSize: "10px md:text-xs lg:text-sm",
+              fontWeight: 600,
+              color: "#0f172a",
+              textAlign: "center",
+            }}
+          >
+            <CountUp to={velUph} decimals={0} duration={1.5} /> u/h
+          </div>
+        )}
+        {velUps > 0 && (
+          <div
+            style={{
+              fontSize: "9px md:text-[10px] lg:text-xs",
+              fontWeight: 500,
+              color: "#64748b",
+              textAlign: "center",
+            }}
+          >
+            <CountUp to={velUps} decimals={2} duration={1.5} /> u/s
+          </div>
+        )}
+      </>
+    );
+  },
+);
+
+VelocidadDisplay.displayName = "VelocidadDisplay";
 
 export default function DashboardOrderCard({
   machineId,
@@ -493,17 +609,23 @@ export default function DashboardOrderCard({
   // Solo hacer fetch individual si NO hay initialStatus
   const shouldFetchIndividual = !initialStatus;
 
-  const { data: webhookData, loading, error, refresh: refreshData } = useWebhookMachine(
+  const {
+    data: webhookData,
+    loading,
+    error,
+    refresh: refreshData,
+  } = useWebhookMachine(
     shouldFetchIndividual ? machineId : null, // Solo fetch si no hay initialStatus
     {
       refreshInterval: shouldFetchIndividual ? 60000 : 0, // Só atualizar se necessário
       autoFetch: shouldFetchIndividual, // Solo auto-fetch si no hay initialStatus
-    }
+    },
   );
 
   // Combinar dados: usar initialStatus se disponível, sino usar webhookData
   // 🔥 PRIORIDADE: Dados da API de fechas sobrescrevem dados de velocidade do webhook SCADA
-  const baseData = (initialStatus || webhookData) as ExtendedMachineStatus | null;
+  const baseData = (initialStatus ||
+    webhookData) as ExtendedMachineStatus | null;
 
   const baseActiveOfCode =
     ofCode ??
@@ -517,15 +639,11 @@ export default function DashboardOrderCard({
     data: fechasData,
     loading: fechasLoading,
     error: fechasError,
-  } = useFechasOF(
-    baseActiveOfCode,
-    machineId,
-    {
-      refreshInterval: 60000,
-      autoFetch: true,
-      webhookUrl: 'http://localhost:5678/webhook/fechav2',
-    }
-  );
+  } = useFechasOF(baseActiveOfCode, machineId, {
+    refreshInterval: 60000,
+    autoFetch: true,
+    webhookUrl: "https://n8n.lexusfx.com/webhook/fechav2",
+  });
 
   // ⚠️ DESATIVADO - Função de combinação de velocidade removida temporariamente
   // const combineDataWithFechasPriority = (base: ExtendedMachineStatus | null, fechas: any) => {
@@ -552,49 +670,35 @@ export default function DashboardOrderCard({
     baseActiveOfCode;
 
   // 🔥 CONSUMIR MÉTRICAS DA OF DA API N8N
-  const { data: metricasOFData } = useMetricasOF(
-    activeOfCode,
-    machineId,
-    {
-      refreshInterval: 30000, // Atualizar a cada 30 segundos
-      autoFetch: true,
-      webhookUrl: 'http://localhost:5678/webhook/metricasof'
-    }
-  );
+  const { data: metricasOFData } = useMetricasOF(activeOfCode, machineId, {
+    refreshInterval: 30000, // Atualizar a cada 30 segundos
+    autoFetch: true,
+    webhookUrl: "https://n8n.lexusfx.com/webhook/metricasof",
+  });
 
   // 🔥 Hook para velocidad de producción
-  const { data: velocidadData, loading: velocidadLoading, error: velocidadError } = useVelocidad(
-    activeOfCode,
-    machineId,
-    {
-      refreshInterval: 30000,
-      autoFetch: true,
-      webhookUrl: 'http://localhost:5678/webhook/velocidad'
-    }
-  );
+  const {
+    data: velocidadData,
+    loading: velocidadLoading,
+    error: velocidadError,
+  } = useVelocidad(activeOfCode, machineId, {
+    refreshInterval: 30000,
+    autoFetch: true,
+    webhookUrl: "https://n8n.lexusfx.com/webhook/velocidad",
+  });
 
-  // 🔍 Debug: Log velocidadData
-  useEffect(() => {
-    console.log('🟡 [DashboardOrderCard] machineId:', machineId);
-    console.log('🟡 [DashboardOrderCard] activeOfCode:', activeOfCode);
-    console.log('🟡 [DashboardOrderCard] velocidadData:', velocidadData);
-    console.log('🟡 [DashboardOrderCard] velocidadLoading:', velocidadLoading);
-    console.log('🟡 [DashboardOrderCard] velocidadError:', velocidadError);
-  }, [machineId, activeOfCode, velocidadData, velocidadLoading, velocidadError]);
+  // ✅ Só mostra loading se NÃO tem dados antigos (evita piscar)
+  const velocidadMetricsLoading = velocidadLoading && !velocidadData;
 
   const {
     data: metricasTurnoData,
     loading: metricasTurnoLoading,
     error: metricasTurnoError,
-  } = useMetricasTurno(
-    activeOfCode,
-    machineId,
-    {
-      refreshInterval: 30000,
-      autoFetch: true,
-      webhookUrl: 'http://localhost:5678/webhook/metricasturno',
-    }
-  );
+  } = useMetricasTurno(activeOfCode, machineId, {
+    refreshInterval: 30000,
+    autoFetch: true,
+    webhookUrl: "https://n8n.lexusfx.com/webhook/metricasturno",
+  });
 
   // 🔥 Hook para datos de calidad (NOK)
   const {
@@ -606,38 +710,8 @@ export default function DashboardOrderCard({
   } = useCalidadNOK(activeOfCode, machineId, {
     refreshInterval: 30000,
     autoFetch: true,
-    webhookUrl: 'http://localhost:5678/webhook/calidad',
+    webhookUrl: "https://n8n.lexusfx.com/webhook/calidad",
   });
-
-  // Debug básico (remova em produção)
-  if (process.env.NODE_ENV === 'development') {
-    console.debug(`🔄 [DashboardOrderCard] ${machineId}: datos actualizados`);
-    if (metricasOFData) {
-      console.debug(`📊 [DashboardOrderCard] ${machineId}: métricas OF actualizadas`, metricasOFData);
-    }
-    if (metricasTurnoData) {
-      console.debug(`📈 [DashboardOrderCard] ${machineId}: métricas turno actualizadas`, metricasTurnoData);
-    }
-    if (fechasData) {
-      console.debug(`📅 [DashboardOrderCard] ${machineId}: fechas OF actualizadas`, fechasData);
-    }
-    if (fechasError) {
-      console.error(`⚠️ [DashboardOrderCard] ${machineId}: erro ao carregar fechas`, fechasError);
-    }
-    if (metricasTurnoError) {
-      console.error(`⚠️ [DashboardOrderCard] ${machineId}: erro ao carregar métricas turno`, metricasTurnoError);
-    }
-    // 🔴 Debug de Calidad NOK
-    console.log(`🔴 [CalidadNOK] ${machineId}:`, {
-      ofCode: activeOfCode,
-      machineId: machineId,
-      loading: calidadNOKLoading,
-      error: calidadNOKError,
-      totalNOK: totalNOK,
-      dataLength: calidadNOKData?.length || 0,
-      data: calidadNOKData,
-    });
-  }
 
   // ✅ OPTIMISTIC UI: Memoizar dados com referência anterior
   // Isso previne "flash" de dados vazios durante atualizações do cache
@@ -646,158 +720,219 @@ export default function DashboardOrderCard({
   // Transformar datos del webhook al formato esperado por el componente
   // ✅ effectiveData ya viene transformado por transformNewWebhookToMachineStatus
   // Los datos de metricas_oee_turno ya están en oee_turno, disponibilidad, rendimiento, calidad
-  const data = effectiveData ? {
-    machineCode: effectiveData.machine?.Cod_maquina ?? machineId,
-    machineName: effectiveData.machine?.desc_maquina ?? machineId,
-    ofCode: ofCode ?? effectiveData.currentOF ?? effectiveData.order?.code ?? null,
-    planOf: effectiveData.machine?.Rt_Unidades_planning ?? effectiveData.Rt_Unidades_planning ?? 0,
-    okOf: effectiveData.machine?.Rt_Unidades_ok_of ?? effectiveData.production?.ok ?? 0,
-    nokOf: effectiveData.machine?.Rt_Unidades_nok_of ?? effectiveData.production?.nok ?? 0,
-    rwkOf: effectiveData.machine?.Rt_Unidades_repro_of ?? effectiveData.production?.rw ?? 0,
-    // 🔥 PRIORIZAR OEE DA API N8N (metricasof webhook)
-    oeeOF: metricasOFData?.oee_of ?? effectiveData.oee_of ?? (effectiveData.machine as any)?.["OEE General"] ?? 0,
-    // ✅ Datos ya transformados del webhook (metricas_oee_turno → oee_turno, etc.)
-    oeeTurno: metricasTurnoData?.oee_turno ?? effectiveData.oee_turno ?? (effectiveData.machine as any)?.["OEE turno"] ?? 0,
-    dispTurno: metricasTurnoData?.disponibilidad_turno ?? effectiveData.disponibilidad ?? (effectiveData.machine as any)?.["Disponibilidad turno"] ?? 0,
-    rendTurno: metricasTurnoData?.rendimiento_turno ?? effectiveData.rendimiento ?? (effectiveData.machine as any)?.["Rendimiento turno"] ?? 0,
-    calTurno: metricasTurnoData?.calidad_turno ?? effectiveData.calidad ?? (effectiveData.machine as any)?.["Calidad turno"] ?? 0,
-    // ⚠️ DESATIVADO - Dados de velocidade removidos
-    velActualUph: null,
-    velNominalUph: null,
-    productoRef: effectiveData.product?.code ?? null,
-    productoDesc: effectiveData.product?.description ?? effectiveData.machine?.Rt_Desc_producto ?? null,
-    turnoLabel: effectiveData.order?.shift ?? effectiveData.rt_desc_turno ?? null,
-    operatorName: effectiveData.operator ?? null,
-    operatorFullName: effectiveData.operatorFull ?? null,
-    actividadDesc: effectiveData.machine?.Rt_Desc_actividad ?? null,
-    statusLabel: effectiveData.status ?? 'ACTIVA',
-    statusTone: effectiveData.efficiency >= 90 ? 'success' : effectiveData.efficiency >= 70 ? 'warning' : 'danger',
-    // Note: downtime pode ser string ou objeto dependendo do transformer usado
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    paroActivoDesc: (effectiveData.downtime && typeof effectiveData.downtime === 'object' ? (effectiveData.downtime as any).active : effectiveData.downtime) ?? null,
-    // 🔥 PRIORIZAR FECHAS DA API N8N (fechav2 webhook)
-    fechaInicioReal: fechasData?.fecha_ini ?? effectiveData.machine?.Rt_Fecha_ini ?? null,
-    fechaInicioOF: fechasData?.fecha_ini ?? effectiveData.rt_fecha_inicio ?? effectiveData.machine?.Rt_Fecha_ini ?? null,
-    fechaFinOF: fechasData?.fecha_fin ?? effectiveData.machine?.Rt_Fecha_fin ?? effectiveData.rt_fecha_fin_estimada ?? null,
-    fechaFinEstimada: fechasData?.fecha_fin ?? effectiveData.rt_fecha_fin_estimada ?? null,
-    tiempoRestanteHoras: fechasData?.tiempo_estimado ?? null, // Vem da API fechav2
-    porcentajeOF: (effectiveData.machine?.Rt_Unidades_planning ?? effectiveData.Rt_Unidades_planning ?? 0) > 0 ?
-      Math.round(((effectiveData.machine?.Rt_Unidades_ok_of ?? effectiveData.production?.ok ?? 0) / (effectiveData.machine?.Rt_Unidades_planning ?? effectiveData.Rt_Unidades_planning ?? 1)) * 100) : 0,
-    // Datos adicionales del turno - já transformados pelo webhook transformer
-    turnoOk: effectiveData.turnoOk ?? effectiveData.machine?.Rt_Unidades_ok_turno ?? null,
-    turnoNok: effectiveData.turnoNok ?? effectiveData.machine?.Rt_Unidades_nok_turno ?? null,
-    turnoRwk: effectiveData.turnoRwk ?? effectiveData.machine?.Rt_Unidades_repro_turno ?? null,
-    turnoTotal: effectiveData.turnoTotal ?? (effectiveData.machine ?
-      (effectiveData.machine.Rt_Unidades_ok_turno ?? 0) +
-      (effectiveData.machine.Rt_Unidades_nok_turno ?? 0) +
-      (effectiveData.machine.Rt_Unidades_repro_turno ?? 0) : null),
-    // Propriedades adicionais necessárias
-    parosTurnoMin: effectiveData.ofInfo?.parosMinutes ?? null,
-    fechaFinReal: fechasData?.fecha_fin ?? effectiveData.machine?.Rt_Fecha_fin ?? null,
-    // ⚠️ DESATIVADO - Dados de velocidade removidos temporariamente
-    rendOFUph: null,
-    velSegPorPieza: null,
-    turnoProductivoMin: null,
-    turnoParosMin: effectiveData.ofInfo?.parosMinutes ?? null,
-    turnoTotalMin: null,
-    turnoVelocidadRealUph: null,
-    turnoSegPorPieza: null,
-    // 🔥 PRIORIZAR MÉTRICAS DA API N8N (metricasof webhook)
-    dispOF: metricasOFData?.disponibilidad_of ?? effectiveData.disponibilidad_of ?? (effectiveData.machine as any)?.["Disponibilidad OF"] ?? effectiveData.disponibilidad ?? null,
-    rendOF: metricasOFData?.rendimiento_of ?? effectiveData.rendimiento_of ?? (effectiveData.machine as any)?.["Rendimiento OF"] ?? effectiveData.rendimiento ?? null,
-    calOF: metricasOFData?.calidad_of ?? effectiveData.calidad_of ?? (effectiveData.machine as any)?.["Calidad OF"] ?? effectiveData.calidad ?? null,
-  } : null;
+  const data = effectiveData
+    ? {
+        machineCode: effectiveData.machine?.Cod_maquina ?? machineId,
+        machineName: effectiveData.machine?.desc_maquina ?? machineId,
+        ofCode:
+          ofCode ??
+          effectiveData.currentOF ??
+          effectiveData.order?.code ??
+          null,
+        planOf:
+          effectiveData.machine?.Rt_Unidades_planning ??
+          effectiveData.Rt_Unidades_planning ??
+          0,
+        okOf:
+          effectiveData.machine?.Rt_Unidades_ok_of ??
+          effectiveData.production?.ok ??
+          0,
+        nokOf:
+          effectiveData.machine?.Rt_Unidades_nok_of ??
+          effectiveData.production?.nok ??
+          0,
+        rwkOf:
+          effectiveData.machine?.Rt_Unidades_repro_of ??
+          effectiveData.production?.rw ??
+          0,
+        // 🔥 PRIORIZAR OEE DA API N8N (metricasof webhook)
+        oeeOF:
+          metricasOFData?.oee_of ??
+          effectiveData.oee_of ??
+          (effectiveData.machine as any)?.["OEE General"] ??
+          0,
+        // ✅ Datos ya transformados del webhook (metricas_oee_turno → oee_turno, etc.)
+        oeeTurno:
+          metricasTurnoData?.oee_turno ??
+          effectiveData.oee_turno ??
+          (effectiveData.machine as any)?.["OEE turno"] ??
+          0,
+        dispTurno:
+          metricasTurnoData?.disponibilidad_turno ??
+          effectiveData.disponibilidad ??
+          (effectiveData.machine as any)?.["Disponibilidad turno"] ??
+          0,
+        rendTurno:
+          metricasTurnoData?.rendimiento_turno ??
+          effectiveData.rendimiento ??
+          (effectiveData.machine as any)?.["Rendimiento turno"] ??
+          0,
+        calTurno:
+          metricasTurnoData?.calidad_turno ??
+          effectiveData.calidad ??
+          (effectiveData.machine as any)?.["Calidad turno"] ??
+          0,
+        // ⚠️ DESATIVADO - Dados de velocidade removidos
+        velActualUph: null,
+        velNominalUph: null,
+        productoRef: effectiveData.product?.code ?? null,
+        productoDesc:
+          effectiveData.product?.description ??
+          effectiveData.machine?.Rt_Desc_producto ??
+          null,
+        turnoLabel:
+          effectiveData.order?.shift ?? effectiveData.rt_desc_turno ?? null,
+        operatorName: effectiveData.operator ?? null,
+        operatorFullName: effectiveData.operatorFull ?? null,
+        actividadDesc: effectiveData.machine?.Rt_Desc_actividad ?? null,
+        statusLabel: effectiveData.status ?? "ACTIVA",
+        statusTone:
+          effectiveData.efficiency >= 90
+            ? "success"
+            : effectiveData.efficiency >= 70
+              ? "warning"
+              : "danger",
+        // Note: downtime pode ser string ou objeto dependendo do transformer usado
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        paroActivoDesc:
+          (effectiveData.downtime && typeof effectiveData.downtime === "object"
+            ? (effectiveData.downtime as any).active
+            : effectiveData.downtime) ?? null,
+        // 🔥 PRIORIZAR FECHAS DA API N8N (fechav2 webhook)
+        fechaInicioReal:
+          fechasData?.fecha_ini ?? effectiveData.machine?.Rt_Fecha_ini ?? null,
+        fechaInicioOF:
+          fechasData?.fecha_ini ??
+          effectiveData.rt_fecha_inicio ??
+          effectiveData.machine?.Rt_Fecha_ini ??
+          null,
+        fechaFinOF:
+          fechasData?.fecha_fin ??
+          effectiveData.machine?.Rt_Fecha_fin ??
+          effectiveData.rt_fecha_fin_estimada ??
+          null,
+        fechaFinEstimada:
+          fechasData?.fecha_fin ?? effectiveData.rt_fecha_fin_estimada ?? null,
+        tiempoRestanteHoras: fechasData?.tiempo_estimado ?? null, // Vem da API fechav2
+        porcentajeOF:
+          (effectiveData.machine?.Rt_Unidades_planning ??
+            effectiveData.Rt_Unidades_planning ??
+            0) > 0
+            ? Math.round(
+                ((effectiveData.machine?.Rt_Unidades_ok_of ??
+                  effectiveData.production?.ok ??
+                  0) /
+                  (effectiveData.machine?.Rt_Unidades_planning ??
+                    effectiveData.Rt_Unidades_planning ??
+                    1)) *
+                  100,
+              )
+            : 0,
+        // Datos adicionales del turno - já transformados pelo webhook transformer
+        turnoOk:
+          effectiveData.turnoOk ??
+          effectiveData.machine?.Rt_Unidades_ok_turno ??
+          null,
+        turnoNok:
+          effectiveData.turnoNok ??
+          effectiveData.machine?.Rt_Unidades_nok_turno ??
+          null,
+        turnoRwk:
+          effectiveData.turnoRwk ??
+          effectiveData.machine?.Rt_Unidades_repro_turno ??
+          null,
+        turnoTotal:
+          effectiveData.turnoTotal ??
+          (effectiveData.machine
+            ? (effectiveData.machine.Rt_Unidades_ok_turno ?? 0) +
+              (effectiveData.machine.Rt_Unidades_nok_turno ?? 0) +
+              (effectiveData.machine.Rt_Unidades_repro_turno ?? 0)
+            : null),
+        // Propriedades adicionais necessárias
+        parosTurnoMin: effectiveData.ofInfo?.parosMinutes ?? null,
+        fechaFinReal:
+          fechasData?.fecha_fin ?? effectiveData.machine?.Rt_Fecha_fin ?? null,
+        // ⚠️ DESATIVADO - Dados de velocidade removidos temporariamente
+        rendOFUph: null,
+        velSegPorPieza: null,
+        turnoProductivoMin: null,
+        turnoParosMin: effectiveData.ofInfo?.parosMinutes ?? null,
+        turnoTotalMin: null,
+        turnoVelocidadRealUph: null,
+        turnoSegPorPieza: null,
+        // 🔥 PRIORIZAR MÉTRICAS DA API N8N (metricasof webhook)
+        dispOF:
+          metricasOFData?.disponibilidad_of ??
+          effectiveData.disponibilidad_of ??
+          (effectiveData.machine as any)?.["Disponibilidad OF"] ??
+          effectiveData.disponibilidad ??
+          null,
+        rendOF:
+          metricasOFData?.rendimiento_of ??
+          effectiveData.rendimiento_of ??
+          (effectiveData.machine as any)?.["Rendimiento OF"] ??
+          effectiveData.rendimiento ??
+          null,
+        calOF:
+          metricasOFData?.calidad_of ??
+          effectiveData.calidad_of ??
+          (effectiveData.machine as any)?.["Calidad OF"] ??
+          effectiveData.calidad ??
+          null,
+      }
+    : null;
 
-  // 🔥 Parsear velocidad para extraer valores numéricos usando useMemo
+  // 🔍 DEBUG: Log consolidado de métricas turno
+  useEffect(() => {
+    if (data) {
+      console.log(`📊 [${machineId}] TODAS MÉTRICAS TURNO:`, {
+        OEE_TURNO: data.oeeTurno,
+        DISP_TURNO: data.dispTurno,
+        REND_TURNO: data.rendTurno,
+        CAL_TURNO: data.calTurno,
+        '---': '---',
+        metricasTurnoData_completo: metricasTurnoData,
+      });
+    }
+  }, [data, machineId, metricasTurnoData]);
+
+  // ✅ Conversión simple de velocidad (API ya envía valores parseados)
   const { velUphNumber, velUpsNumber } = useMemo(() => {
-    const velLabel = velocidadData?.velocidad || null;
-    let velUphNumber = 0;
-    let velUpsNumber = 0;
-
-    console.log('🔍 [DashboardOrderCard] useMemo ejecutado');
-    console.log('🔍 [DashboardOrderCard] velocidadData completo:', velocidadData);
-    console.log('🔍 [DashboardOrderCard] velLabel:', velLabel);
-    console.log('🔍 [DashboardOrderCard] tipo de velLabel:', typeof velLabel);
-
-    if (velLabel) {
-      console.log('🔵 [DashboardOrderCard] Parseando velocidad:', velLabel);
-      const parts = velLabel.split(' ');
-      console.log('🔍 [DashboardOrderCard] parts después de split:', parts);
-
-      const uphPart = parts.find(p => p.includes('u/h'));
-      const upsPart = parts.find(p => p.includes('u/s'));
-      console.log('🔍 [DashboardOrderCard] uphPart encontrado:', uphPart);
-      console.log('🔍 [DashboardOrderCard] upsPart encontrado:', upsPart);
-
-      if (uphPart) {
-        const uphIndex = parts.indexOf(uphPart);
-        console.log('🔍 [DashboardOrderCard] uphIndex:', uphIndex);
-        if (uphIndex > 0) {
-          const rawValue = parts[uphIndex - 1];
-          console.log('🔍 [DashboardOrderCard] rawValue antes de u/h:', rawValue);
-          velUphNumber = parseFloat(rawValue) || 0;
-          console.log('🔍 [DashboardOrderCard] velUphNumber después de parseFloat:', velUphNumber);
-        }
-      }
-
-      if (upsPart) {
-        const upsIndex = parts.indexOf(upsPart);
-        console.log('🔍 [DashboardOrderCard] upsIndex:', upsIndex);
-        if (upsIndex > 0) {
-          const rawValue = parts[upsIndex - 1];
-          console.log('🔍 [DashboardOrderCard] rawValue antes de u/s:', rawValue);
-          velUpsNumber = parseFloat(rawValue) || 0;
-          console.log('🔍 [DashboardOrderCard] velUpsNumber después de parseFloat:', velUpsNumber);
-        }
-      }
-
-      console.log('🔵 [DashboardOrderCard] Valores parseados FINALES:', { velUphNumber, velUpsNumber });
-    } else {
-      console.log('⚠️ [DashboardOrderCard] velLabel es null/undefined, no hay nada que parsear');
+    if (!velocidadData) {
+      return { velUphNumber: 0, velUpsNumber: 0 };
     }
 
+    // Convertir strings a números (API ya los envía separados)
+    const velUphNumber = parseFloat(velocidadData.velocidad_uph) || 0;
+    const velUpsNumber = parseFloat(velocidadData.velocidad_ups) || 0;
+
     return { velUphNumber, velUpsNumber };
-  }, [velocidadData?.velocidad]);
+  }, [velocidadData, machineId]);
 
-  // Atualização suave dos valores numéricos
+  // Atualização suave dos valores numéricos (métricas gerais)
   useEffect(() => {
-    console.log('🟢 [DashboardOrderCard] useEffect animatedValues disparado');
-    console.log('🟢 [DashboardOrderCard] data existe?:', !!data);
-    console.log('🟢 [DashboardOrderCard] velUphNumber:', velUphNumber);
-    console.log('🟢 [DashboardOrderCard] velUpsNumber:', velUpsNumber);
-    console.log('🟢 [DashboardOrderCard] totalNOK:', totalNOK);
-
     if (data) {
-      setAnimatedValues(prev => {
-        const newValues = {
-          oeeTurno: data.oeeTurno ?? prev.oeeTurno,
-          dispTurno: data.dispTurno ?? prev.dispTurno,
-          rendTurno: data.rendTurno ?? prev.rendTurno,
-          calTurno: data.calTurno ?? prev.calTurno,
-          oeeOF: data.oeeOF ?? prev.oeeOF,
-          dispOF: data.dispOF ?? prev.dispOF,
-          rendOF: data.rendOF ?? prev.rendOF,
-          calOF: data.calOF ?? prev.calOF,
-          turnoOk: data.turnoOk ?? prev.turnoOk,
-          turnoNok: data.turnoNok ?? prev.turnoNok,
-          turnoRwk: data.turnoRwk ?? prev.turnoRwk,
-          okOf: data.okOf ?? prev.okOf,
-          nokOf: data.nokOf ?? prev.nokOf,
-          rwkOf: data.rwkOf ?? prev.rwkOf,
-          planOf: data.planOf ?? prev.planOf,
-          porcentajeOF: data.porcentajeOF ?? prev.porcentajeOF,
-          velUph: velUphNumber > 0 ? velUphNumber : prev.velUph,
-          velUps: velUpsNumber > 0 ? velUpsNumber : prev.velUps,
-          totalNOK: totalNOK ?? prev.totalNOK,
-        };
-
-        console.log('🟢 [DashboardOrderCard] prev.velUph:', prev.velUph);
-        console.log('🟢 [DashboardOrderCard] prev.velUps:', prev.velUps);
-        console.log('🟢 [DashboardOrderCard] newValues.velUph:', newValues.velUph);
-        console.log('🟢 [DashboardOrderCard] newValues.velUps:', newValues.velUps);
-
-        return newValues;
-      });
+      setAnimatedValues((prev) => ({
+        oeeTurno: data.oeeTurno ?? prev.oeeTurno,
+        dispTurno: data.dispTurno ?? prev.dispTurno,
+        rendTurno: data.rendTurno ?? prev.rendTurno,
+        calTurno: data.calTurno ?? prev.calTurno,
+        oeeOF: data.oeeOF ?? prev.oeeOF,
+        dispOF: data.dispOF ?? prev.dispOF,
+        rendOF: data.rendOF ?? prev.rendOF,
+        calOF: data.calOF ?? prev.calOF,
+        turnoOk: data.turnoOk ?? prev.turnoOk,
+        turnoNok: data.turnoNok ?? prev.turnoNok,
+        turnoRwk: data.turnoRwk ?? prev.turnoRwk,
+        okOf: data.okOf ?? prev.okOf,
+        nokOf: data.nokOf ?? prev.nokOf,
+        rwkOf: data.rwkOf ?? prev.rwkOf,
+        planOf: data.planOf ?? prev.planOf,
+        porcentajeOF: data.porcentajeOF ?? prev.porcentajeOF,
+        velUph: velUphNumber > 0 ? velUphNumber : prev.velUph,
+        velUps: velUpsNumber > 0 ? velUpsNumber : prev.velUps,
+        totalNOK: totalNOK ?? prev.totalNOK,
+      }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -822,7 +957,6 @@ export default function DashboardOrderCard({
     totalNOK,
   ]);
 
-
   // ⚠️ DESATIVADO - Cálculo de tiempo restante baseado em velocidade removido
   // if (
   //   data &&
@@ -839,10 +973,18 @@ export default function DashboardOrderCard({
   // }
 
   // Calcular fechaFinOF se não temos una data real
-  if (data && !data.fechaFinOF && data.fechaInicioOF && data.tiempoRestanteHoras && data.tiempoRestanteHoras > 0) {
+  if (
+    data &&
+    !data.fechaFinOF &&
+    data.fechaInicioOF &&
+    data.tiempoRestanteHoras &&
+    data.tiempoRestanteHoras > 0
+  ) {
     try {
       const inicioDate = new Date(data.fechaInicioOF);
-      const finDate = new Date(inicioDate.getTime() + (data.tiempoRestanteHoras * 60 * 60 * 1000));
+      const finDate = new Date(
+        inicioDate.getTime() + data.tiempoRestanteHoras * 60 * 60 * 1000,
+      );
       data.fechaFinOF = finDate.toISOString();
     } catch (error) {
       // Manter null se houver erro
@@ -879,9 +1021,9 @@ export default function DashboardOrderCard({
     rwkOf: 0,
     planOf: 0,
     porcentajeOF: 0,
-    velUph: 0,      // Velocidad unidades por hora
-    velUps: 0,      // Velocidad unidades por segundo
-    totalNOK: 0,    // Total de unidades NOK
+    velUph: 0, // Velocidad unidades por hora
+    velUps: 0, // Velocidad unidades por segundo
+    totalNOK: 0, // Total de unidades NOK
   });
 
   // Estado para controlar exibição da descrição do status
@@ -891,19 +1033,24 @@ export default function DashboardOrderCard({
   const statusSegmentsRef = useRef<StatusSegment[]>([]);
   const statusCurrentLabelRef = useRef<string | null>(null);
   const statusStartTimeRef = useRef<number>(Date.now());
-  const [progressStorageKey, setProgressStorageKey] = useState<string | null>(() => {
-    if (typeof window === "undefined") {
-      return null;
-    }
-    try {
-      const pointerKey = buildProgressPointerKey(machineId);
-      const storedKey = window.localStorage.getItem(pointerKey);
-      return storedKey ?? null;
-    } catch (error) {
-      console.warn(`[DashboardOrderCard] ${machineId}: unable to load stored progress key`, error);
-      return null;
-    }
-  });
+  const [progressStorageKey, setProgressStorageKey] = useState<string | null>(
+    () => {
+      if (typeof window === "undefined") {
+        return null;
+      }
+      try {
+        const pointerKey = buildProgressPointerKey(machineId);
+        const storedKey = window.localStorage.getItem(pointerKey);
+        return storedKey ?? null;
+      } catch (error) {
+        console.warn(
+          `[DashboardOrderCard] ${machineId}: unable to load stored progress key`,
+          error,
+        );
+        return null;
+      }
+    },
+  );
   const shiftAnchorRef = useRef<string | null>(null);
   const activeStorageKeyRef = useRef<string | null>(null);
   const restoredStorageKeyRef = useRef<string | null>(null);
@@ -922,11 +1069,12 @@ export default function DashboardOrderCard({
   const machineStateInfo = getMachineStateInfo(
     data?.actividadDesc,
     data?.paroActivoDesc,
-    data?.statusLabel
+    data?.statusLabel,
   );
-  const statusDisplayText = machineStateInfo.state === 'PARADA' && machineStateInfo.description
-    ? machineStateInfo.description
-    : machineStateInfo.state ?? 'SIN ESTADO';
+  const statusDisplayText =
+    machineStateInfo.state === "PARADA" && machineStateInfo.description
+      ? machineStateInfo.description
+      : (machineStateInfo.state ?? "SIN ESTADO");
   const statusColor = getStateColor(machineStateInfo.state);
 
   const turnoMetricsLoading = metricasTurnoLoading && !metricasTurnoData;
@@ -943,7 +1091,10 @@ export default function DashboardOrderCard({
     try {
       window.localStorage.setItem(pointerKey, progressStorageKey);
     } catch (error) {
-      console.warn(`[DashboardOrderCard] ${machineId}: unable to persist progress pointer`, error);
+      console.warn(
+        `[DashboardOrderCard] ${machineId}: unable to persist progress pointer`,
+        error,
+      );
     }
 
     const anchor = deriveAnchorFromProgressKey(progressStorageKey);
@@ -958,7 +1109,8 @@ export default function DashboardOrderCard({
     }
 
     const turnoLabel = data?.turnoLabel ?? null;
-    const referenceIsoCandidate = data?.fechaInicioReal ?? data?.fechaInicioOF ?? null;
+    const referenceIsoCandidate =
+      data?.fechaInicioReal ?? data?.fechaInicioOF ?? null;
 
     if (referenceIsoCandidate) {
       const normalizedAnchor = new Date(referenceIsoCandidate).toISOString();
@@ -978,9 +1130,19 @@ export default function DashboardOrderCard({
       return;
     }
 
-    const key = buildProgressStorageKey(machineId, turnoLabel, shiftAnchorRef.current);
+    const key = buildProgressStorageKey(
+      machineId,
+      turnoLabel,
+      shiftAnchorRef.current,
+    );
     setProgressStorageKey((prev) => (prev === key ? prev : key));
-  }, [machineId, data?.turnoLabel, data?.fechaInicioReal, data?.fechaInicioOF, progressStorageKey]);
+  }, [
+    machineId,
+    data?.turnoLabel,
+    data?.fechaInicioReal,
+    data?.fechaInicioOF,
+    progressStorageKey,
+  ]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -1010,9 +1172,19 @@ export default function DashboardOrderCard({
       };
 
       try {
-        window.localStorage.setItem(progressStorageKey, JSON.stringify(payload));
-        window.localStorage.setItem(buildProgressPointerKey(machineId), progressStorageKey);
-        if (previousKey && previousKey.startsWith(PROGRESS_STORAGE_PREFIX) && previousKey !== progressStorageKey) {
+        window.localStorage.setItem(
+          progressStorageKey,
+          JSON.stringify(payload),
+        );
+        window.localStorage.setItem(
+          buildProgressPointerKey(machineId),
+          progressStorageKey,
+        );
+        if (
+          previousKey &&
+          previousKey.startsWith(PROGRESS_STORAGE_PREFIX) &&
+          previousKey !== progressStorageKey
+        ) {
           window.localStorage.removeItem(previousKey);
         }
         lastPersistAtRef.current = migratedAt;
@@ -1020,7 +1192,10 @@ export default function DashboardOrderCard({
         isRestoringTimelineRef.current = false;
         return;
       } catch (error) {
-        console.warn(`[DashboardOrderCard] ${machineId}: unable to migrate status progress`, error);
+        console.warn(
+          `[DashboardOrderCard] ${machineId}: unable to migrate status progress`,
+          error,
+        );
       }
     }
 
@@ -1028,51 +1203,66 @@ export default function DashboardOrderCard({
     isRestoringTimelineRef.current = true;
   }, [progressStorageKey, machineId]);
 
-  const persistStatusProgress = useCallback((force = false) => {
-    if (typeof window === "undefined") {
-      return;
-    }
-    if (!progressStorageKey) {
-      return;
-    }
-
-    const now = Date.now();
-    if (!force && now - lastPersistAtRef.current < PERSIST_THROTTLE_MS) {
-      return;
-    }
-
-    const snapshot = statusSegmentsRef.current;
-    if (!snapshot.length) {
-      try {
-        window.localStorage.removeItem(progressStorageKey);
-        const pointerKey = buildProgressPointerKey(machineId);
-        const storedPointer = window.localStorage.getItem(pointerKey);
-        if (storedPointer === progressStorageKey) {
-          window.localStorage.removeItem(pointerKey);
-        }
-      } catch (error) {
-        console.warn(`[DashboardOrderCard] ${machineId}: storage cleanup failed`, error);
+  const persistStatusProgress = useCallback(
+    (force = false) => {
+      if (typeof window === "undefined") {
+        return;
       }
-      lastPersistAtRef.current = now;
-      return;
-    }
+      if (!progressStorageKey) {
+        return;
+      }
 
-    const payload: StoredProgressPayload = {
-      version: PROGRESS_STORAGE_VERSION,
-      machineId,
-      turnoKey: progressStorageKey,
-      savedAt: now,
-      segments: serializeSegments(snapshot),
-    };
+      const now = Date.now();
+      if (!force && now - lastPersistAtRef.current < PERSIST_THROTTLE_MS) {
+        return;
+      }
 
-    try {
-      window.localStorage.setItem(progressStorageKey, JSON.stringify(payload));
-      window.localStorage.setItem(buildProgressPointerKey(machineId), progressStorageKey);
-      lastPersistAtRef.current = now;
-    } catch (error) {
-      console.warn(`[DashboardOrderCard] ${machineId}: unable to persist status progress`, error);
-    }
-  }, [machineId, progressStorageKey]);
+      const snapshot = statusSegmentsRef.current;
+      if (!snapshot.length) {
+        try {
+          window.localStorage.removeItem(progressStorageKey);
+          const pointerKey = buildProgressPointerKey(machineId);
+          const storedPointer = window.localStorage.getItem(pointerKey);
+          if (storedPointer === progressStorageKey) {
+            window.localStorage.removeItem(pointerKey);
+          }
+        } catch (error) {
+          console.warn(
+            `[DashboardOrderCard] ${machineId}: storage cleanup failed`,
+            error,
+          );
+        }
+        lastPersistAtRef.current = now;
+        return;
+      }
+
+      const payload: StoredProgressPayload = {
+        version: PROGRESS_STORAGE_VERSION,
+        machineId,
+        turnoKey: progressStorageKey,
+        savedAt: now,
+        segments: serializeSegments(snapshot),
+      };
+
+      try {
+        window.localStorage.setItem(
+          progressStorageKey,
+          JSON.stringify(payload),
+        );
+        window.localStorage.setItem(
+          buildProgressPointerKey(machineId),
+          progressStorageKey,
+        );
+        lastPersistAtRef.current = now;
+      } catch (error) {
+        console.warn(
+          `[DashboardOrderCard] ${machineId}: unable to persist status progress`,
+          error,
+        );
+      }
+    },
+    [machineId, progressStorageKey],
+  );
 
   useEffect(() => {
     if (!progressStorageKey || typeof window === "undefined") {
@@ -1108,7 +1298,10 @@ export default function DashboardOrderCard({
     const lastSegment = parsed.segments[parsed.segments.length - 1];
     statusCurrentLabelRef.current = lastSegment.label;
     statusStartTimeRef.current = lastSegment.startMs;
-    const elapsedMs = Math.max(0, (lastSegment.endMs ?? Date.now()) - lastSegment.startMs);
+    const elapsedMs = Math.max(
+      0,
+      (lastSegment.endMs ?? Date.now()) - lastSegment.startMs,
+    );
     setStatusElapsedSeconds(Math.floor(elapsedMs / 1000));
   }, [progressStorageKey]);
 
@@ -1268,9 +1461,12 @@ export default function DashboardOrderCard({
   // 🔥 Criar segmentos individuais na ordem cronológica (sem agrupar estados repetidos)
   const statusTimelineSegments = statusSegments.map((segment) => {
     const durationMs = Math.max(0, (segment.endMs ?? nowMs) - segment.startMs);
-    const percent = statusTimelineTotalMs > 0
-      ? (durationMs / statusTimelineTotalMs) * 100
-      : (statusSegments.length > 0 ? (100 / statusSegments.length) : 0);
+    const percent =
+      statusTimelineTotalMs > 0
+        ? (durationMs / statusTimelineTotalMs) * 100
+        : statusSegments.length > 0
+          ? 100 / statusSegments.length
+          : 0;
     const elapsedLabel = formatElapsedTime(Math.floor(durationMs / 1000));
 
     return {
@@ -1352,7 +1548,10 @@ export default function DashboardOrderCard({
   // ⚠️ DESATIVADO - APIs /api/scada/nok-turno e /api/scada/nok-of não existem mais (410 Gone)
   const fetchNokTurnoData = useCallback(async () => {
     // Dados NOK agora vêm do webhook SCADA
-    setNokTurnoData({ nok_total: 0, message: "Dados indisponíveis - API desativada" });
+    setNokTurnoData({
+      nok_total: 0,
+      message: "Dados indisponíveis - API desativada",
+    });
     setNokTurnoLoading(false);
     /*
     if (!machineId) return;
@@ -1381,7 +1580,10 @@ export default function DashboardOrderCard({
   // ⚠️ DESATIVADO - API /api/scada/nok-of não existe mais (410 Gone)
   const fetchNokOfData = useCallback(async () => {
     // Dados NOK agora vêm do webhook SCADA
-    setNokOfData({ nok_total: 0, message: "Dados indisponíveis - API desativada" });
+    setNokOfData({
+      nok_total: 0,
+      message: "Dados indisponíveis - API desativada",
+    });
     setNokOfLoading(false);
     /*
     if (!ofCode) return;
@@ -1421,7 +1623,6 @@ export default function DashboardOrderCard({
     }
   }, [ofCode]);
 
-
   if (loading && !data) {
     return (
       <div className="ff-card ff-card--loading" title={machineId}>
@@ -1453,27 +1654,40 @@ export default function DashboardOrderCard({
 
   const tone = getPercentTone(data.porcentajeOF);
   const totalFabricado = data.okOf + data.nokOf + data.rwkOf;
-  const planPercent = data.planOf > 0 ? Math.min(Math.max((totalFabricado / data.planOf) * 100, 0), 150) : 0;
+  const planPercent =
+    data.planOf > 0
+      ? Math.min(Math.max((totalFabricado / data.planOf) * 100, 0), 150)
+      : 0;
   const planFillWidth = Math.min(planPercent, 100);
   const planLabel = `${formatNumber(totalFabricado, 0)} / ${formatNumber(data.planOf, 0)} uds`;
   const planCountLabel = `${formatNumber(data.planOf, 0)} uds`;
   const producedCountLabel = `${formatNumber(totalFabricado, 0)} uds`;
   const promedioOeeLabel = formatPercent(data.oeeOF ?? data.oeeTurno, 1, true);
   const totalFabricadoLabel = formatNumber(totalFabricado, 0);
-  const parosTurnoLabel = data.parosTurnoMin !== null && data.parosTurnoMin !== undefined
-    ? `${formatNumber(data.parosTurnoMin, 0)} min`
-    : '—';
-  const statusClassName = `ff-card ff-card--status-${data.statusTone} ${data.paroActivoDesc ? 'ff-card--alert' : ''}`.trim();
+  const parosTurnoLabel =
+    data.parosTurnoMin !== null && data.parosTurnoMin !== undefined
+      ? `${formatNumber(data.parosTurnoMin, 0)} min`
+      : "—";
+  const statusClassName =
+    `ff-card ff-card--status-${data.statusTone} ${data.paroActivoDesc ? "ff-card--alert" : ""}`.trim();
   const productRefDisplay = formatText(data.productoRef);
   const productDescDisplay = formatText(data.productoDesc);
-  const productTitle = data.turnoLabel ? `${productRefDisplay} · ${productDescDisplay}` : `${productRefDisplay} · ${productDescDisplay}`;
+  const productTitle = data.turnoLabel
+    ? `${productRefDisplay} · ${productDescDisplay}`
+    : `${productRefDisplay} · ${productDescDisplay}`;
 
-  const fechaInicioLabel = formatDateTime(data.fechaInicioReal ?? data.fechaInicioOF ?? undefined);
+  const fechaInicioLabel = formatDateTime(
+    data.fechaInicioReal ?? data.fechaInicioOF ?? undefined,
+  );
   const fechaFinRealLabel = formatDateTime(data.fechaFinReal ?? undefined);
-  const finEstimadoLabel = formatDateTime(data.fechaFinEstimada ?? data.fechaFinOF ?? undefined);
+  const finEstimadoLabel = formatDateTime(
+    data.fechaFinEstimada ?? data.fechaFinOF ?? undefined,
+  );
 
   const turnoDisplay = formatText(data.turnoLabel ?? undefined);
-  const operadorDisplay = formatText(data.operatorFullName ?? data.operatorName ?? undefined);
+  const operadorDisplay = formatText(
+    data.operatorFullName ?? data.operatorName ?? undefined,
+  );
   const actividadDisplay = formatText(data.actividadDesc ?? undefined);
   const oeeTurnoLabel = formatPercent(data.oeeTurno, 1, true);
   const dispTurnoLabel = formatPercent(data.dispTurno, 1, true);
@@ -1490,8 +1704,7 @@ export default function DashboardOrderCard({
       ? (turnoOkValue ?? 0) + (turnoNokValue ?? 0) + (turnoRwkValue ?? 0)
       : null);
   const turnoProductivoMinValue = data.turnoProductivoMin ?? null;
-  const turnoParosMinValue =
-    data.turnoParosMin ?? data.parosTurnoMin ?? null;
+  const turnoParosMinValue = data.turnoParosMin ?? data.parosTurnoMin ?? null;
   const turnoTotalMinValue =
     data.turnoTotalMin ??
     (turnoProductivoMinValue !== null && turnoParosMinValue !== null
@@ -1550,553 +1763,277 @@ export default function DashboardOrderCard({
         title={data.machineCode}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
-        style={{ position: 'relative' }}
+        style={{ position: "relative" }}
       >
-      <header className="ff-card__top">
-        <div className="ff-card__identity">
-          <div className="ff-card__identity-text">
-            <span className="ff-card__machine" title={data.machineCode}>{data.machineName}</span>
+        <header className="ff-card__top">
+          <div className="ff-card__identity">
+            <div className="ff-card__identity-text">
+              <span className="ff-card__machine" title={data.machineCode}>
+                {data.machineName}
+              </span>
+            </div>
+            <div style={{ position: "relative", display: "inline-block" }}>
+              <span
+                className={`ff-status-chip ff-status-chip--${data.statusTone}`}
+                style={{
+                  backgroundColor: statusColor,
+                  color: "white",
+                  borderColor: statusColor,
+                  cursor: machineStateInfo.description ? "pointer" : "default",
+                  maxWidth: "150px",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  display: "inline-block",
+                }}
+                title={
+                  machineStateInfo.state === "PARADA" &&
+                  machineStateInfo.description
+                    ? machineStateInfo.description
+                    : data.statusLabel && data.statusLabel.trim()
+                      ? data.statusLabel
+                      : machineStateInfo.state
+                }
+                aria-label={
+                  machineStateInfo.state === "PARADA" &&
+                  machineStateInfo.description
+                    ? machineStateInfo.description
+                    : data.statusLabel && data.statusLabel.trim()
+                      ? data.statusLabel
+                      : machineStateInfo.state
+                }
+                onClick={() =>
+                  machineStateInfo.description &&
+                  setShowStatusDescription(!showStatusDescription)
+                }
+                onMouseEnter={() =>
+                  machineStateInfo.description && setShowStatusDescription(true)
+                }
+                onMouseLeave={() => setShowStatusDescription(false)}
+              >
+                {machineStateInfo.state === "PARADA" &&
+                machineStateInfo.description
+                  ? machineStateInfo.description
+                  : machineStateInfo.state}
+              </span>
+              {/* Tooltip com descrição expandida */}
+              {machineStateInfo.description && showStatusDescription && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "100%",
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    marginTop: "4px",
+                    padding: "6px 10px",
+                    background: "rgba(0, 0, 0, 0.9)",
+                    color: "white",
+                    borderRadius: "4px",
+                    fontSize: "11px",
+                    fontWeight: 600,
+                    whiteSpace: "nowrap",
+                    zIndex: 1000,
+                    boxShadow: "0 4px 8px rgba(0,0,0,0.3)",
+                    pointerEvents: "none",
+                    animation: "fadeIn 0.2s ease-in",
+                  }}
+                >
+                  {machineStateInfo.description}
+                  {/* Seta do tooltip */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      bottom: "100%",
+                      left: "50%",
+                      transform: "translateX(-50%)",
+                      width: 0,
+                      height: 0,
+                      borderLeft: "6px solid transparent",
+                      borderRight: "6px solid transparent",
+                      borderBottom: "6px solid rgba(0, 0, 0, 0.9)",
+                    }}
+                  />
+                </div>
+              )}
+            </div>
           </div>
-          <div style={{ position: 'relative', display: 'inline-block' }}>
-            <span
-              className={`ff-status-chip ff-status-chip--${data.statusTone}`}
-              style={{
-                backgroundColor: statusColor,
-                color: 'white',
-                borderColor: statusColor,
-                cursor: machineStateInfo.description ? 'pointer' : 'default',
-                maxWidth: '150px',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                display: 'inline-block'
-              }}
-              title={
-                machineStateInfo.state === 'PARADA' && machineStateInfo.description
-                  ? machineStateInfo.description
-                  : ((data.statusLabel && data.statusLabel.trim()) ? data.statusLabel : machineStateInfo.state)
-              }
-              aria-label={
-                machineStateInfo.state === 'PARADA' && machineStateInfo.description
-                  ? machineStateInfo.description
-                  : ((data.statusLabel && data.statusLabel.trim()) ? data.statusLabel : machineStateInfo.state)
-              }
-              onClick={() => machineStateInfo.description && setShowStatusDescription(!showStatusDescription)}
-              onMouseEnter={() => machineStateInfo.description && setShowStatusDescription(true)}
-              onMouseLeave={() => setShowStatusDescription(false)}
-            >
-              {machineStateInfo.state === 'PARADA' && machineStateInfo.description
-                ? machineStateInfo.description
-                : machineStateInfo.state}
-            </span>
-            {/* Tooltip com descrição expandida */}
-            {machineStateInfo.description && showStatusDescription && (
-              <div style={{
-                position: 'absolute',
-                top: '100%',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                marginTop: '4px',
-                padding: '6px 10px',
-                background: 'rgba(0, 0, 0, 0.9)',
-                color: 'white',
-                borderRadius: '4px',
-                fontSize: '11px',
-                fontWeight: 600,
-                whiteSpace: 'nowrap',
-                zIndex: 1000,
-                boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
-                pointerEvents: 'none',
-                animation: 'fadeIn 0.2s ease-in'
-              }}>
-                {machineStateInfo.description}
-                {/* Seta do tooltip */}
-                <div style={{
-                  position: 'absolute',
-                  bottom: '100%',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  width: 0,
-                  height: 0,
-                  borderLeft: '6px solid transparent',
-                  borderRight: '6px solid transparent',
-                  borderBottom: '6px solid rgba(0, 0, 0, 0.9)'
-                }} />
-              </div>
+          <div className="ff-card__order-line">
+            {productRefDisplay && productRefDisplay !== "—" && (
+              <span
+                className="ff-tag ff-tag--product"
+                title={productRefDisplay}
+              >
+                {productRefDisplay}
+              </span>
             )}
-          </div>
-        </div>
-        <div className="ff-card__order-line">
-          {productRefDisplay && productRefDisplay !== '—' && (
             <span
-              className="ff-tag ff-tag--product"
-              title={productRefDisplay}
+              className="ff-tag ff-tag--of"
+              title={data.turnoLabel ?? undefined}
             >
-              {productRefDisplay}
+              {formatText(data.ofCode)}
             </span>
+            <div className="ff-card__product" title={productTitle}>
+              <span className="ff-card__product-desc">
+                {productDescDisplay}
+              </span>
+            </div>
+          </div>
+        </header>
+
+        {/* Meta row com operador posicionado início e fim */}
+        <div className="ff-card__meta-row flex justify-between items-center px-3 md:px-4 lg:px-6 py-2 md:py-3">
+          <div className="ff-info ff-info--operator flex-1">
+            <span className="ff-info__label text-xs md:text-sm">Operador</span>
+            <div
+              className="ff-info__value ff-info__value--operator"
+              title={machineFieldsData?.["Operador"] || operadorDisplay}
+            >
+              <LoopText
+                text={machineFieldsData?.["Operador"] || operadorDisplay || "—"}
+                speed={0}
+                gap={30}
+              />
+            </div>
+          </div>
+          {data.turnoLabel && data.turnoLabel !== "TARDE" && (
+            <div className="ff-info ff-info--turno flex-shrink-0 ml-2">
+              <span className="ff-info__label"></span>
+              <span
+                className="ff-info__value ff-info__value--turno text-xs md:text-sm"
+                title={data.turnoLabel}
+              >
+                {data.turnoLabel}
+              </span>
+            </div>
           )}
-          <span
-            className="ff-tag ff-tag--of"
-            title={data.turnoLabel ?? undefined}
-          >
-            {formatText(data.ofCode)}
-          </span>
-          <div className="ff-card__product" title={productTitle}>
-            <span className="ff-card__product-desc">{productDescDisplay}</span>
-          </div>
         </div>
-      </header>
 
-      {/* Meta row com operador posicionado início e fim */}
-      <div className="ff-card__meta-row flex justify-between items-center px-3 md:px-4 lg:px-6 py-2 md:py-3">
-        <div className="ff-info ff-info--operator flex-1">
-          <span className="ff-info__label text-xs md:text-sm">Operador</span>
-          <div className="ff-info__value ff-info__value--operator" title={machineFieldsData?.["Operador"] || operadorDisplay}>
-            <LoopText
-              text={machineFieldsData?.["Operador"] || operadorDisplay || "—"}
-              speed={0}
-              gap={30}
-            />
-          </div>
-        </div>
-        {data.turnoLabel && data.turnoLabel !== 'TARDE' && (
-          <div className="ff-info ff-info--turno flex-shrink-0 ml-2">
-            <span className="ff-info__label"></span>
-            <span className="ff-info__value ff-info__value--turno text-xs md:text-sm" title={data.turnoLabel}>{data.turnoLabel}</span>
-          </div>
-        )}
-      </div>
-
-      {/* Métricas de Turno com grid responsivo */}
-      <div style={{
-        margin: '6px 0 2px 0',
-        padding: `${combineClasses('px-3 md:px-4 lg:px-6 py-2 md:py-3 lg:py-4')}`,
-        background: 'rgba(248, 249, 250, 0.95)',
-        borderRadius: '4px',
-        border: '1px solid rgba(233, 236, 239, 0.8)',
-        boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
-        flex: '1 1 auto',
-        minHeight: 0,
-        overflow: 'auto'
-      }}>
-        <div style={{
-          fontSize: '9px md:text-[10px] lg:text-[11px]',
-          fontWeight: 700,
-          color: '#495057',
-          textTransform: 'uppercase',
-          letterSpacing: '0.3px',
-          marginBottom: '6px md:mb-3',
-          textAlign: 'center'
-        }}>Métricas Turno</div>
-
-        {/* Grid responsivo 2-4 colunas */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(50px, 1fr))',
-          gap: '6px md:gap-2 lg:gap-3',
-          marginBottom: '6px md:mb-2'
-        }}>
-          {/* OEE Turno */}
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            padding: '4px md:px-2 md:py-3 lg:px-3 lg:py-4',
-            background: turnoMetricsLoading ? 'rgba(108, 117, 125, 0.1)' : getOeeBackground(
-              data.statusTone,
-              machineFieldsData?.["OEE turno"] ?? (typeof data.oeeTurno === 'number' ? data.oeeTurno : null)
-            ),
-            borderRadius: '5px',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-            border: '1px solid rgba(255,255,255,0.2)',
-            minHeight: '70px md:min-h-[100px] lg:min-h-[120px]',
-            justifyContent: 'center',
+        {/* Métricas de Turno com grid responsivo */}
+        <div
+          style={{
+            margin: "6px 0 2px 0",
+            padding: `${combineClasses("px-3 md:px-4 lg:px-6 py-2 md:py-3 lg:py-4")}`,
+            background: "rgba(248, 249, 250, 0.95)",
+            borderRadius: "4px",
+            border: "1px solid rgba(233, 236, 239, 0.8)",
+            boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+            flex: "1 1 auto",
+            minHeight: 0,
+            overflow: "auto",
           }}
-          title={`OEE Turno: ${turnoMetricsLoading ? 'Carregando...' : (animatedValues.oeeTurno || data.oeeTurno || 'N/A')}%`}
-          >
-            <div style={{
-              fontSize: '11px md:text-sm lg:text-base',
-              fontWeight: 800,
-              color: 'white',
-              textShadow: '0 1px 2px rgba(0,0,0,0.3)',
-              marginBottom: '1px'
-            }}>
-              {turnoMetricsLoading ? '...' : (
-                <CountUp
-                  to={animatedValues.oeeTurno}
-                  decimals={1}
-                  duration={1.5}
-                />
-              )}
-            </div>
-            <div style={{
-              fontSize: '7px md:text-xs lg:text-sm',
+        >
+          <div
+            style={{
+              fontSize: "9px md:text-[10px] lg:text-[11px]",
               fontWeight: 700,
-              color: 'rgba(255,255,255,0.9)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.3px'
-            }}>
-              OEE
-            </div>
+              color: "#495057",
+              textTransform: "uppercase",
+              letterSpacing: "0.3px",
+              marginBottom: "6px md:mb-3",
+              textAlign: "center",
+            }}
+          >
+            Métricas Turno
           </div>
 
-          {/* Disponibilidad */}
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            padding: '4px md:px-2 md:py-3 lg:px-3 lg:py-4',
-            background: data.paroActivoDesc ? 'rgba(255, 193, 7, 0.15)' : 'rgba(255,255,255,0.8)',
-            borderRadius: '8px',
-            border: data.paroActivoDesc ? '1px solid rgba(255, 193, 7, 0.3)' : 'none',
-            minHeight: '70px md:min-h-[100px] lg:min-h-[120px]',
-            justifyContent: 'center'
-          }}
-          title={`Disponibilidad Turno: ${turnoMetricsLoading ? 'Carregando...' : (animatedValues.dispTurno || data.dispTurno || 'N/A')}%`}
+          {/* Grid responsivo 2-4 colunas */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(50px, 1fr))",
+              gap: "6px md:gap-2 lg:gap-3",
+              marginBottom: "6px md:mb-2",
+            }}
           >
-            <div style={{
-              fontSize: '13px md:text-base lg:text-lg',
-              fontWeight: 700,
-              color: turnoMetricsLoading ? '#6c757d' : '#007bff',
-              marginBottom: '3px md:mb-2'
-            }}>
-              {turnoMetricsLoading ? '...' : (
-                <>
-                  <CountUp
-                    to={animatedValues.dispTurno}
-                    decimals={1}
-                    duration={1.5}
-                  />
-                  %
-                </>
-              )}
-            </div>
-            <div style={{
-              fontSize: '10px md:text-xs lg:text-sm',
-              fontWeight: 600,
-              color: '#6c757d',
-              textTransform: 'uppercase',
-              marginBottom: '2px md:mb-2'
-            }}>
-              Disp
-            </div>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '2px',
-              marginTop: '2px md:mt-2',
-              paddingTop: '6px md:pt-2',
-              borderTop: '1px solid rgba(0,0,0,0.1)',
-              width: '100%',
-              fontSize: '8px md:text-xs'
-            }}>
-              <i className={data.paroActivoDesc ? 'fas fa-pause-circle' : 'fas fa-check-circle'}
-                 style={{
-                   color: data.paroActivoDesc ? '#ffc107' : '#28a745',
-                   fontSize: '8px md:text-xs'
-                 }}></i>
-              <div style={{
-                fontWeight: 600,
-                color: '#495057'
-              }}>
-                {parosTurnoLabel}
-              </div>
-            </div>
-          </div>
-
-          {/* Rendimiento */}
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            padding: '4px md:px-2 md:py-3 lg:px-3 lg:py-4',
-            background: 'rgba(255,255,255,0.8)',
-            borderRadius: '4px',
-            minHeight: '70px md:min-h-[100px] lg:min-h-[120px]',
-            justifyContent: 'center'
-          }}
-          >
-            <div style={{
-              fontSize: '13px md:text-base lg:text-lg',
-              fontWeight: 700,
-              color: turnoMetricsLoading ? '#6c757d' : '#28a745',
-              marginBottom: '3px md:mb-2'
-            }}>
-              {turnoMetricsLoading ? '...' : (
-                <>
-                  <CountUp
-                    to={animatedValues.rendTurno}
-                    decimals={1}
-                    duration={1.5}
-                  />
-                  %
-                </>
-              )}
-            </div>
-            <div style={{
-              fontSize: '10px md:text-xs lg:text-sm',
-              fontWeight: 600,
-              color: '#6c757d',
-              textTransform: 'uppercase',
-              marginBottom: '2px md:mb-2'
-            }}>
-              Rend
-            </div>
-            {/* Velocidad de producción */}
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '2px',
-              alignItems: 'center',
-              marginTop: '4px',
-              paddingTop: '4px',
-              borderTop: '1px solid rgba(0,0,0,0.1)',
-              width: '100%'
-            }}>
-              {animatedValues.velUph > 0 || animatedValues.velUps > 0 ? (
-                <>
-                  {/* u/h - arriba */}
-                  {animatedValues.velUph > 0 && (
-                    <div style={{
-                      fontSize: '10px md:text-xs lg:text-sm',
-                      fontWeight: 600,
-                      color: '#0f172a',
-                      textAlign: 'center'
-                    }}>
-                      <CountUp
-                        to={animatedValues.velUph}
-                        decimals={0}
-                        duration={1.5}
-                      /> u/h
-                    </div>
-                  )}
-                  {/* u/s - abajo */}
-                  {animatedValues.velUps > 0 && (
-                    <div style={{
-                      fontSize: '9px md:text-[10px] lg:text-xs',
-                      fontWeight: 500,
-                      color: '#64748b',
-                      textAlign: 'center'
-                    }}>
-                      <CountUp
-                        to={animatedValues.velUps}
-                        decimals={2}
-                        duration={1.5}
-                      /> u/s
-                    </div>
-                  )}
-                </>
-              ) : velocidadLoading ? (
-                <div style={{
-                  fontSize: '9px md:text-xs lg:text-sm',
-                  fontWeight: 600,
-                  color: '#6c757d',
-                  textAlign: 'center'
-                }}>...</div>
-              ) : (
-                <div style={{
-                  fontSize: '9px md:text-xs lg:text-sm',
-                  fontWeight: 600,
-                  color: '#6c757d',
-                  textAlign: 'center'
-                }}>—</div>
-              )}
-            </div>
-          </div>
-
-          {/* Calidad */}
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            padding: '4px md:px-2 md:py-3 lg:px-3 lg:py-4',
-            background: 'rgba(255,255,255,0.8)',
-            borderRadius: '4px',
-            minHeight: '70px md:min-h-[100px] lg:min-h-[120px]',
-            justifyContent: 'center'
-          }}>
-            <div style={{
-              fontSize: '13px md:text-base lg:text-lg',
-              fontWeight: 700,
-              color: turnoMetricsLoading ? '#6c757d' : '#ffc107',
-              marginBottom: '3px md:mb-2'
-            }}>
-              {turnoMetricsLoading ? '...' : (
-                <>
-                  <CountUp
-                    to={animatedValues.calTurno}
-                    decimals={1}
-                    duration={1.5}
-                  />
-                  %
-                </>
-              )}
-            </div>
-            <div style={{
-              fontSize: '10px md:text-xs lg:text-sm',
-              fontWeight: 600,
-              color: '#6c757d',
-              textTransform: 'uppercase',
-              marginBottom: '2px md:mb-1'
-            }}>
-              Calidad
-            </div>
+            {/* OEE Turno */}
             <div
               style={{
-                fontSize: '10px md:text-xs lg:text-sm',
-                fontWeight: 600,
-                color: '#dc3545',
-                cursor: calidadNOKData && calidadNOKData.length > 0 ? 'pointer' : 'default',
-                transition: 'all 0.2s ease',
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                padding: "4px md:px-2 md:py-3 lg:px-3 lg:py-4",
+                background: turnoMetricsLoading
+                  ? "rgba(108, 117, 125, 0.1)"
+                  : getOeeBackground(
+                      data.statusTone,
+                      machineFieldsData?.["OEE turno"] ??
+                        (typeof data.oeeTurno === "number"
+                          ? data.oeeTurno
+                          : null),
+                    ),
+                borderRadius: "5px",
+                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                border: "1px solid rgba(255,255,255,0.2)",
+                minHeight: "70px md:min-h-[100px] lg:min-h-[120px]",
+                justifyContent: "center",
               }}
-              onDoubleClick={() => {
-                console.log('🔴 [NOK] Doble click detectado:', {
-                  hasData: !!calidadNOKData,
-                  dataLength: calidadNOKData?.length || 0,
-                  totalNOK: totalNOK,
-                });
-                if (calidadNOKData && calidadNOKData.length > 0) {
-                  console.log('🔴 [NOK] Abriendo modal...');
-                  setShowNOKModal(true);
-                } else {
-                  console.log('🔴 [NOK] No hay datos para mostrar');
-                }
-              }}
-              title={calidadNOKData && calidadNOKData.length > 0 ? 'Doble clic para ver detalles' : ''}
+              title={`OEE Turno: ${turnoMetricsLoading ? "Carregando..." : animatedValues.oeeTurno || data.oeeTurno || "N/A"}%`}
             >
-              NOK: {shouldShowNokPlaceholder ? '...' : (
-                <CountUp
-                  to={animatedValues.totalNOK}
-                  decimals={0}
-                  duration={1.5}
-                />
-              )}
-            </div>
-          </div>
-      </div>
-    </div>
-
-      {/* Barra de progresso do estado atual */}
-      <div
-        className="ff-status-progress"
-        title={`${statusDisplayText} · ${statusElapsedLabel}`}
-        aria-label={`Estado atual ${statusDisplayText} há ${statusElapsedLabel}`}
-      >
-        <div className="ff-status-progress__bar">
-          {statusTimelineEmpty ? (
-            <div className="ff-status-progress__segment ff-status-progress__segment--empty" />
-          ) : (
-            statusTimelineSegments.map((segment) => (
               <div
-                key={segment.id}
-                className="ff-status-progress__segment"
                 style={{
-                  width: `${segment.percent}%`,
-                  backgroundColor: segment.color,
+                  fontSize: "11px md:text-sm lg:text-base",
+                  fontWeight: 800,
+                  color: "white",
+                  textShadow: "0 1px 2px rgba(0,0,0,0.3)",
+                  marginBottom: "1px",
                 }}
-                title={`${segment.label} · ${segment.elapsedLabel}`}
-                aria-label={`${segment.label} por ${segment.elapsedLabel}`}
               >
-                {/* Intencionalmente sem conteúdo visível */}
-                <span className="ff-status-progress__segment-mask" />
+                {turnoMetricsLoading ? (
+                  "..."
+                ) : (
+                  <CountUp
+                    to={animatedValues.oeeTurno}
+                    decimals={1}
+                    duration={1.5}
+                  />
+                )}
               </div>
-            ))
-          )}
-        </div>
-      </div>
-
-      {/* Métricas de OF - Grid responsivo compacto */}
-      <div style={{
-        margin: '4px 0 4px 0',
-        padding: `${combineClasses('px-3 md:px-4 lg:px-6 py-2 md:py-3 lg:py-4')}`,
-        background: 'rgba(248, 249, 250, 0.95)',
-        borderRadius: '4px',
-        border: '1px solid rgba(233, 236, 239, 0.8)',
-        boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
-        overflow: 'auto'
-      }}>
-        <div style={{
-          fontSize: '9px md:text-[10px] lg:text-[11px]',
-          fontWeight: 700,
-          color: '#495057',
-          textTransform: 'uppercase',
-          letterSpacing: '0.3px',
-          marginBottom: '4px md:mb-2',
-          textAlign: 'center'
-        }}>Métricas OF</div>
-
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(45px, 1fr))',
-          gap: '4px md:gap-2 lg:gap-3',
-          marginBottom: '4px md:mb-3'
-        }}>
-          {/* OEE OF */}
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            padding: '4px md:px-2 md:py-2 lg:px-3 lg:py-3',
-            background: machineFieldsLoading ? 'rgba(108, 117, 125, 0.1)' : getOeeBackground(
-              data.statusTone,
-              machineFieldsData?.["OEE General"] ?? (typeof data.oeeOF === 'number' ? data.oeeOF : null)
-            ),
-            borderRadius: '6px',
-            boxShadow: '0 1px 8px rgba(0,0,0,0.1)',
-            border: '2px solid rgba(255,255,255,0.2)',
-            minHeight: '60px md:min-h-[80px] lg:min-h-[100px]',
-            justifyContent: 'center'
-          }}>
-            <div style={{
-              fontSize: '12px md:text-base lg:text-lg',
-              fontWeight: 800,
-              color: 'white',
-              textShadow: '0 1px 2px rgba(0,0,0,0.3)'
-            }}>
-              {machineFieldsLoading ? '...' : (
-                <CountUp
-                  to={animatedValues.oeeOF}
-                  decimals={1}
-                  duration={1.5}
-                />
-              )}
+              <div
+                style={{
+                  fontSize: "7px md:text-xs lg:text-sm",
+                  fontWeight: 700,
+                  color: "rgba(255,255,255,0.9)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.3px",
+                }}
+              >
+                OEE
+              </div>
             </div>
-            <div style={{
-              fontSize: '8px md:text-xs lg:text-sm',
-              fontWeight: 700,
-              color: 'rgba(255,255,255,0.9)',
-              textTransform: 'uppercase'
-            }}>
-              OEE
-            </div>
-          </div>
 
-          {/* Disp OF, Rend OF, Cal OF - compactos */}
-          {[
-            { label: 'Disp', value: animatedValues.dispOF, color: '#007bff', icon: 'fa-tachometer' },
-            { label: 'Rend', value: animatedValues.rendOF, color: '#28a745', icon: 'fa-chart' },
-            { label: 'Cal', value: animatedValues.calOF, color: '#ffc107', icon: 'fa-star' }
-          ].map((metric, idx) => (
-            <div key={idx} style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              padding: '4px md:px-2 md:py-2 lg:px-3 lg:py-3',
-              background: 'rgba(255,255,255,0.8)',
-              borderRadius: '6px',
-              minHeight: '60px md:min-h-[80px] lg:min-h-[100px]',
-              justifyContent: 'center'
-            }}>
-              <div style={{
-                fontSize: '12px md:text-base lg:text-lg',
-                fontWeight: 700,
-                color: metric.color
-              }}>
-                {machineFieldsLoading ? '...' : (
+            {/* Disponibilidad */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                padding: "4px md:px-2 md:py-3 lg:px-3 lg:py-4",
+                background: data.paroActivoDesc
+                  ? "rgba(255, 193, 7, 0.15)"
+                  : "rgba(255,255,255,0.8)",
+                borderRadius: "8px",
+                border: data.paroActivoDesc
+                  ? "1px solid rgba(255, 193, 7, 0.3)"
+                  : "none",
+                minHeight: "70px md:min-h-[100px] lg:min-h-[120px]",
+                justifyContent: "center",
+              }}
+              title={`Disponibilidad Turno: ${turnoMetricsLoading ? "Carregando..." : animatedValues.dispTurno || data.dispTurno || "N/A"}%`}
+            >
+              <div
+                style={{
+                  fontSize: "13px md:text-base lg:text-lg",
+                  fontWeight: 700,
+                  color: turnoMetricsLoading ? "#6c757d" : "#007bff",
+                  marginBottom: "3px md:mb-2",
+                }}
+              >
+                {turnoMetricsLoading ? (
+                  "..."
+                ) : (
                   <>
                     <CountUp
-                      to={metric.value}
+                      to={animatedValues.dispTurno}
                       decimals={1}
                       duration={1.5}
                     />
@@ -2104,329 +2041,826 @@ export default function DashboardOrderCard({
                   </>
                 )}
               </div>
-              <div style={{
-                fontSize: '8px md:text-xs lg:text-sm',
-                fontWeight: 600,
-                color: '#6c757d',
-                textTransform: 'uppercase'
-              }}>
-                {metric.label}
+              <div
+                style={{
+                  fontSize: "10px md:text-xs lg:text-sm",
+                  fontWeight: 600,
+                  color: "#6c757d",
+                  textTransform: "uppercase",
+                  marginBottom: "2px md:mb-2",
+                }}
+              >
+                Disp
               </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Barra de Progresso Unificada */}
-        <div className="progress-bar-container">
-          <div className="progress-bar-header">
-            <span className="progress-label">Progreso</span>
-            <span className="progress-value">
-              {machineFieldsLoading ? '...' : `${producedCountLabel} / ${planCountLabel}`}
-            </span>
-          </div>
-
-          <div className="progress-bar-track">
-            <div className="progress-bar-background"></div>
-            <div 
-              className="progress-bar-fill"
-              style={{
-                width: machineFieldsLoading ? '0%' : `${Math.min(100, Math.max(0, planPercent))}%`
-              }}
-            ></div>
-          </div>
-        </div>
-
-        {/* Fechas y Tiempo Estimado */}
-        <div className="dates-info-container">
-          <div className="date-info-item">
-            <span className="date-label">Fecha Ini</span>
-            <span className="date-value">
-              {machineFieldsLoading ? '...' : (fechaInicioLabel || '—')}
-            </span>
-          </div>
-          <div className="date-info-item">
-            <span className="date-label">Fecha Fin</span>
-            <span className="date-value">
-              {machineFieldsLoading ? '...' : (finEstimadoLabel || '—')}
-            </span>
-          </div>
-          <div className="date-info-item">
-            <span className="date-label">Tiempo Est.</span>
-            <span className="date-value">
-              {machineFieldsLoading ? '...' : (data.tiempoRestanteHoras ? `${data.tiempoRestanteHoras.toFixed(1)}h` : '—')}
-            </span>
-          </div>
-        </div>
-
-        {/* Producción Detalhada */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(50px, 1fr))',
-          gap: '3px md:gap-2 lg:gap-3',
-          fontSize: '9px md:text-xs lg:text-sm'
-        }}>
-          {[
-            { label: 'Plan', value: formatNumber(data.planOf, 0), bg: 'rgba(0, 123, 255, 0.1)', color: '#007bff', darkColor: '#004085' },
-            { label: 'OK', value: formatNumber(data.okOf, 0), bg: 'rgba(40, 167, 69, 0.1)', color: '#28a745', darkColor: '#155724' },
-            { label: 'NOK', value: formatNumber(data.nokOf, 0), bg: 'rgba(220, 53, 69, 0.1)', color: '#dc3545', darkColor: '#721c24' },
-            { label: 'RWK', value: formatNumber(data.rwkOf, 0), bg: 'rgba(255, 193, 7, 0.1)', color: '#ffc107', darkColor: '#856404' }
-          ].map((item, idx) => (
-            <div key={idx} style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              padding: '2px md:px-2 md:py-2 lg:px-3 lg:py-3',
-              background: item.bg,
-              borderRadius: '4px',
-              border: `1px solid ${item.color}20`
-            }}>
-              <div style={{
-                fontSize: '11px md:text-sm lg:text-base',
-                fontWeight: 700,
-                color: item.color
-              }}>
-                {item.value}
-              </div>
-              <div style={{
-                fontSize: '7px md:text-xs lg:text-sm',
-                fontWeight: 600,
-                color: item.darkColor,
-                textTransform: 'uppercase'
-              }}>
-                {item.label}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-
-    {/* Modal de Detalles de Calidad NOK */}
-    {showNOKModal && calidadNOKData && calidadNOKData.length > 0 && (
-      <div
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.6)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999,
-          padding: '16px',
-          backdropFilter: 'blur(4px)',
-        }}
-        onClick={() => setShowNOKModal(false)}
-      >
-        <div
-          style={{
-            backgroundColor: 'white',
-            borderRadius: '16px',
-            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
-            maxWidth: '90vw',
-            maxHeight: '85vh',
-            width: '800px',
-            overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Header del Modal */}
-          <div
-            style={{
-              background: 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)',
-              color: 'white',
-              padding: '20px 24px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-            }}
-          >
-            <div>
-              <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 700 }}>
-                Detalles de Calidad - NOK
-              </h3>
-              <p style={{ margin: '4px 0 0 0', fontSize: '14px', opacity: 0.9 }}>
-                {data?.machineCode} · {data?.ofCode}
-              </p>
-            </div>
-            <button
-              onClick={() => setShowNOKModal(false)}
-              style={{
-                background: 'rgba(255, 255, 255, 0.2)',
-                border: 'none',
-                color: 'white',
-                width: '36px',
-                height: '36px',
-                borderRadius: '50%',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '20px',
-                fontWeight: 700,
-                transition: 'all 0.2s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)';
-                e.currentTarget.style.transform = 'scale(1.1)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
-                e.currentTarget.style.transform = 'scale(1)';
-              }}
-            >
-              ×
-            </button>
-          </div>
-
-          {/* Resumen */}
-          <div
-            style={{
-              padding: '16px 24px',
-              background: '#f8f9fa',
-              borderBottom: '1px solid #e9ecef',
-            }}
-          >
-            <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
-              <div>
-                <div style={{ fontSize: '12px', color: '#6c757d', marginBottom: '4px' }}>
-                  Total NOK
-                </div>
-                <div style={{ fontSize: '24px', fontWeight: 700, color: '#dc3545' }}>
-                  {totalNOK}
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: '12px', color: '#6c757d', marginBottom: '4px' }}>
-                  Tipos de Defectos
-                </div>
-                <div style={{ fontSize: '24px', fontWeight: 700, color: '#495057' }}>
-                  {calidadNOKData.length}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Contenido del Modal - Lista de Defectos */}
-          <div
-            style={{
-              flex: 1,
-              overflow: 'auto',
-              padding: '16px 24px',
-            }}
-          >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {calidadNOKData.map((defecto, index) => (
-                <div
-                  key={index}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "2px",
+                  marginTop: "2px md:mt-2",
+                  paddingTop: "6px md:pt-2",
+                  borderTop: "1px solid rgba(0,0,0,0.1)",
+                  width: "100%",
+                  fontSize: "8px md:text-xs",
+                }}
+              >
+                <i
+                  className={
+                    data.paroActivoDesc
+                      ? "fas fa-pause-circle"
+                      : "fas fa-check-circle"
+                  }
                   style={{
-                    background: 'white',
-                    border: '1px solid #e9ecef',
-                    borderRadius: '12px',
-                    padding: '16px',
-                    transition: 'all 0.2s ease',
-                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)',
+                    color: data.paroActivoDesc ? "#ffc107" : "#28a745",
+                    fontSize: "8px md:text-xs",
                   }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.05)';
-                    e.currentTarget.style.transform = 'translateY(0)';
+                ></i>
+                <div
+                  style={{
+                    fontWeight: 600,
+                    color: "#495057",
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '12px' }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: '16px', fontWeight: 700, color: '#212529', marginBottom: '4px' }}>
-                        {defecto.Defecto}
-                      </div>
-                      <div style={{ fontSize: '13px', color: '#6c757d' }}>
-                        {defecto.Tipodefecto}
-                      </div>
-                    </div>
-                    <div
-                      style={{
-                        background: 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)',
-                        color: 'white',
-                        padding: '8px 16px',
-                        borderRadius: '8px',
-                        fontSize: '18px',
-                        fontWeight: 700,
-                        minWidth: '60px',
-                        textAlign: 'center',
-                      }}
-                    >
-                      {defecto.Unidades}
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #e9ecef' }}>
-                    <div>
-                      <div style={{ fontSize: '11px', color: '#6c757d', marginBottom: '2px' }}>
-                        Turno
-                      </div>
-                      <div style={{ fontSize: '13px', fontWeight: 600, color: '#495057' }}>
-                        {defecto.Turno}
-                      </div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '11px', color: '#6c757d', marginBottom: '2px' }}>
-                        Fecha
-                      </div>
-                      <div style={{ fontSize: '13px', fontWeight: 600, color: '#495057' }}>
-                        {defecto['Time Period']}
-                      </div>
-                    </div>
-                  </div>
+                  {parosTurnoLabel}
                 </div>
-              ))}
+              </div>
+            </div>
+
+            {/* Rendimiento */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                padding: "4px md:px-2 md:py-3 lg:px-3 lg:py-4",
+                background: "rgba(255,255,255,0.8)",
+                borderRadius: "4px",
+                minHeight: "70px md:min-h-[100px] lg:min-h-[120px]",
+                justifyContent: "center",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "13px md:text-base lg:text-lg",
+                  fontWeight: 700,
+                  color: turnoMetricsLoading ? "#6c757d" : "#28a745",
+                  marginBottom: "3px md:mb-2",
+                }}
+              >
+                {turnoMetricsLoading ? (
+                  "..."
+                ) : (
+                  <>
+                    <CountUp
+                      to={animatedValues.rendTurno}
+                      decimals={1}
+                      duration={1.5}
+                    />
+                    %
+                  </>
+                )}
+              </div>
+              <div
+                style={{
+                  fontSize: "10px md:text-xs lg:text-sm",
+                  fontWeight: 600,
+                  color: "#6c757d",
+                  textTransform: "uppercase",
+                  marginBottom: "2px md:mb-2",
+                }}
+              >
+                Rend
+              </div>
+              {/* Velocidad de producción */}
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "2px",
+                  alignItems: "center",
+                  marginTop: "4px",
+                  paddingTop: "4px",
+                  borderTop: "1px solid rgba(0,0,0,0.1)",
+                  width: "100%",
+                }}
+              >
+                <VelocidadDisplay
+                  velUph={animatedValues.velUph}
+                  velUps={animatedValues.velUps}
+                  loading={velocidadMetricsLoading}
+                />
+              </div>
+            </div>
+
+            {/* Calidad */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                padding: "4px md:px-2 md:py-3 lg:px-3 lg:py-4",
+                background: "rgba(255,255,255,0.8)",
+                borderRadius: "4px",
+                minHeight: "70px md:min-h-[100px] lg:min-h-[120px]",
+                justifyContent: "center",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "13px md:text-base lg:text-lg",
+                  fontWeight: 700,
+                  color: turnoMetricsLoading ? "#6c757d" : "#ffc107",
+                  marginBottom: "3px md:mb-2",
+                }}
+              >
+                {turnoMetricsLoading ? (
+                  "..."
+                ) : (
+                  <>
+                    <CountUp
+                      to={animatedValues.calTurno}
+                      decimals={1}
+                      duration={1.5}
+                    />
+                    %
+                  </>
+                )}
+              </div>
+              <div
+                style={{
+                  fontSize: "10px md:text-xs lg:text-sm",
+                  fontWeight: 600,
+                  color: "#6c757d",
+                  textTransform: "uppercase",
+                  marginBottom: "2px md:mb-1",
+                }}
+              >
+                Calidad
+              </div>
+              <div
+                style={{
+                  fontSize: "10px md:text-xs lg:text-sm",
+                  fontWeight: 600,
+                  color: "#dc3545",
+                  cursor:
+                    calidadNOKData && calidadNOKData.length > 0
+                      ? "pointer"
+                      : "default",
+                  transition: "all 0.2s ease",
+                }}
+                onDoubleClick={() => {
+                  console.log("🔴 [NOK] Doble click detectado:", {
+                    hasData: !!calidadNOKData,
+                    dataLength: calidadNOKData?.length || 0,
+                    totalNOK: totalNOK,
+                  });
+                  if (calidadNOKData && calidadNOKData.length > 0) {
+                    console.log("🔴 [NOK] Abriendo modal...");
+                    setShowNOKModal(true);
+                  } else {
+                    console.log("🔴 [NOK] No hay datos para mostrar");
+                  }
+                }}
+                title={
+                  calidadNOKData && calidadNOKData.length > 0
+                    ? "Doble clic para ver detalles"
+                    : ""
+                }
+              >
+                NOK:{" "}
+                {shouldShowNokPlaceholder ? (
+                  "..."
+                ) : (
+                  <CountUp
+                    to={animatedValues.totalNOK}
+                    decimals={0}
+                    duration={1.5}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Barra de progresso do estado atual */}
+        <div
+          className="ff-status-progress"
+          title={`${statusDisplayText} · ${statusElapsedLabel}`}
+          aria-label={`Estado atual ${statusDisplayText} há ${statusElapsedLabel}`}
+        >
+          <div className="ff-status-progress__bar">
+            {statusTimelineEmpty ? (
+              <div className="ff-status-progress__segment ff-status-progress__segment--empty" />
+            ) : (
+              statusTimelineSegments.map((segment) => (
+                <div
+                  key={segment.id}
+                  className="ff-status-progress__segment"
+                  style={{
+                    width: `${segment.percent}%`,
+                    backgroundColor: segment.color,
+                  }}
+                  title={`${segment.label} · ${segment.elapsedLabel}`}
+                  aria-label={`${segment.label} por ${segment.elapsedLabel}`}
+                >
+                  {/* Intencionalmente sem conteúdo visível */}
+                  <span className="ff-status-progress__segment-mask" />
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Métricas de OF - Grid responsivo compacto */}
+        <div
+          style={{
+            margin: "4px 0 4px 0",
+            padding: `${combineClasses("px-3 md:px-4 lg:px-6 py-2 md:py-3 lg:py-4")}`,
+            background: "rgba(248, 249, 250, 0.95)",
+            borderRadius: "4px",
+            border: "1px solid rgba(233, 236, 239, 0.8)",
+            boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+            overflow: "auto",
+          }}
+        >
+          <div
+            style={{
+              fontSize: "9px md:text-[10px] lg:text-[11px]",
+              fontWeight: 700,
+              color: "#495057",
+              textTransform: "uppercase",
+              letterSpacing: "0.3px",
+              marginBottom: "4px md:mb-2",
+              textAlign: "center",
+            }}
+          >
+            Métricas OF
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(45px, 1fr))",
+              gap: "4px md:gap-2 lg:gap-3",
+              marginBottom: "4px md:mb-3",
+            }}
+          >
+            {/* OEE OF */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                padding: "4px md:px-2 md:py-2 lg:px-3 lg:py-3",
+                background: machineFieldsLoading
+                  ? "rgba(108, 117, 125, 0.1)"
+                  : getOeeBackground(
+                      data.statusTone,
+                      machineFieldsData?.["OEE General"] ??
+                        (typeof data.oeeOF === "number" ? data.oeeOF : null),
+                    ),
+                borderRadius: "6px",
+                boxShadow: "0 1px 8px rgba(0,0,0,0.1)",
+                border: "2px solid rgba(255,255,255,0.2)",
+                minHeight: "60px md:min-h-[80px] lg:min-h-[100px]",
+                justifyContent: "center",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "12px md:text-base lg:text-lg",
+                  fontWeight: 800,
+                  color: "white",
+                  textShadow: "0 1px 2px rgba(0,0,0,0.3)",
+                }}
+              >
+                {machineFieldsLoading ? (
+                  "..."
+                ) : (
+                  <CountUp
+                    to={animatedValues.oeeOF}
+                    decimals={1}
+                    duration={1.5}
+                  />
+                )}
+              </div>
+              <div
+                style={{
+                  fontSize: "8px md:text-xs lg:text-sm",
+                  fontWeight: 700,
+                  color: "rgba(255,255,255,0.9)",
+                  textTransform: "uppercase",
+                }}
+              >
+                OEE
+              </div>
+            </div>
+
+            {/* Disp OF, Rend OF, Cal OF - compactos */}
+            {[
+              {
+                label: "Disp",
+                value: animatedValues.dispOF,
+                color: "#007bff",
+                icon: "fa-tachometer",
+              },
+              {
+                label: "Rend",
+                value: animatedValues.rendOF,
+                color: "#28a745",
+                icon: "fa-chart",
+              },
+              {
+                label: "Cal",
+                value: animatedValues.calOF,
+                color: "#ffc107",
+                icon: "fa-star",
+              },
+            ].map((metric, idx) => (
+              <div
+                key={idx}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  padding: "4px md:px-2 md:py-2 lg:px-3 lg:py-3",
+                  background: "rgba(255,255,255,0.8)",
+                  borderRadius: "6px",
+                  minHeight: "60px md:min-h-[80px] lg:min-h-[100px]",
+                  justifyContent: "center",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "12px md:text-base lg:text-lg",
+                    fontWeight: 700,
+                    color: metric.color,
+                  }}
+                >
+                  {machineFieldsLoading ? (
+                    "..."
+                  ) : (
+                    <>
+                      <CountUp to={metric.value} decimals={1} duration={1.5} />%
+                    </>
+                  )}
+                </div>
+                <div
+                  style={{
+                    fontSize: "8px md:text-xs lg:text-sm",
+                    fontWeight: 600,
+                    color: "#6c757d",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {metric.label}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Barra de Progresso Unificada */}
+          <div className="progress-bar-container">
+            <div className="progress-bar-header">
+              <span className="progress-label">Progreso</span>
+              <span className="progress-value">
+                {machineFieldsLoading
+                  ? "..."
+                  : `${producedCountLabel} / ${planCountLabel}`}
+              </span>
+            </div>
+
+            <div className="progress-bar-track">
+              <div className="progress-bar-background"></div>
+              <div
+                className="progress-bar-fill"
+                style={{
+                  width: machineFieldsLoading
+                    ? "0%"
+                    : `${Math.min(100, Math.max(0, planPercent))}%`,
+                }}
+              ></div>
             </div>
           </div>
 
-          {/* Footer del Modal */}
+          {/* Fechas y Tiempo Estimado */}
+          <div className="dates-info-container">
+            <div className="date-info-item">
+              <span className="date-label">Fecha Ini</span>
+              <span className="date-value">
+                {machineFieldsLoading ? "..." : fechaInicioLabel || "—"}
+              </span>
+            </div>
+            <div className="date-info-item">
+              <span className="date-label">Fecha Fin</span>
+              <span className="date-value">
+                {machineFieldsLoading ? "..." : finEstimadoLabel || "—"}
+              </span>
+            </div>
+            <div className="date-info-item">
+              <span className="date-label">Tiempo Est.</span>
+              <span className="date-value">
+                {machineFieldsLoading
+                  ? "..."
+                  : data.tiempoRestanteHoras
+                    ? `${data.tiempoRestanteHoras.toFixed(1)}h`
+                    : "—"}
+              </span>
+            </div>
+          </div>
+
+          {/* Producción Detalhada */}
           <div
             style={{
-              padding: '16px 24px',
-              background: '#f8f9fa',
-              borderTop: '1px solid #e9ecef',
-              display: 'flex',
-              justifyContent: 'flex-end',
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(50px, 1fr))",
+              gap: "3px md:gap-2 lg:gap-3",
+              fontSize: "9px md:text-xs lg:text-sm",
             }}
           >
-            <button
-              onClick={() => setShowNOKModal(false)}
-              style={{
-                background: 'linear-gradient(135deg, #6c757d 0%, #5a6268 100%)',
-                color: 'white',
-                border: 'none',
-                padding: '10px 24px',
-                borderRadius: '8px',
-                fontSize: '14px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
-              }}
-            >
-              Cerrar
-            </button>
+            {[
+              {
+                label: "Plan",
+                value: formatNumber(data.planOf, 0),
+                bg: "rgba(0, 123, 255, 0.1)",
+                color: "#007bff",
+                darkColor: "#004085",
+              },
+              {
+                label: "OK",
+                value: formatNumber(data.okOf, 0),
+                bg: "rgba(40, 167, 69, 0.1)",
+                color: "#28a745",
+                darkColor: "#155724",
+              },
+              {
+                label: "NOK",
+                value: formatNumber(data.nokOf, 0),
+                bg: "rgba(220, 53, 69, 0.1)",
+                color: "#dc3545",
+                darkColor: "#721c24",
+              },
+              {
+                label: "RWK",
+                value: formatNumber(data.rwkOf, 0),
+                bg: "rgba(255, 193, 7, 0.1)",
+                color: "#ffc107",
+                darkColor: "#856404",
+              },
+            ].map((item, idx) => (
+              <div
+                key={idx}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  padding: "2px md:px-2 md:py-2 lg:px-3 lg:py-3",
+                  background: item.bg,
+                  borderRadius: "4px",
+                  border: `1px solid ${item.color}20`,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "11px md:text-sm lg:text-base",
+                    fontWeight: 700,
+                    color: item.color,
+                  }}
+                >
+                  {item.value}
+                </div>
+                <div
+                  style={{
+                    fontSize: "7px md:text-xs lg:text-sm",
+                    fontWeight: 600,
+                    color: item.darkColor,
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {item.label}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
-    )}
+
+      {/* Modal de Detalles de Calidad NOK */}
+      {showNOKModal && calidadNOKData && calidadNOKData.length > 0 && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+            padding: "16px",
+            backdropFilter: "blur(4px)",
+          }}
+          onClick={() => setShowNOKModal(false)}
+        >
+          <div
+            style={{
+              backgroundColor: "white",
+              borderRadius: "16px",
+              boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
+              maxWidth: "90vw",
+              maxHeight: "85vh",
+              width: "800px",
+              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header del Modal */}
+            <div
+              style={{
+                background: "linear-gradient(135deg, #dc3545 0%, #c82333 100%)",
+                color: "white",
+                padding: "20px 24px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+              }}
+            >
+              <div>
+                <h3 style={{ margin: 0, fontSize: "20px", fontWeight: 700 }}>
+                  Detalles de Calidad - NOK
+                </h3>
+                <p
+                  style={{
+                    margin: "4px 0 0 0",
+                    fontSize: "14px",
+                    opacity: 0.9,
+                  }}
+                >
+                  {data?.machineCode} · {data?.ofCode}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowNOKModal(false)}
+                style={{
+                  background: "rgba(255, 255, 255, 0.2)",
+                  border: "none",
+                  color: "white",
+                  width: "36px",
+                  height: "36px",
+                  borderRadius: "50%",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "20px",
+                  fontWeight: 700,
+                  transition: "all 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.3)";
+                  e.currentTarget.style.transform = "scale(1.1)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.2)";
+                  e.currentTarget.style.transform = "scale(1)";
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Resumen */}
+            <div
+              style={{
+                padding: "16px 24px",
+                background: "#f8f9fa",
+                borderBottom: "1px solid #e9ecef",
+              }}
+            >
+              <div style={{ display: "flex", gap: "24px", flexWrap: "wrap" }}>
+                <div>
+                  <div
+                    style={{
+                      fontSize: "12px",
+                      color: "#6c757d",
+                      marginBottom: "4px",
+                    }}
+                  >
+                    Total NOK
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "24px",
+                      fontWeight: 700,
+                      color: "#dc3545",
+                    }}
+                  >
+                    {totalNOK}
+                  </div>
+                </div>
+                <div>
+                  <div
+                    style={{
+                      fontSize: "12px",
+                      color: "#6c757d",
+                      marginBottom: "4px",
+                    }}
+                  >
+                    Tipos de Defectos
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "24px",
+                      fontWeight: 700,
+                      color: "#495057",
+                    }}
+                  >
+                    {calidadNOKData.length}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Contenido del Modal - Lista de Defectos */}
+            <div
+              style={{
+                flex: 1,
+                overflow: "auto",
+                padding: "16px 24px",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "12px",
+                }}
+              >
+                {calidadNOKData.map((defecto, index) => (
+                  <div
+                    key={index}
+                    style={{
+                      background: "white",
+                      border: "1px solid #e9ecef",
+                      borderRadius: "12px",
+                      padding: "16px",
+                      transition: "all 0.2s ease",
+                      boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.boxShadow =
+                        "0 4px 12px rgba(0, 0, 0, 0.1)";
+                      e.currentTarget.style.transform = "translateY(-2px)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.boxShadow =
+                        "0 2px 4px rgba(0, 0, 0, 0.05)";
+                      e.currentTarget.style.transform = "translateY(0)";
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "start",
+                        marginBottom: "12px",
+                      }}
+                    >
+                      <div style={{ flex: 1 }}>
+                        <div
+                          style={{
+                            fontSize: "16px",
+                            fontWeight: 700,
+                            color: "#212529",
+                            marginBottom: "4px",
+                          }}
+                        >
+                          {defecto.Defecto}
+                        </div>
+                        <div style={{ fontSize: "13px", color: "#6c757d" }}>
+                          {defecto.Tipodefecto}
+                        </div>
+                      </div>
+                      <div
+                        style={{
+                          background:
+                            "linear-gradient(135deg, #dc3545 0%, #c82333 100%)",
+                          color: "white",
+                          padding: "8px 16px",
+                          borderRadius: "8px",
+                          fontSize: "18px",
+                          fontWeight: 700,
+                          minWidth: "60px",
+                          textAlign: "center",
+                        }}
+                      >
+                        {defecto.Unidades}
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns:
+                          "repeat(auto-fit, minmax(150px, 1fr))",
+                        gap: "12px",
+                        marginTop: "12px",
+                        paddingTop: "12px",
+                        borderTop: "1px solid #e9ecef",
+                      }}
+                    >
+                      <div>
+                        <div
+                          style={{
+                            fontSize: "11px",
+                            color: "#6c757d",
+                            marginBottom: "2px",
+                          }}
+                        >
+                          Turno
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "13px",
+                            fontWeight: 600,
+                            color: "#495057",
+                          }}
+                        >
+                          {defecto.Turno}
+                        </div>
+                      </div>
+                      <div>
+                        <div
+                          style={{
+                            fontSize: "11px",
+                            color: "#6c757d",
+                            marginBottom: "2px",
+                          }}
+                        >
+                          Fecha
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "13px",
+                            fontWeight: 600,
+                            color: "#495057",
+                          }}
+                        >
+                          {defecto["Time Period"]}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Footer del Modal */}
+            <div
+              style={{
+                padding: "16px 24px",
+                background: "#f8f9fa",
+                borderTop: "1px solid #e9ecef",
+                display: "flex",
+                justifyContent: "flex-end",
+              }}
+            >
+              <button
+                onClick={() => setShowNOKModal(false)}
+                style={{
+                  background:
+                    "linear-gradient(135deg, #6c757d 0%, #5a6268 100%)",
+                  color: "white",
+                  border: "none",
+                  padding: "10px 24px",
+                  borderRadius: "8px",
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 12px rgba(0, 0, 0, 0.2)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
-};
+}

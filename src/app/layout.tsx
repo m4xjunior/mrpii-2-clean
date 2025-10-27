@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { ThemeProvider } from "../../hooks/useTheme";
 
 export const metadata: Metadata = {
   title: "SCADA - Sistema MRPII",
@@ -50,7 +49,7 @@ export default function RootLayout({
         />
       </head>
       <body>
-        <ThemeProvider>{children}</ThemeProvider>
+        {children}
         {/* Removido pace.min.js para resolver erro de hidratação */}
         <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
         <script src="/assets/js/bootstrap.bundle.min.js"></script>

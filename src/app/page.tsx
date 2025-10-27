@@ -396,34 +396,86 @@ export default function Dashboard() {
     // Máquinas prioritárias para as primeiras filas
     const priorityMachines = [
       'SOLD6', // CELDA K0 TICE
-      'SOLD1', // LARGOIKO  
+      'SOLD1', // LARGOIKO
       'DOBL3', // TURBOBENDER
       'DOBL9', // R2105
       'DOBL13' // RAPIDFORM
     ];
 
     const ordered = [...machines].sort((a, b) => {
-      // Primeiro: verificar se são máquinas prioritárias
+      // Função auxiliar para determinar se uma máquina tem OF
+      const hasOF = (machine: MachineStatus) => {
+        const ofCode = machine.currentOF ||
+               machine.machine.Rt_Cod_of ||
+               machine.machine.rt_Cod_of;
+
+        // Verificar se tem OF válido (não vazio, não null, não '--')
+        return ofCode &&
+               ofCode.trim() !== '' &&
+               ofCode !== '--' &&
+               ofCode !== 'null' &&
+               ofCode.toLowerCase() !== 'null';
+      };
+
+      const aHasOF = hasOF(a);
+      const bHasOF = hasOF(b);
+
+      // 🔥 PRIORIDADE MÁXIMA: Máquinas sem OF sempre vão para o final
+      if (!aHasOF && bHasOF) return 1;
+      if (aHasOF && !bHasOF) return -1;
+
+      // Se ambas não têm OF, ordenar por status
+      if (!aHasOF && !bHasOF) {
+        const aScore = STATUS_ORDER[a.status] ?? 99;
+        const bScore = STATUS_ORDER[b.status] ?? 99;
+        if (aScore !== bScore) return aScore - bScore;
+        return a.machine.Cod_maquina.localeCompare(b.machine.Cod_maquina, 'es');
+      }
+
+      // A partir daqui, ambas têm OF
+      const aIsProducing = a.status === "PRODUCIENDO";
+      const bIsProducing = b.status === "PRODUCIENDO";
+
+      // Verificar se são máquinas prioritárias
       const aIsPriority = priorityMachines.includes(a.machine.Cod_maquina);
       const bIsPriority = priorityMachines.includes(b.machine.Cod_maquina);
-      
+
+      // 1. PRODUCIENDO com OF vem primeiro
+      if (aIsProducing && !bIsProducing) return -1;
+      if (!aIsProducing && bIsProducing) return 1;
+
+      // 2. Entre máquinas PRODUCIENDO, prioritárias vêm primeiro
+      if (aIsProducing && bIsProducing) {
+        if (aIsPriority && !bIsPriority) return -1;
+        if (!aIsPriority && bIsPriority) return 1;
+
+        // Se ambas são prioritárias e produzindo, ordenar por lista de prioridade
+        if (aIsPriority && bIsPriority) {
+          const aPriorityIndex = priorityMachines.indexOf(a.machine.Cod_maquina);
+          const bPriorityIndex = priorityMachines.indexOf(b.machine.Cod_maquina);
+          return aPriorityIndex - bPriorityIndex;
+        }
+      }
+
+      // 3. Máquinas com OF mas paradas (prioritárias primeiro)
       if (aIsPriority && !bIsPriority) return -1;
       if (!aIsPriority && bIsPriority) return 1;
-      
-      // Se ambas são prioritárias, ordenar por ordem da lista de prioridade
+
+      // Se ambas são prioritárias, ordenar por lista de prioridade
       if (aIsPriority && bIsPriority) {
         const aPriorityIndex = priorityMachines.indexOf(a.machine.Cod_maquina);
         const bPriorityIndex = priorityMachines.indexOf(b.machine.Cod_maquina);
         return aPriorityIndex - bPriorityIndex;
       }
-      
-      // Para máquinas não prioritárias, usar a ordenação original por status
+
+      // 4. Ordenar por status
       const aScore = STATUS_ORDER[a.status] ?? 99;
       const bScore = STATUS_ORDER[b.status] ?? 99;
       if (aScore !== bScore) {
         return aScore - bScore;
       }
-      // Fallback: keep deterministic order by machine code
+
+      // Fallback: ordenação determinística por código da máquina
       return a.machine.Cod_maquina.localeCompare(b.machine.Cod_maquina, 'es');
     });
 

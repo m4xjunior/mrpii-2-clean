@@ -9,63 +9,78 @@ import {
   useRef,
 } from "react";
 import { MachineStatus } from "../types/machine";
-import ProductionCounter from "./ProductionCounter";
-import MachineProductionChart from "./MachineProductionChart";
-import HistoricalProductionChart from "./HistoricalProductionChart";
-import OEECharts from "./OEECharts";
-import { useTheme } from "../hooks/useTheme";
-import { useOEEData } from "../hooks/useOEEData";
 import { useWebhookMachine } from "../hooks/useWebhookMachine";
 import { useVelocidad } from "../hooks/useVelocidad";
-import useResponsiveLayout from "../hooks/useResponsiveLayout";
-import MiniLineChart from "./MiniLineChart";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 // Simple ScrollReveal component inspired by ReactBits
-const ScrollReveal: React.FC<{ children: React.ReactNode; className?: string; delay?: number }> = ({ children, className = '', delay = 0 }) => {
+const ScrollReveal: React.FC<{
+  children: React.ReactNode;
+  className?: string;
+  delay?: number;
+}> = ({ children, className = "", delay = 0 }) => {
   const ref = useRef(null);
 
   useEffect(() => {
     if (ref.current) {
-      gsap.fromTo(ref.current, { opacity: 0, y: 20 }, {
-        opacity: 1,
-        y: 0,
-        duration: 0.6,
-        delay,
-        ease: 'power3.out',
-        scrollTrigger: {
-          trigger: ref.current,
-          start: 'top 80%',
-          toggleActions: 'play none none none',
-        }
-      });
+      gsap.fromTo(
+        ref.current,
+        { opacity: 0, y: 20 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.6,
+          delay,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: ref.current,
+            start: "top 80%",
+            toggleActions: "play none none none",
+          },
+        },
+      );
     }
   }, [delay]);
 
-  return <div ref={ref} className={className}>{children}</div>;
+  return (
+    <div ref={ref} className={className}>
+      {children}
+    </div>
+  );
 };
 
 // ScrollFloat component inspired by ReactBits
-const ScrollFloat: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => {
+const ScrollFloat: React.FC<{
+  children: React.ReactNode;
+  className?: string;
+}> = ({ children, className }) => {
   const ref = useRef(null);
 
   useEffect(() => {
     if (ref.current) {
-      gsap.fromTo(ref.current, { y: 0 }, {
-        y: -10,
-        ease: 'none',
-        scrollTrigger: {
-          trigger: ref.current,
-          start: 'top bottom',
-          end: 'bottom top',
-          scrub: true,
-        }
-      });
+      gsap.fromTo(
+        ref.current,
+        { y: 0 },
+        {
+          y: -10,
+          ease: "none",
+          scrollTrigger: {
+            trigger: ref.current,
+            start: "top bottom",
+            end: "bottom top",
+            scrub: true,
+          },
+        },
+      );
     }
   }, []);
 
-  return <span ref={ref} className={className}>{children}</span>;
+  return (
+    <span ref={ref} className={className}>
+      {children}
+    </span>
+  );
 };
 
 // Subcomponent for the modal header section
@@ -157,7 +172,9 @@ const ModalHeader = ({ machine, themeColors, isMobile, onClose }: any) => (
             }}
           >
             <i className="fas fa-box" />
-            {machine.rt_Desc_producto || machine.product?.description || "Produto —"}
+            {machine.rt_Desc_producto ||
+              machine.product?.description ||
+              "Produto —"}
           </span>
         </div>
       </div>
@@ -205,35 +222,54 @@ const StatusMetrics = ({
   // Função para determinar cor baseada no status da máquina
   const getMachineStatusColor = (status: string, hasDowntime: boolean) => {
     // Se há parada ativa, sempre vermelho
-    if (hasDowntime || status?.includes('PARADA') || status?.includes('parada')) {
-      return '#dc3545'; // Vermelho para paradas
+    if (
+      hasDowntime ||
+      status?.includes("PARADA") ||
+      status?.includes("parada")
+    ) {
+      return "#dc3545"; // Vermelho para paradas
     }
 
     // Estados positivos
-    if (status === "PRODUCIENDO" || status?.includes('produciendo') || status?.includes('PRODUCIENDO')) {
-      return '#28a745'; // Verde para produção
+    if (
+      status === "PRODUCIENDO" ||
+      status?.includes("produciendo") ||
+      status?.includes("PRODUCIENDO")
+    ) {
+      return "#28a745"; // Verde para produção
     }
 
     // Estados neutros/ativos
-    if (status === "ACTIVA" || status?.includes('activa') || status?.includes('ACTIVA')) {
-      return '#007bff'; // Azul para ativa
+    if (
+      status === "ACTIVA" ||
+      status?.includes("activa") ||
+      status?.includes("ACTIVA")
+    ) {
+      return "#007bff"; // Azul para ativa
     }
 
     // Estados de manutenção/ajuste
-    if (status === "MANTENIMIENTO" || status?.includes('mantenimiento') || status?.includes('MANTENIMIENTO')) {
-      return '#f4b183'; // Laranja para manutenção
+    if (
+      status === "MANTENIMIENTO" ||
+      status?.includes("mantenimiento") ||
+      status?.includes("MANTENIMIENTO")
+    ) {
+      return "#f4b183"; // Laranja para manutenção
     }
 
     // Estados de preparação
-    if (status?.includes('preparacion') || status?.includes('PREPARACION')) {
-      return '#ffd966'; // Amarelo para preparação
+    if (status?.includes("preparacion") || status?.includes("PREPARACION")) {
+      return "#ffd966"; // Amarelo para preparação
     }
 
     // Default: cinza para estados desconhecidos
-    return '#6c757d';
+    return "#6c757d";
   };
 
-  const machineStatusColor = getMachineStatusColor(machine?.status, !!machine?.downtime?.active);
+  const machineStatusColor = getMachineStatusColor(
+    machine?.status,
+    !!machine?.downtime?.active,
+  );
 
   const metrics = [
     {
@@ -345,7 +381,10 @@ const StatusMetrics = ({
                       border: `1px solid ${metric.color}20`,
                     }}
                   >
-                    <i className={metric.icon} style={{ color: metric.color }} />
+                    <i
+                      className={metric.icon}
+                      style={{ color: metric.color }}
+                    />
                   </div>
                   <div
                     style={{
@@ -369,20 +408,6 @@ const StatusMetrics = ({
                   >
                     {metric.label}
                   </div>
-                </div>
-                <div
-                  style={{
-                    width: "72px",
-                    height: "44px",
-                    opacity: 0.7,
-                  }}
-                >
-                  <MiniLineChart
-                    data={metric.chartData}
-                    color={metric.color}
-                    height={44}
-                    isDark={false}
-                  />
                 </div>
               </div>
             </div>
@@ -508,7 +533,7 @@ const ShiftProgressModal = ({ machine, themeColors, isMobile }: any) => {
     prodMinutes: 240, // 4 horas de produção
     ajustMinutes: 30, // 30 minutos de ajuste
     parosMinutes: 90, // 1.5 horas de paros
-    idleMinutes: 0
+    idleMinutes: 0,
   };
 
   const totalMinutes = 480; // 8 horas
@@ -536,7 +561,7 @@ const ShiftProgressModal = ({ machine, themeColors, isMobile }: any) => {
           padding: isMobile ? "16px" : "20px",
           margin: "16px 0",
           border: `1px solid #e5e7eb`,
-          boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+          boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
         }}
       >
         <div
@@ -545,10 +570,13 @@ const ShiftProgressModal = ({ machine, themeColors, isMobile }: any) => {
             fontWeight: 700,
             color: themeColors.text,
             marginBottom: "16px",
-            textAlign: "center"
+            textAlign: "center",
           }}
         >
-          <i className="fas fa-clock me-2" style={{ color: themeColors.primary }}></i>
+          <i
+            className="fas fa-clock me-2"
+            style={{ color: themeColors.primary }}
+          ></i>
           Estado del Turno Actual
         </div>
 
@@ -562,7 +590,7 @@ const ShiftProgressModal = ({ machine, themeColors, isMobile }: any) => {
             overflow: "hidden",
             marginBottom: "16px",
             position: "relative",
-            border: "1px solid #e5e7eb"
+            border: "1px solid #e5e7eb",
           }}
         >
           {/* Preparação */}
@@ -574,7 +602,7 @@ const ShiftProgressModal = ({ machine, themeColors, isMobile }: any) => {
                 background: "#ffd966",
                 position: "absolute",
                 left: 0,
-                zIndex: 1
+                zIndex: 1,
               }}
               title={`Preparación: ${formatTime(shiftData.prepMinutes)}`}
             />
@@ -588,7 +616,7 @@ const ShiftProgressModal = ({ machine, themeColors, isMobile }: any) => {
               background: "#28a745",
               position: "absolute",
               left: `${prepPercent}%`,
-              zIndex: 1
+              zIndex: 1,
             }}
             title={`Producción: ${formatTime(shiftData.prodMinutes)}`}
           />
@@ -601,7 +629,7 @@ const ShiftProgressModal = ({ machine, themeColors, isMobile }: any) => {
               background: "#f4b183",
               position: "absolute",
               left: `${prepPercent + prodPercent}%`,
-              zIndex: 1
+              zIndex: 1,
             }}
             title={`Ajustes: ${formatTime(shiftData.ajustMinutes)}`}
           />
@@ -614,7 +642,7 @@ const ShiftProgressModal = ({ machine, themeColors, isMobile }: any) => {
               background: "#dc3545",
               position: "absolute",
               left: `${prepPercent + prodPercent + ajustPercent}%`,
-              zIndex: 1
+              zIndex: 1,
             }}
             title={`Paros: ${formatTime(shiftData.parosMinutes)}`}
           />
@@ -628,7 +656,7 @@ const ShiftProgressModal = ({ machine, themeColors, isMobile }: any) => {
                 background: "#6c757d",
                 position: "absolute",
                 left: `${prepPercent + prodPercent + ajustPercent + parosPercent}%`,
-                zIndex: 1
+                zIndex: 1,
               }}
               title={`Inactivo: ${formatTime(shiftData.idleMinutes)}`}
             />
@@ -641,12 +669,19 @@ const ShiftProgressModal = ({ machine, themeColors, isMobile }: any) => {
             display: "flex",
             flexWrap: "wrap",
             gap: "12px",
-            justifyContent: "center"
+            justifyContent: "center",
           }}
         >
           {shiftData.prepMinutes > 0 && (
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <div style={{ width: "12px", height: "12px", background: "#ffd966", borderRadius: "2px" }}></div>
+              <div
+                style={{
+                  width: "12px",
+                  height: "12px",
+                  background: "#ffd966",
+                  borderRadius: "2px",
+                }}
+              ></div>
               <span style={{ fontSize: "12px", color: "#6b7280" }}>
                 Prep: {formatTime(shiftData.prepMinutes)}
               </span>
@@ -654,21 +689,42 @@ const ShiftProgressModal = ({ machine, themeColors, isMobile }: any) => {
           )}
 
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <div style={{ width: "12px", height: "12px", background: "#28a745", borderRadius: "2px" }}></div>
+            <div
+              style={{
+                width: "12px",
+                height: "12px",
+                background: "#28a745",
+                borderRadius: "2px",
+              }}
+            ></div>
             <span style={{ fontSize: "12px", color: "#6b7280" }}>
               Prod: {formatTime(shiftData.prodMinutes)}
             </span>
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <div style={{ width: "12px", height: "12px", background: "#f4b183", borderRadius: "2px" }}></div>
+            <div
+              style={{
+                width: "12px",
+                height: "12px",
+                background: "#f4b183",
+                borderRadius: "2px",
+              }}
+            ></div>
             <span style={{ fontSize: "12px", color: "#6b7280" }}>
               Ajust: {formatTime(shiftData.ajustMinutes)}
             </span>
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <div style={{ width: "12px", height: "12px", background: "#dc3545", borderRadius: "2px" }}></div>
+            <div
+              style={{
+                width: "12px",
+                height: "12px",
+                background: "#dc3545",
+                borderRadius: "2px",
+              }}
+            ></div>
             <span style={{ fontSize: "12px", color: "#6b7280" }}>
               Paros: {formatTime(shiftData.parosMinutes)}
             </span>
@@ -676,7 +732,14 @@ const ShiftProgressModal = ({ machine, themeColors, isMobile }: any) => {
 
           {shiftData.idleMinutes > 0 && (
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <div style={{ width: "12px", height: "12px", background: "#6c757d", borderRadius: "2px" }}></div>
+              <div
+                style={{
+                  width: "12px",
+                  height: "12px",
+                  background: "#6c757d",
+                  borderRadius: "2px",
+                }}
+              ></div>
               <span style={{ fontSize: "12px", color: "#6b7280" }}>
                 Idle: {formatTime(shiftData.idleMinutes)}
               </span>
@@ -693,8 +756,20 @@ export default function MachineDetailModal({
   isOpen,
   onClose,
 }: MachineDetailModalProps) {
-  const { isDark, themeColors } = useTheme();
-  const { isMobile, getBreakpointStyles, getGridCols } = useResponsiveLayout();
+  // Theme and responsive layout removed - using default styles
+  const themeColors = {
+    primary: "#3b82f6",
+    success: "#10b981",
+    warning: "#f59e0b",
+    error: "#ef4444",
+    info: "#0ea5e9",
+    text: "#111827",
+    border: "#e5e7eb",
+    shadow: "rgba(0, 0, 0, 0.1)",
+  };
+  const isDark = false;
+  const isMobile = false;
+
   const [activeTab, setActiveTab] = useState("resumen");
   const [tabData, setTabData] = useState<any>(null);
   const [oeeData, setOeeData] = useState<any>(null);
@@ -716,7 +791,7 @@ export default function MachineDetailModal({
     data: webhookMachineData,
     loading: webhookLoading,
     error: webhookError,
-    refresh: refreshWebhook
+    refresh: refreshWebhook,
   } = useWebhookMachine(machine?.machine?.Cod_maquina || null, {
     refreshInterval: 30000, // Actualizar cada 30 segundos
     autoFetch: isOpen, // Solo fetch cuando el modal está abierto
@@ -726,26 +801,16 @@ export default function MachineDetailModal({
   const currentOF =
     machine?.currentOF && machine.currentOF !== "--" ? machine.currentOF : null;
 
-
   const {
     data: velocidadData,
     loading: velocidadLoading,
     error: velocidadError,
-  } = useVelocidad(
-    currentOF,
-    machine?.machine?.Cod_maquina || null,
-    {
-      refreshInterval: 0, // Sin auto-refresh para velocidad
-      autoFetch: !!(currentOF && machine?.machine?.Cod_maquina), // 🔥 MODIFICADO: Não depende de isOpen
-    }
-  );
+  } = useVelocidad(currentOF, machine?.machine?.Cod_maquina || null, {
+    refreshInterval: 0, // Sin auto-refresh para velocidad
+    autoFetch: !!(currentOF && machine?.machine?.Cod_maquina), // 🔥 MODIFICADO: Não depende de isOpen
+  });
 
-  // Hook para dados OEE - deve estar no nível superior
-  const {
-    data: oeeHookData,
-    loading: oeeHookLoading,
-    error: oeeHookError,
-  } = useOEEData(machine?.machine?.Cod_maquina || null, 7);
+  // OEE data hook removed - using webhook data instead
 
   // 🔥 COMENTADO: Ya no necesitamos estos fetches porque usamos el webhook
   /*
@@ -890,25 +955,25 @@ export default function MachineDetailModal({
   // Fading header effect on scroll
   useEffect(() => {
     if (isOpen) {
-      const modalContent = document.querySelector('.modal-content');
+      const modalContent = document.querySelector(".modal-content");
       if (modalContent) {
-        gsap.set('.modal-header', { opacity: 1 });
-        gsap.to('.modal-header', {
+        gsap.set(".modal-header", { opacity: 1 });
+        gsap.to(".modal-header", {
           opacity: 0,
           scrollTrigger: {
             trigger: modalContent,
-            start: 'top+=50 top',
-            end: 'top+=200 top',
+            start: "top+=50 top",
+            end: "top+=200 top",
             scrub: true,
-          }
+          },
         });
       }
     } else {
-      ScrollTrigger.getAll().forEach(st => st.kill());
+      ScrollTrigger.getAll().forEach((st) => st.kill());
     }
 
     return () => {
-      ScrollTrigger.getAll().forEach(st => st.kill());
+      ScrollTrigger.getAll().forEach((st) => st.kill());
     };
   }, [isOpen]);
 
@@ -921,11 +986,8 @@ export default function MachineDetailModal({
         backdropFilter: "blur(8px)",
       },
       dialog: {
-        ...getBreakpointStyles({
-          mobile: { maxWidth: "98vw", margin: "8px auto" },
-          tablet: { maxWidth: "95vw", margin: "16px auto" },
-          desktop: { maxWidth: "90vw", margin: "24px auto" },
-        }),
+        maxWidth: "90vw",
+        margin: "24px auto",
         width: "100%",
         animation: "modalSlideIn 0.3s ease-out",
       },
@@ -1001,7 +1063,7 @@ export default function MachineDetailModal({
         backdropFilter: "none",
       },
     }),
-    [isDark, themeColors, isMobile, getBreakpointStyles],
+    [isDark, themeColors, isMobile],
   );
 
   const tabs = [
@@ -1040,7 +1102,9 @@ export default function MachineDetailModal({
   const remainingTime = machine?.productionOF?.remainingTime || "—";
   const totalPieces = machine?.production?.total ?? 0;
   const qualityRate =
-    totalPieces > 0 ? (machine?.production?.ok / totalPieces) * 100 : null;
+    totalPieces > 0
+      ? ((machine?.production?.ok ?? 0) / totalPieces) * 100
+      : null;
 
   const tabBadges: Record<string, string> = {
     resumen: formatPercent(machine?.oee_turno ?? machine?.oee ?? null),
@@ -1063,36 +1127,61 @@ export default function MachineDetailModal({
     {
       label: "OF en curso",
       value: machineFieldsData?.["OF en curso"] || currentOF || "Sin OF",
-      subtext: machineFieldsData?.["83% completado"] || (remainingPieces
-        ? `${formatNumber(remainingPieces)} piezas restantes`
-        : "Ninguna restante"),
-      tone: (machineFieldsData?.["OF en curso"] || currentOF) ? "is-success" : undefined,
+      subtext:
+        machineFieldsData?.["83% completado"] ||
+        (remainingPieces
+          ? `${formatNumber(remainingPieces)} piezas restantes`
+          : "Ninguna restante"),
+      tone:
+        machineFieldsData?.["OF en curso"] || currentOF
+          ? "is-success"
+          : undefined,
     },
     {
       label: "Operador",
-      value: machineFieldsData?.["Operador"] || machine?.operatorFull || machine?.operator || "Sin operador",
+      value:
+        machineFieldsData?.["Operador"] ||
+        machine?.operatorFull ||
+        machine?.operator ||
+        "Sin operador",
       subtext: "Responsable del turno",
     },
     {
       label: "Tiempo restante",
       value: machineFieldsData?.["Tiempo restante"] || remainingTime,
-      subtext: machineFieldsData?.["83% completado"] || (planningProgress
-        ? `${planningProgress.toFixed(0)}% completado`
-        : "Sin planificación"),
+      subtext:
+        machineFieldsData?.["83% completado"] ||
+        (planningProgress
+          ? `${planningProgress.toFixed(0)}% completado`
+          : "Sin planificación"),
     },
     {
       label: "Calidad",
-      value: machineFieldsData?.["Calidad"] || (qualityRate !== null ? formatPercent(qualityRate) : "—"),
-      subtext: machineFieldsData?.["9271 OK / 0 NOK"] || `${formatNumber(machine?.production?.ok ?? 0)} OK / ${formatNumber(machine?.production?.nok ?? 0)} NOK`,
-      tone: machineFieldsData?.["Calidad"]?.includes("100") ? undefined : "is-critical",
+      value:
+        machineFieldsData?.["Calidad"] ||
+        (qualityRate !== null ? formatPercent(qualityRate) : "—"),
+      subtext:
+        machineFieldsData?.["9271 OK / 0 NOK"] ||
+        `${formatNumber(machine?.production?.ok ?? 0)} OK / ${formatNumber(machine?.production?.nok ?? 0)} NOK`,
+      tone: machineFieldsData?.["Calidad"]?.includes("100")
+        ? undefined
+        : "is-critical",
     },
     {
       label: "Paros acumulados",
-      value: machineFieldsData?.["Paros acumulados"] || (machine?.ofInfo?.parosMinutes
-        ? `${machine?.ofInfo?.parosMinutes} min`
-        : "Sin eventos"),
-      subtext: machineFieldsData?.["Operativa estable"] || (downtimeLabel ? downtimeLabel : "Operativa estable"),
-      tone: machineFieldsData?.["Paros acumulados"]?.includes("min") && parseInt(machineFieldsData?.["Paros acumulados"] || "0") > 60 ? "is-critical" : undefined,
+      value:
+        machineFieldsData?.["Paros acumulados"] ||
+        (machine?.ofInfo?.parosMinutes
+          ? `${machine?.ofInfo?.parosMinutes} min`
+          : "Sin eventos"),
+      subtext:
+        machineFieldsData?.["Operativa estable"] ||
+        (downtimeLabel ? downtimeLabel : "Operativa estable"),
+      tone:
+        machineFieldsData?.["Paros acumulados"]?.includes("min") &&
+        parseInt(machineFieldsData?.["Paros acumulados"] || "0") > 60
+          ? "is-critical"
+          : undefined,
     },
   ];
 
@@ -1173,7 +1262,11 @@ export default function MachineDetailModal({
               isMobile={isMobile}
             />
 
-            <InfoChips chipEntries={chipEntries} themeColors={themeColors} isMobile={isMobile} />
+            <InfoChips
+              chipEntries={chipEntries}
+              themeColors={themeColors}
+              isMobile={isMobile}
+            />
           </div>
 
           {/* Enhanced Tabs Navigation */}
@@ -1243,7 +1336,13 @@ export default function MachineDetailModal({
                   {showBadge && (
                     <span
                       className="tab-badge"
-                      style={{ position: "relative", zIndex: 1, background: "#f3f4f6", color: "#111827", border: "1px solid #e5e7eb" }}
+                      style={{
+                        position: "relative",
+                        zIndex: 1,
+                        background: "#f3f4f6",
+                        color: "#111827",
+                        border: "1px solid #e5e7eb",
+                      }}
                     >
                       {badge}
                     </span>
@@ -1272,9 +1371,6 @@ export default function MachineDetailModal({
                 filterDuration,
                 setFilterDuration,
                 themeColors,
-                getGridCols,
-                oeeHookData,
-                oeeHookLoading,
                 shiftData,
                 shiftLoading,
                 isDark,
@@ -1298,7 +1394,7 @@ export default function MachineDetailModal({
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background = "transparent";
-                    e.currentTarget.style.borderColor = '#e5e7eb';
+                    e.currentTarget.style.borderColor = "#e5e7eb";
                     e.currentTarget.style.transform = "translateY(0)";
                   }}
                 >
@@ -1433,9 +1529,6 @@ function renderTabContent(
   filterDuration: string,
   setFilterDuration: Function,
   themeColors: any,
-  getGridCols: Function,
-  oeeHookData?: any,
-  oeeHookLoading?: boolean,
   shiftData?: any,
   shiftLoading?: boolean,
   isDark?: boolean,
@@ -1505,7 +1598,6 @@ function renderTabContent(
       return renderResumenContent(
         machine,
         themeColors,
-        getGridCols,
         cardStyles,
         shiftData,
         shiftLoading || false,
@@ -1713,8 +1805,7 @@ function renderParosContent(
               <tr
                 key={index}
                 style={{
-                  background:
-                    index % 2 === 0 ? "#f9fafb" : "#ffffff",
+                  background: index % 2 === 0 ? "#f9fafb" : "#ffffff",
                 }}
               >
                 <td style={tableStyles.td}>
@@ -1810,7 +1901,7 @@ function ProduccionContent({
   return (
     <div className="production-content">
       {/* Resumen de la máquina actual */}
-      <div className="row mb-4" style={{marginTop: 8}}>
+      <div className="row mb-4" style={{ marginTop: 8 }}>
         <div className="col-12">
           <div
             style={{
@@ -2095,16 +2186,6 @@ function renderOEEContent(
 ) {
   return (
     <div>
-      {/* Gráficos OEE */}
-      <div style={{ marginBottom: "24px", background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 16 }}>
-        <OEECharts
-          data={oeeHookData}
-          isLoading={oeeHookLoading || false}
-          isDark={false}
-          themeColors={themeColors}
-        />
-      </div>
-
       {/* Tabela detalhada */}
       <div className="table-responsive" style={tableStyles.wrapper}>
         <table className="table table-hover" style={tableStyles.table}>
@@ -2271,7 +2352,6 @@ function calculateParadasHasta24h(downtimeData: any[]) {
 function renderResumenContent(
   machine: any,
   themeColors: any,
-  getGridCols: Function,
   cardStyles: any,
   shiftData: any,
   shiftLoading: boolean,
@@ -2317,7 +2397,7 @@ function renderResumenContent(
             color: themeColors.secondary,
           },
         ].map((metric, index) => (
-          <div key={index} className={`col-${getGridCols(6, 4, 2)}`}>
+          <div key={index} className={`col-4`}>
             <div
               style={{
                 ...cardStyles.card,
@@ -2388,27 +2468,75 @@ function renderResumenContent(
                   const nok = machine.rt_Unidades_nok ?? 0;
                   const rw = machine.rt_Unidades_rw ?? 0;
                   const total = ok + nok + rw;
-                  const pct = planned > 0 ? Math.min(100, (total / planned) * 100) : 0;
+                  const pct =
+                    planned > 0 ? Math.min(100, (total / planned) * 100) : 0;
                   const remaining = Math.max(0, planned - total);
                   const kpis = [
-                    { label: 'Avance', value: pct.toFixed(1) + '%', accent: themeColors.success },
-                    { label: 'Piezas restantes', value: remaining.toLocaleString('es-ES'), accent: themeColors.warning },
-                    { label: 'Planificado', value: planned.toLocaleString('es-ES'), accent: themeColors.info },
+                    {
+                      label: "Avance",
+                      value: pct.toFixed(1) + "%",
+                      accent: themeColors.success,
+                    },
+                    {
+                      label: "Piezas restantes",
+                      value: remaining.toLocaleString("es-ES"),
+                      accent: themeColors.warning,
+                    },
+                    {
+                      label: "Planificado",
+                      value: planned.toLocaleString("es-ES"),
+                      accent: themeColors.info,
+                    },
                   ];
                   return kpis.map((k, i) => (
                     <div key={i} className="col-12 col-md-4">
-                      <div style={{
-                        border: '1px solid #e5e7eb',
-                        borderRadius: 12,
-                        padding: '16px 18px',
-                        background: '#fff',
-                      }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .4, color: '#6b7280', marginBottom: 6 }}>{k.label}</div>
-                        <div style={{ fontSize: 28, fontWeight: 800, color: k.accent }}>{k.value}</div>
-                        {k.label === 'Avance' && (
+                      <div
+                        style={{
+                          border: "1px solid #e5e7eb",
+                          borderRadius: 12,
+                          padding: "16px 18px",
+                          background: "#fff",
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 700,
+                            textTransform: "uppercase",
+                            letterSpacing: 0.4,
+                            color: "#6b7280",
+                            marginBottom: 6,
+                          }}
+                        >
+                          {k.label}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 28,
+                            fontWeight: 800,
+                            color: k.accent,
+                          }}
+                        >
+                          {k.value}
+                        </div>
+                        {k.label === "Avance" && (
                           <div style={{ marginTop: 10 }}>
-                            <div style={{ height: 8, background: '#e5e7eb', borderRadius: 6, overflow: 'hidden' }}>
-                              <div style={{ height: '100%', width: pct + '%', background: themeColors.success, transition: 'width .3s ease' }} />
+                            <div
+                              style={{
+                                height: 8,
+                                background: "#e5e7eb",
+                                borderRadius: 6,
+                                overflow: "hidden",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  height: "100%",
+                                  width: pct + "%",
+                                  background: themeColors.success,
+                                  transition: "width .3s ease",
+                                }}
+                              />
                             </div>
                           </div>
                         )}
@@ -2430,7 +2558,12 @@ function renderResumenContent(
                     </h6>
                     <div className="d-grid gap-2">
                       <div className="d-flex justify-content-between">
-                        <span className="fw-semibold" style={{ fontSize: 14, color: '#6b7280' }}>Producto:</span>
+                        <span
+                          className="fw-semibold"
+                          style={{ fontSize: 14, color: "#6b7280" }}
+                        >
+                          Producto:
+                        </span>
                         <span style={{ fontSize: 16, fontWeight: 700 }}>
                           {machine.rt_Desc_producto ||
                             machine.product?.description ||
@@ -2438,7 +2571,12 @@ function renderResumenContent(
                         </span>
                       </div>
                       <div className="d-flex justify-content-between">
-                        <span className="fw-semibold" style={{ fontSize: 14, color: '#6b7280' }}>Planificado:</span>
+                        <span
+                          className="fw-semibold"
+                          style={{ fontSize: 14, color: "#6b7280" }}
+                        >
+                          Planificado:
+                        </span>
                         <span style={{ fontSize: 16, fontWeight: 700 }}>
                           {machine.Rt_Unidades_planning?.toLocaleString(
                             "es-ES",
@@ -2446,26 +2584,55 @@ function renderResumenContent(
                         </span>
                       </div>
                       <div className="d-flex justify-content-between">
-                        <span className="fw-semibold" style={{ fontSize: 14, color: '#6b7280' }}>Producido OK:</span>
-                        <span className="text-success" style={{ fontSize: 16, fontWeight: 800 }}>
+                        <span
+                          className="fw-semibold"
+                          style={{ fontSize: 14, color: "#6b7280" }}
+                        >
+                          Producido OK:
+                        </span>
+                        <span
+                          className="text-success"
+                          style={{ fontSize: 16, fontWeight: 800 }}
+                        >
                           {machine.rt_Unidades_ok?.toLocaleString("es-ES") || 0}
                         </span>
                       </div>
                       <div className="d-flex justify-content-between">
-                        <span className="fw-semibold" style={{ fontSize: 14, color: '#6b7280' }}>NOK:</span>
-                        <span className="text-danger" style={{ fontSize: 16, fontWeight: 800 }}>
+                        <span
+                          className="fw-semibold"
+                          style={{ fontSize: 14, color: "#6b7280" }}
+                        >
+                          NOK:
+                        </span>
+                        <span
+                          className="text-danger"
+                          style={{ fontSize: 16, fontWeight: 800 }}
+                        >
                           {machine.rt_Unidades_nok?.toLocaleString("es-ES") ||
                             0}
                         </span>
                       </div>
                       <div className="d-flex justify-content-between">
-                        <span className="fw-semibold" style={{ fontSize: 14, color: '#6b7280' }}>RWK:</span>
-                        <span className="text-warning" style={{ fontSize: 16, fontWeight: 800 }}>
+                        <span
+                          className="fw-semibold"
+                          style={{ fontSize: 14, color: "#6b7280" }}
+                        >
+                          RWK:
+                        </span>
+                        <span
+                          className="text-warning"
+                          style={{ fontSize: 16, fontWeight: 800 }}
+                        >
                           {machine.rt_Unidades_rw?.toLocaleString("es-ES") || 0}
                         </span>
                       </div>
                       <div className="d-flex justify-content-between">
-                        <span className="fw-semibold" style={{ fontSize: 14, color: '#6b7280' }}>Avance:</span>
+                        <span
+                          className="fw-semibold"
+                          style={{ fontSize: 14, color: "#6b7280" }}
+                        >
+                          Avance:
+                        </span>
                         <span className="fw-bold" style={{ fontSize: 16 }}>
                           {(() => {
                             const planned = machine.Rt_Unidades_planning ?? 0;
@@ -2473,20 +2640,31 @@ function renderResumenContent(
                             const nok = machine.rt_Unidades_nok ?? 0;
                             const rw = machine.rt_Unidades_rw ?? 0;
                             const total = ok + nok + rw;
-                            const pct = planned > 0 ? Math.min(100, (total / planned) * 100) : 0;
+                            const pct =
+                              planned > 0
+                                ? Math.min(100, (total / planned) * 100)
+                                : 0;
                             return `${pct.toFixed(1)}%`;
                           })()}
                         </span>
                       </div>
                       <div className="d-flex justify-content-between">
-                        <span className="fw-semibold" style={{ fontSize: 14, color: '#6b7280' }}>Piezas restantes:</span>
+                        <span
+                          className="fw-semibold"
+                          style={{ fontSize: 14, color: "#6b7280" }}
+                        >
+                          Piezas restantes:
+                        </span>
                         <span style={{ fontSize: 16, fontWeight: 700 }}>
                           {(() => {
                             const planned = machine.Rt_Unidades_planning ?? 0;
                             const ok = machine.rt_Unidades_ok ?? 0;
                             const nok = machine.rt_Unidades_nok ?? 0;
                             const rw = machine.rt_Unidades_rw ?? 0;
-                            const remaining = Math.max(0, planned - (ok + nok + rw));
+                            const remaining = Math.max(
+                              0,
+                              planned - (ok + nok + rw),
+                            );
                             return remaining.toLocaleString("es-ES");
                           })()}
                         </span>
@@ -2503,24 +2681,45 @@ function renderResumenContent(
                     </h6>
                     <div className="d-grid gap-2">
                       <div className="d-flex justify-content-between">
-                        <span className="fw-semibold" style={{ fontSize: 14, color: '#6b7280' }}>Velocidad:</span>
+                        <span
+                          className="fw-semibold"
+                          style={{ fontSize: 14, color: "#6b7280" }}
+                        >
+                          Velocidad:
+                        </span>
                         <span style={{ fontSize: 16, fontWeight: 700 }}>
                           {velocidadLoading ? (
-                            <span style={{ color: '#6b7280', fontSize: '14px' }}>Cargando...</span>
+                            <span
+                              style={{ color: "#6b7280", fontSize: "14px" }}
+                            >
+                              Cargando...
+                            </span>
                           ) : velocidadError ? (
-                            <span style={{ color: '#dc3545', fontSize: '14px' }}>Error</span>
+                            <span
+                              style={{ color: "#dc3545", fontSize: "14px" }}
+                            >
+                              Error
+                            </span>
                           ) : velocidadData?.velocidad ? (
                             (() => {
                               const velocidade = velocidadData.velocidad;
-                              const partes = velocidade.split(' ');
-                              const uh = partes.find(p => p.includes('u/h'));
-                              const segPza = partes.find(p => p.includes('seg/pza'));
+                              const partes = velocidade.split(" ");
+                              const uh = partes.find((p) => p.includes("u/h"));
+                              const segPza = partes.find((p) =>
+                                p.includes("seg/pza"),
+                              );
 
                               return (
                                 <div className="d-flex flex-column align-items-end">
-                                  <span>{uh || '—'}</span>
-                                  <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 'normal' }}>
-                                    {segPza || '—'}
+                                  <span>{uh || "—"}</span>
+                                  <span
+                                    style={{
+                                      fontSize: "12px",
+                                      color: "#6b7280",
+                                      fontWeight: "normal",
+                                    }}
+                                  >
+                                    {segPza || "—"}
                                   </span>
                                 </div>
                               );
@@ -2531,7 +2730,12 @@ function renderResumenContent(
                         </span>
                       </div>
                       <div className="d-flex justify-content-between">
-                        <span className="fw-semibold" style={{ fontSize: 14, color: '#6b7280' }}>Tiempo de producción:</span>
+                        <span
+                          className="fw-semibold"
+                          style={{ fontSize: 14, color: "#6b7280" }}
+                        >
+                          Tiempo de producción:
+                        </span>
                         <span style={{ fontSize: 16 }}>
                           {machine.rt_tiempo_prod
                             ? `${Math.round(machine.rt_tiempo_prod / 60)} min`
@@ -2539,11 +2743,23 @@ function renderResumenContent(
                         </span>
                       </div>
                       <div className="d-flex justify-content-between">
-                        <span className="fw-semibold" style={{ fontSize: 14, color: '#6b7280' }}>Tiempo restante:</span>
-                        <span style={{ fontSize: 16 }}>{machine.productionOF?.remainingTime || "—"}</span>
+                        <span
+                          className="fw-semibold"
+                          style={{ fontSize: 14, color: "#6b7280" }}
+                        >
+                          Tiempo restante:
+                        </span>
+                        <span style={{ fontSize: 16 }}>
+                          {machine.productionOF?.remainingTime || "—"}
+                        </span>
                       </div>
                       <div className="d-flex justify-content-between">
-                        <span className="fw-semibold" style={{ fontSize: 14, color: '#6b7280' }}>Fecha de inicio:</span>
+                        <span
+                          className="fw-semibold"
+                          style={{ fontSize: 14, color: "#6b7280" }}
+                        >
+                          Fecha de inicio:
+                        </span>
                         <span style={{ fontSize: 16 }}>
                           {machine.rt_fecha_inicio
                             ? new Date(machine.rt_fecha_inicio).toLocaleString(
@@ -2553,7 +2769,12 @@ function renderResumenContent(
                         </span>
                       </div>
                       <div className="d-flex justify-content-between">
-                        <span className="fw-semibold" style={{ fontSize: 14, color: '#6b7280' }}>Fin estimado:</span>
+                        <span
+                          className="fw-semibold"
+                          style={{ fontSize: 14, color: "#6b7280" }}
+                        >
+                          Fin estimado:
+                        </span>
                         <span style={{ fontSize: 16 }}>
                           {machine.rt_fecha_fin_estimada
                             ? new Date(

@@ -2,7 +2,30 @@
   "permissions": {
     "allow": [
       "Bash(node test-n8n-performance.js:*)",
-      "Bash(node test-network-latency.js:*)"
+      "Bash(node test-network-latency.js:*)",
+      "Read(//Volumes/**)",
+      "Bash(npm install:*)",
+      "Bash(npx tsc:*)",
+      "Bash(curl:*)",
+      "Read(//Users/maxmeireles/Documents/**)",
+      "Read(//Users/maxmeireles/Parallels/**)",
+      "Bash(diskutil list:*)",
+      "Bash(mount:*)",
+      "Bash(cat:*)",
+      "Bash(diskutil info:*)",
+      "Bash(readlink:*)",
+      "Bash(hdiutil info:*)",
+      "Bash(open:*)",
+      "Bash(pgrep:*)",
+      "Bash(prlctl list:*)",
+      "Bash(prlctl start:*)",
+      "Bash(prlctl status:*)",
+      "Bash(prlctl set:*)",
+      "Bash(node test-calidad-sold6.js:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git reset:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []

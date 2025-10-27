@@ -63,11 +63,6 @@ export function useMetricasTurno(
         machineId,
       };
 
-      console.log('🔵 [useMetricasTurno] Enviando request:', {
-        url: webhookUrl,
-        body: requestBody,
-      });
-
       const response = await fetch(webhookUrl, {
         method: 'POST',
         mode: 'cors',
@@ -79,12 +74,6 @@ export function useMetricasTurno(
         signal: abortControllerRef.current.signal,
       });
 
-      console.log('🔵 [useMetricasTurno] Response recebido:', {
-        status: response.status,
-        ok: response.ok,
-        statusText: response.statusText,
-      });
-
       if (!response.ok) {
         throw new Error(`Error fetching métricas turno: ${response.status} ${response.statusText}`);
       }
@@ -92,9 +81,9 @@ export function useMetricasTurno(
       const webhookResponse: unknown = await response.json();
       const payload = Array.isArray(webhookResponse) ? webhookResponse[0] : webhookResponse;
 
-      if (!payload || typeof payload !== 'object') {
-        console.error('❌ [useMetricasTurno] Formato inválido de resposta:', webhookResponse);
-        throw new Error('Formato de resposta do webhook inválido');
+      // ✅ Se resposta vazia, manter dados antigos (não fazer throw)
+      if (!payload || typeof payload !== 'object' || Object.keys(payload).length === 0) {
+        return; // Sai sem atualizar dados
       }
 
       const result: MetricasTurnoData = {
@@ -104,8 +93,6 @@ export function useMetricasTurno(
         calidad_turno: normalizeMetricValue((payload as any).calidad_turno),
       };
 
-      console.log('✅ [useMetricasTurno] Métricas de turno obtidas:', result);
-
       setData(result);
       setLastUpdate(new Date());
     } catch (err: any) {
@@ -114,7 +101,8 @@ export function useMetricasTurno(
       }
       console.error(`Error fetching métricas turno for ${ofCode}/${machineId}:`, err);
       setError(err instanceof Error ? err : new Error(String(err)));
-      setData(null);
+      // ✅ NÃO limpar dados antigos em caso de erro - manter último valor conhecido
+      // setData(null);
     } finally {
       setLoading(false);
     }
