@@ -1,0 +1,63 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "installCommand": "npm install",
+  "devCommand": "npm run dev",
+  "functions": {
+    "src/app/api/**/*.ts": {
+      "maxDuration": 30
+    }
+  },
+  "env": {
+    "N8N_WEBHOOK_URL": "https://n8n.lexusfx.com/webhook/scada",
+    "N8N_WEBHOOK_MAQUINAS_URL": "https://n8n.lexusfx.com/webhook/maquinas",
+    "N8N_WEBHOOK_FECHAS_URL": "https://n8n.lexusfx.com/webhook/fechav2",
+    "N8N_WEBHOOK_METRICAS_OF_URL": "https://n8n.lexusfx.com/webhook/metricasof",
+    "N8N_WEBHOOK_VELOCIDAD_URL": "https://n8n.lexusfx.com/webhook/velocidad",
+    "N8N_WEBHOOK_METRICAS_TURNO_URL": "https://n8n.lexusfx.com/webhook/metricasturno",
+    "N8N_WEBHOOK_CALIDAD_URL": "https://n8n.lexusfx.com/webhook/calidad",
+    "N8N_WEBHOOK_PROGRESO_URL": "https://n8n.lexusfx.com/webhook/progresso",
+    "NEXT_PUBLIC_APP_URL": "https://scada.lexusfx.com",
+    "NEXT_PUBLIC_WEBHOOK_FECHAS": "https://n8n.lexusfx.com/webhook/fechav2",
+    "NEXT_PUBLIC_WEBHOOK_METRICAS_OF": "https://n8n.lexusfx.com/webhook/metricasof",
+    "NEXT_PUBLIC_WEBHOOK_VELOCIDAD": "https://n8n.lexusfx.com/webhook/velocidad",
+    "NEXT_PUBLIC_WEBHOOK_METRICAS_TURNO": "https://n8n.lexusfx.com/webhook/metricasturno",
+    "NEXT_PUBLIC_WEBHOOK_SCADA": "https://n8n.lexusfx.com/webhook/scada",
+    "NEXT_PUBLIC_WEBHOOK_CALIDAD": "https://n8n.lexusfx.com/webhook/calidad",
+    "NEXT_PUBLIC_WEBHOOK_PROGRESO": "https://n8n.lexusfx.com/webhook/progresso",
+    "NEXT_PUBLIC_WEBHOOK_MAQUINAS": "https://n8n.lexusfx.com/webhook/maquinas",
+    "WEBHOOK_PROXY_TIMEOUT_MS": "5000",
+    "CACHE_UPDATE_INTERVAL_MS": "5000",
+    "NODE_ENV": "production"
+  },
+  "functions": {
+    "src/app/api/**/*.ts": {
+      "maxDuration": 30
+    }
+  },
+  "regions": ["iad1"],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, PUT, DELETE, OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "Content-Type, Authorization"
+        }
+      ]
+    }
+  ]
+}

@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import React from "react";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -50,21 +52,8 @@ export default function RootLayout({
       </head>
       <body>
         {children}
-        {/* Removido pace.min.js para resolver erro de hidratação */}
-        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-        <script src="/assets/js/bootstrap.bundle.min.js"></script>
-        <script src="/assets/plugins/simplebar/js/simplebar.min.js"></script>
-        <script src="/assets/plugins/metismenu/js/metisMenu.min.js"></script>
-        <script src="/assets/plugins/perfect-scrollbar/js/perfect-scrollbar.js"></script>
-        <script src="/assets/plugins/vectormap/jquery-jvectormap-2.0.2.min.js"></script>
-        <script src="/assets/plugins/vectormap/jquery-jvectormap-world-mill-en.js"></script>
-        <script src="/assets/plugins/vectormap/jquery-jvectormap-in-mill.js"></script>
-        <script src="/assets/plugins/vectormap/jquery-jvectormap-us-aea-en.js"></script>
-        <script src="/assets/plugins/vectormap/jquery-jvectormap-uk-mill-en.js"></script>
-        <script src="/assets/plugins/vectormap/jquery-jvectormap-au-mill.js"></script>
-        <script src="/assets/plugins/apexcharts-bundle/js/apexcharts.min.js"></script>
-        <script src="/assets/js/index2.js"></script>
-        <script src="/assets/js/app.js"></script>
+        <Analytics />
+        {/* Scripts removidos para resolver erro de hidratação - usar imports dinâmicos se necessário */}
       </body>
     </html>
   );
