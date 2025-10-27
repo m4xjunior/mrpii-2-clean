@@ -74,7 +74,7 @@ export function useCalidadNOK(
   const {
     refreshInterval = 0, // Por defecto sin auto-refresh
     autoFetch = true,
-    webhookUrl = 'http://localhost:5678/webhook/calidad',
+    webhookUrl = 'https://n8n.lexusfx.com/webhook/calidad',
   } = options;
 
   const [data, setData] = useState<CalidadDefecto[] | null>(null);

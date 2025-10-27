@@ -67,7 +67,7 @@ export function useShiftProgress(
   const {
     refreshInterval = 60000, // 1 minuto por defecto
     autoFetch = true,
-    webhookUrl = 'http://localhost:5678/webhook/progresso',
+    webhookUrl = 'https://n8n.lexusfx.com/webhook/progresso',
   } = options;
 
   const [data, setData] = useState<ShiftProgressData | null>(null);

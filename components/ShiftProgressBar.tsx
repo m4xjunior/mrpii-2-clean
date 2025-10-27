@@ -72,7 +72,7 @@ export const ShiftProgressBar: React.FC<ShiftProgressBarProps> = ({
       setError(null);
       setLoading(true);
       
-      const response = await fetch('http://localhost:5678/webhook/progresso', {
+      const response = await fetch('https://n8n.lexusfx.com/webhook/progresso', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

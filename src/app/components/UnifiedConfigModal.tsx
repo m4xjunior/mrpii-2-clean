@@ -107,7 +107,7 @@ export default function UnifiedConfigModal({
               <div className="config-section">
                 <label className="config-label">
                   <i className="fas fa-tag"></i>
-                  Texto "Sistema"
+                  Texto &quot;Sistema&quot;
                 </label>
                 <input
                   type="text"
