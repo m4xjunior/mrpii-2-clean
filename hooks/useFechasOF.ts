@@ -56,6 +56,98 @@ interface UseFechasOFReturn {
   lastUpdate: Date | null;
 }
 
+const asRecord = (value: unknown): Record<string, unknown> | null => {
+  if (value && typeof value === 'object') {
+    return value as Record<string, unknown>;
+  }
+  return null;
+};
+
+const getString = (
+  source: Record<string, unknown> | null | undefined,
+  key: string,
+): string | undefined => {
+  if (!source) {
+    return undefined;
+  }
+  const value = source[key];
+  return typeof value === 'string' ? value : undefined;
+};
+
+const getRecord = (
+  source: Record<string, unknown> | null | undefined,
+  key: string,
+): Record<string, unknown> | null => {
+  if (!source) {
+    return null;
+  }
+  return asRecord(source[key]);
+};
+
+const toNumberOrNull = (value: unknown): number | null => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null;
+  }
+  if (typeof value === 'string') {
+    const normalized = value.replace('%', '').replace(',', '.').trim();
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+};
+
+const parseSpanishDate = (value: unknown): string | null => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  if (!value || value === '01/01/1999 00:00:00') {
+    return null;
+  }
+
+  const parts = value.match(
+    /(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})/,
+  );
+
+  if (!parts) {
+    return null;
+  }
+
+  const [, day, month, year, hour, minute, second] = parts;
+  const date = new Date(
+    Number.parseInt(year, 10),
+    Number.parseInt(month, 10) - 1,
+    Number.parseInt(day, 10),
+    Number.parseInt(hour, 10),
+    Number.parseInt(minute, 10),
+    Number.parseInt(second, 10),
+  );
+
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+};
+
+const parseCompletado = (
+  value: unknown,
+): { formatted: string; decimal: number } => {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return { formatted: `${value}%`, decimal: value };
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.replace('%', '').replace(',', '.').trim();
+    const parsed = Number(normalized);
+    return {
+      formatted: value,
+      decimal: Number.isFinite(parsed) ? parsed : 0,
+    };
+  }
+
+  return { formatted: '0%', decimal: 0 };
+};
+
 /**
  * Hook para obtener fechas de inicio, fin y tiempo estimado de una OF
  *
@@ -63,16 +155,6 @@ interface UseFechasOFReturn {
  * @param machineId - Código de la máquina (ej: "DOBL10") - opcional
  * @param options - Opciones de configuración
  * @returns Datos de fechas, estado de carga y funciones de control
- *
- * @example
- * ```tsx
- * const { data, loading, error, refresh } = useFechasOF('OF123456', 'DOBL10');
- *
- * // Acceder a los datos
- * console.log(data?.fecha_ini); // "2025-10-20T08:00:00Z"
- * console.log(data?.fecha_fin); // "2025-10-20T16:00:00Z"
- * console.log(data?.tiempo_estimado); // 8 (horas)
- * ```
  */
 export function useFechasOF(
   ofCode: string | null | undefined,
@@ -90,7 +172,7 @@ export function useFechasOF(
   const [error, setError] = useState<Error | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   /**
@@ -178,11 +260,6 @@ export function useFechasOF(
         },
       ];
 
-      console.log('🔵 [useFechasOF] Enviando request:', {
-        url: webhookUrl,
-        body: requestPayload,
-      });
-
       const response = await fetch(webhookUrl, {
         method: 'POST',
         mode: 'cors',
@@ -194,168 +271,155 @@ export function useFechasOF(
         signal: abortControllerRef.current.signal,
       });
 
-      console.log('🔵 [useFechasOF] Response recebido:', {
-        status: response.status,
-        ok: response.ok,
-        statusText: response.statusText
-      });
-
       if (!response.ok) {
         throw new Error(`Error fetching fechas: ${response.status} ${response.statusText}`);
       }
 
-      const webhookResponse: any = await response.json();
+      const webhookResponse: unknown = await response.json();
 
-      console.log('🔵 [useFechasOF] Webhook response parseado:', webhookResponse);
-
-      // Validar que la respuesta sea un array
       if (!Array.isArray(webhookResponse)) {
-        console.error('❌ Formato inválido: se esperaba un array:', webhookResponse);
-        throw new Error('Formato de respuesta del webhook inválido: se esperaba un array');
+        throw new Error(
+          'Formato de respuesta del webhook inválido: se esperaba un array',
+        );
       }
 
-      // Buscar la OF en el array (normalmente debería haber solo una)
-      const ofData = webhookResponse.find((item: any) => item.codigo_of === ofCode) || webhookResponse[0];
+      const responseArray = webhookResponse
+        .map(asRecord)
+        .filter(
+          (item): item is Record<string, unknown> =>
+            item !== null && typeof item === 'object',
+        );
+
+      if (responseArray.length === 0) {
+        throw new Error('La respuesta del webhook está vacía');
+      }
+
+      const matched =
+        responseArray.find((item) => {
+          const codeValue = getString(item, 'codigo_of');
+          return typeof codeValue === 'string' && codeValue === ofCode;
+        }) ?? responseArray[0];
+
+      const ofData = matched;
 
       if (!ofData) {
         throw new Error(`No se encontraron datos para la OF ${ofCode}`);
       }
 
-      console.log('🔵 [useFechasOF] OF encontrada:', ofData);
-
-      // Función auxiliar para convertir fecha "18/10/2025 07:05:39" a ISO
-      const parseSpanishDate = (dateStr: string): string | null => {
-        if (!dateStr || dateStr === '01/01/1999 00:00:00') return null;
-
-        try {
-          // Formato: "DD/MM/YYYY HH:mm:ss"
-          const parts = dateStr.match(/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})/);
-          if (!parts) return null;
-
-          const [, day, month, year, hour, minute, second] = parts;
-          // Crear fecha ISO (cuidado: mes é 0-indexed em JS)
-          const date = new Date(
-            parseInt(year),
-            parseInt(month) - 1,
-            parseInt(day),
-            parseInt(hour),
-            parseInt(minute),
-            parseInt(second)
-          );
-
-          return date.toISOString();
-        } catch (error) {
-          console.error('Error parseando fecha:', dateStr, error);
-          return null;
-        }
-      };
-
-      const parseNumberish = (value: unknown): number | null => {
-        if (value === null || value === undefined) {
-          return null;
-        }
-        if (typeof value === 'number') {
-          return Number.isFinite(value) ? value : null;
-        }
-        if (typeof value === 'string') {
-          const normalized = value.replace(',', '.');
-          const parsed = Number(normalized);
-          return Number.isFinite(parsed) ? parsed : null;
-        }
-        return null;
-      };
+      const tempoRecord = getRecord(ofData, 'tempo');
+      const rawRecord = getRecord(ofData, 'raw');
 
       const fechaIniIso =
-        ofData.fechaini
-          ? parseSpanishDate(ofData.fechaini)
-          : ofData.tempo?.inicio_real
-            ? parseSpanishDate(ofData.tempo.inicio_real)
-            : (ofData.raw?.data_inicio_real_iso ?? null);
+        parseSpanishDate(getString(ofData, 'fechaini')) ??
+        parseSpanishDate(getString(tempoRecord, 'inicio_real')) ??
+        getString(rawRecord, 'data_inicio_real_iso') ??
+        null;
 
       const fechaFinIso =
-        ofData.fechafin
-          ? parseSpanishDate(ofData.fechafin)
-          : ofData.tempo?.fim_estimado
-            ? parseSpanishDate(ofData.tempo.fim_estimado)
-            : (ofData.raw?.data_fim_estimada_iso ?? null);
+        parseSpanishDate(getString(ofData, 'fechafin')) ??
+        parseSpanishDate(getString(tempoRecord, 'fim_estimado')) ??
+        getString(rawRecord, 'data_fim_estimada_iso') ??
+        null;
 
       const tiempoRestanteHoras =
-        parseNumberish(ofData.tiempoRestante) ??
-        parseNumberish(ofData.tempo?.tempo_restante_horas) ??
-        parseNumberish(ofData.tiempoRestanteHoras);
+        toNumberOrNull(ofData['tiempoRestante']) ??
+        toNumberOrNull(
+          tempoRecord ? tempoRecord['tempo_restante_horas'] : undefined,
+        ) ??
+        toNumberOrNull(ofData['tiempoRestanteHoras']);
 
-      // Extraer métricas de turno - buscar en múltiples ubicaciones posibles
-      let metricasTurno = null;
+      const metricasAgregadas = getRecord(ofData, 'metricas_agregadas');
+      const metricasAgregadasUno = getRecord(metricasAgregadas, '1');
 
-      // Opción 1: Directo en metricas_agregadas[1].metricas_oee_turno
-      if (ofData.metricas_agregadas?.["1"]?.metricas_oee_turno) {
-        metricasTurno = ofData.metricas_agregadas["1"].metricas_oee_turno;
-      }
-      // Opción 2: Directo en metricas_agregadas.metricas_oee_turno
-      else if (ofData.metricas_agregadas?.metricas_oee_turno) {
-        metricasTurno = ofData.metricas_agregadas.metricas_oee_turno;
-      }
-      // Opción 3: Directo no nível raiz
-      else if (ofData.metricas_oee_turno) {
-        metricasTurno = ofData.metricas_oee_turno;
-      }
-      // Opción 4: Campos diretos no objeto (oee_turno, disponibilidad_turno, etc.)
-      else if (ofData.oee_turno !== undefined || ofData.disponibilidad_turno !== undefined) {
-        metricasTurno = {
-          oee_turno: ofData.oee_turno,
-          disponibilidad_turno: ofData.disponibilidad_turno,
-          rendimiento_turno: ofData.rendimiento_turno,
-          calidad_turno: ofData.calidad_turno,
-        };
-      }
+      const metricasTurnoSource =
+        getRecord(metricasAgregadasUno, 'metricas_oee_turno') ??
+        getRecord(metricasAgregadas, 'metricas_oee_turno') ??
+        getRecord(ofData, 'metricas_oee_turno') ??
+        ((): Record<string, unknown> | null => {
+          const oee = toNumberOrNull(ofData['oee_turno']);
+          const disp = toNumberOrNull(ofData['disponibilidad_turno']);
+          const rend = toNumberOrNull(ofData['rendimiento_turno']);
+          const cal = toNumberOrNull(ofData['calidad_turno']);
 
-      console.log('🔵 [useFechasOF] Métricas de turno encontradas:', metricasTurno);
+          if (
+            oee === null &&
+            disp === null &&
+            rend === null &&
+            cal === null
+          ) {
+            return null;
+          }
 
-      // Extraer datos del objeto "tempo" y "producao"
+          return {
+            oee_turno: oee ?? 0,
+            disponibilidad_turno: disp ?? 0,
+            rendimiento_turno: rend ?? 0,
+            calidad_turno: cal ?? 0,
+          };
+        })();
+
+      const producaoRecord = getRecord(ofData, 'producao');
+      const completadoInfo = parseCompletado(
+        producaoRecord ? producaoRecord['completado'] : undefined,
+      );
+
+      const velocidadeRecord = getRecord(ofData, 'velocidade');
+
       const fechasData: FechasOFData = {
         fecha_ini: fechaIniIso,
         fecha_fin: fechaFinIso,
         tiempo_estimado: tiempoRestanteHoras,
-        producao: ofData.producao ? {
-          planejadas: ofData.producao.planejadas || 0,
-          ok: ofData.producao.ok || 0,
-          nok: ofData.producao.nok || 0,
-          rw: ofData.producao.rw || 0,
-          total_producido: ofData.producao.total_producido || 0,
-          faltantes: ofData.producao.faltantes || 0,
-          completado: ofData.producao.completado || "0%",
-          completado_decimal: parseFloat(ofData.producao.completado) || 0,
-        } : undefined,
-        metricas_turno: metricasTurno ? {
-          oee_turno: parseFloat(metricasTurno.oee_turno) || 0,
-          disponibilidad_turno: parseFloat(metricasTurno.disponibilidad_turno) || 0,
-          rendimiento_turno: parseFloat(metricasTurno.rendimiento_turno) || 0,
-          calidad_turno: parseFloat(metricasTurno.calidad_turno) || 0,
-        } : undefined,
-        velocidade: ofData.velocidade ? {
-          piezas_hora: parseFloat(ofData.velocidade.piezas_hora) || 0,
-          segundos_pieza: parseFloat(ofData.velocidade.segundos_pieza) || 0,
-          formato_scada: ofData.velocidade.formato_scada || '',
-        } : undefined,
-
-        // Debug log para verificar dados recebidos da API
-        ...(ofData.velocidade && {
-          _debugApiVelocidade: `Recebido da API: ${ofData.velocidade.segundos_pieza}s/u (${ofData.velocidade.piezas_hora}u/h)`
-        })
+        producao: producaoRecord
+          ? {
+              planejadas: toNumberOrNull(producaoRecord['planejadas']) ?? 0,
+              ok: toNumberOrNull(producaoRecord['ok']) ?? 0,
+              nok: toNumberOrNull(producaoRecord['nok']) ?? 0,
+              rw: toNumberOrNull(producaoRecord['rw']) ?? 0,
+              total_producido:
+                toNumberOrNull(producaoRecord['total_producido']) ?? 0,
+              faltantes: toNumberOrNull(producaoRecord['faltantes']) ?? 0,
+              completado: completadoInfo.formatted,
+              completado_decimal: completadoInfo.decimal,
+            }
+          : undefined,
+        metricas_turno: metricasTurnoSource
+          ? {
+              oee_turno:
+                toNumberOrNull(metricasTurnoSource['oee_turno']) ?? 0,
+              disponibilidad_turno:
+                toNumberOrNull(metricasTurnoSource['disponibilidad_turno']) ??
+                0,
+              rendimiento_turno:
+                toNumberOrNull(metricasTurnoSource['rendimiento_turno']) ?? 0,
+              calidad_turno:
+                toNumberOrNull(metricasTurnoSource['calidad_turno']) ?? 0,
+            }
+          : undefined,
+        velocidade: velocidadeRecord
+          ? {
+              piezas_hora:
+                toNumberOrNull(velocidadeRecord['piezas_hora']) ?? 0,
+              segundos_pieza:
+                toNumberOrNull(velocidadeRecord['segundos_pieza']) ?? 0,
+              formato_scada:
+                getString(velocidadeRecord, 'formato_scada') ?? '',
+            }
+          : undefined,
       };
-
-      console.log('✅ [useFechasOF] Fechas, producción, métricas y velocidad obtenidas:', fechasData);
 
       setData(fechasData);
       setLastUpdate(new Date());
       setError(null);
-    } catch (err: any) {
-      // Ignorar errores de abort
-      if (err.name === 'AbortError') {
+    } catch (err: unknown) {
+      if (
+        err &&
+        typeof err === 'object' &&
+        'name' in err &&
+        err.name === 'AbortError'
+      ) {
         return;
       }
 
-      console.error(`Error fetching fechas for OF ${ofCode}:`, err);
       setError(err instanceof Error ? err : new Error(String(err)));
       setData(null);
     } finally {

@@ -354,7 +354,7 @@ export default function Dashboard() {
       try {
         localStorage.setItem('hiddenMachines', JSON.stringify([...hiddenMachines]));
       } catch (error) {
-        console.error("Falha ao salvar máquinas ocultas:", error);
+        // TODO: handle persistence error if needed
       }
     }
   }, [hiddenMachines]);
@@ -393,7 +393,7 @@ export default function Dashboard() {
     try {
       localStorage.setItem('titleConfig', JSON.stringify(config));
     } catch (error) {
-      console.error("Falha ao salvar configuração:", error);
+      // TODO: handle configuration persistence error if needed
     }
   };
 

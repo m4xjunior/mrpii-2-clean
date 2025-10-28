@@ -55,7 +55,7 @@ export function useWebhookMachine(
   const [error, setError] = useState<Error | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   /**
@@ -94,13 +94,6 @@ export function useWebhookMachine(
         requestBody.machineId = machineId;
       }
 
-      console.log('🔵 [useWebhookMachine] Enviando request:', {
-        url: webhookUrl,
-        method: 'POST',
-        body: requestBody,
-        bodyString: JSON.stringify(requestBody)
-      });
-
       const response = await fetch(webhookUrl, {
         method: 'POST',
         mode: 'cors', // ← IMPORTANTE: mesmo modo do teste que funcionou
@@ -112,32 +105,14 @@ export function useWebhookMachine(
         signal: abortControllerRef.current.signal,
       });
 
-      console.log('🔵 [useWebhookMachine] Response recebido:', {
-        status: response.status,
-        ok: response.ok,
-        statusText: response.statusText
-      });
-
       if (!response.ok) {
         throw new Error(`Error fetching webhook: ${response.status} ${response.statusText}`);
       }
 
       const webhookResponse: any = await response.json();
 
-      console.log('🔵 [useWebhookMachine] Webhook response parseado:', {
-        type: typeof webhookResponse,
-        hasInfoMaquina: webhookResponse?.info_maquina !== undefined,
-        hasCodMaquina: webhookResponse?.Cod_maquina !== undefined,
-        keys: webhookResponse ? Object.keys(webhookResponse).slice(0, 5) : [],
-        rawOeeTurno: webhookResponse?.oee_turno,
-        rawDisponibilidad: webhookResponse?.disponibilidad_turno,
-        rawRendimiento: webhookResponse?.rendimiento_turno,
-        rawCalidad: webhookResponse?.calidad_turno
-      });
-
       // Validar formato dos dados
       if (!webhookResponse || typeof webhookResponse !== 'object') {
-        console.error('❌ Formato inválido: se esperaba un objeto:', webhookResponse);
         throw new Error('Formato de respuesta del webhook inválido');
       }
 
@@ -146,22 +121,14 @@ export function useWebhookMachine(
 
       if (webhookResponse.info_maquina) {
         // Formato NOVO
-        console.log('🔧 [useWebhookMachine] Detectado formato NOVO (info_maquina)');
         machineStatus = transformNewWebhookToMachineStatus(webhookResponse);
       } else if (webhookResponse.Cod_maquina) {
         // Formato ATUAL
-        console.log('🔧 [useWebhookMachine] Detectado formato ATUAL (Cod_maquina)');
         machineStatus = transformCurrentWebhookToMachineStatus(webhookResponse);
       } else {
-        console.error('❌ Formato desconhecido:', webhookResponse);
         throw new Error('Formato de respuesta del webhook desconocido');
       }
 
-      console.log('✅ [useWebhookMachine] Máquina transformada:', machineId, {
-        finalOeeTurno: machineStatus.oee_turno,
-        finalDisponibilidad: machineStatus.disponibilidad_of,
-        finalRendimiento: machineStatus.rendimiento
-      });
       setData(machineStatus);
       setLastUpdate(new Date());
       setError(null);
@@ -171,7 +138,6 @@ export function useWebhookMachine(
         return;
       }
 
-      console.error(`Error fetching webhook data for machine ${machineId}:`, err);
       setError(err instanceof Error ? err : new Error(String(err)));
       setData(null);
     } finally {
@@ -262,7 +228,7 @@ export function useWebhookAllMachines(
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [isTransitionPending, startTransition] = useTransition();
 
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastFingerprintRef = useRef<string>('');
   const lastErrorMessageRef = useRef<string>('');
@@ -285,8 +251,7 @@ export function useWebhookAllMachines(
 
     try {
       if (isDev) {
-        console.log('🔵 [useWebhookAllMachines] Buscando todas las máquinas de una vez...');
-      }
+        }
 
       // Body de la petición para obtener TODAS las máquinas
       const requestBody = {
@@ -310,12 +275,7 @@ export function useWebhookAllMachines(
       });
 
       if (isDev) {
-        console.log('🔵 [useWebhookAllMachines] Response recebido:', {
-          status: response.status,
-          ok: response.ok,
-          statusText: response.statusText
-        });
-      }
+        }
 
       if (!response.ok) {
         const status = response.status;
@@ -330,19 +290,10 @@ export function useWebhookAllMachines(
       const webhookResponse: any = await response.json();
 
       if (isDev) {
-        console.log('🔵 [useWebhookAllMachines] Webhook response parseado:', {
-          type: typeof webhookResponse,
-          isArray: Array.isArray(webhookResponse),
-          length: Array.isArray(webhookResponse) ? webhookResponse.length : 0,
-          firstMachineCode: Array.isArray(webhookResponse) && webhookResponse[0] ?
-            (webhookResponse[0].info_maquina?.codigo || webhookResponse[0].Cod_maquina) :
-            undefined
-        });
-      }
+        }
 
       // Validar que la respuesta sea un array
       if (!Array.isArray(webhookResponse)) {
-        console.error('❌ Formato inválido: se esperaba un array:', webhookResponse);
         throw new Error('Formato de respuesta del webhook inválido: se esperaba un array');
       }
 
@@ -360,19 +311,16 @@ export function useWebhookAllMachines(
             }
             // Formato desconocido
             else {
-              console.warn('⚠️ [useWebhookAllMachines] Formato desconocido para máquina:', machineData);
               return null;
             }
           } catch (err: any) {
-            console.error('❌ [useWebhookAllMachines] Error transformando máquina:', err.message);
             return null;
           }
         })
         .filter((m): m is MachineStatus => m !== null);
 
       if (isDev) {
-        console.log('✅ [useWebhookAllMachines] Máquinas cargadas:', transformedMachines.length, 'de', webhookResponse.length);
-      }
+        }
       const fingerprint = JSON.stringify(
         transformedMachines.map((machine) => ({
           code: machine.machine?.Cod_maquina ?? machine.machine?.desc_maquina ?? '',
@@ -412,8 +360,7 @@ export function useWebhookAllMachines(
 
       if (lastErrorMessageRef.current !== message) {
         lastErrorMessageRef.current = message;
-        console.error('Error fetching webhook data para todas las máquinas:', message);
-      }
+        }
 
       const status = (errorInstance as { status?: number }).status;
       const shouldSurfaceError =

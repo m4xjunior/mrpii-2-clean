@@ -1,0 +1,341 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "statistics/orders",
+        "responseMode": "responseNode",
+        "options": {
+          "responseContentType": "application/json"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        80,
+        0
+      ],
+      "id": "webhook-orders",
+      "name": "Webhook - Orders",
+      "webhookId": "scada-statistics-orders"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "machine-code",
+              "name": "machineCode",
+              "value": "={{ $json.body.machineCode || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "start-date",
+              "name": "startDate",
+              "value": "={{ $json.body.startDate || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "end-date",
+              "name": "endDate",
+              "value": "={{ $json.body.endDate || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        260,
+        0
+      ],
+      "id": "set-normalize-orders",
+      "name": "Normalize Input"
+    },
+    {
+      "parameters": {
+        "jsCode": "const formatDate = (value) => {\n  if (!value) return '';\n  const date = new Date(value);\n  if (Number.isNaN(date.getTime())) return '';\n  const year = date.getFullYear();\n  const month = String(date.getMonth() + 1).padStart(2, '0');\n  const day = String(date.getDate()).padStart(2, '0');\n  return `${year}-${month}-${day}`;\n};\n\nreturn $input.all().map((item) => {\n  const machineCode = String(item.json.machineCode || '').trim();\n  const startDateSql = formatDate(item.json.startDate);\n  const endDateSql = formatDate(item.json.endDate);\n\n  const cacheKey = [\n    'statistics-orders',\n    machineCode || 'ALL',\n    startDateSql || 'ALL',\n    endDateSql || 'ALL',\n  ].join(':');\n\n  return {\n    json: {\n      machineCode,\n      startDateSql,\n      endDateSql,\n      cacheKey,\n    },\n  };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        0
+      ],
+      "id": "code-prepare-orders",
+      "name": "Prepare Params"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "key": "={{ $json.cacheKey }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        660,
+        0
+      ],
+      "id": "redis-get-orders",
+      "name": "Redis - Get Cache",
+      "credentials": {
+        "redis": {
+          "id": "Lrhc8rOAXwUSQ4SQ",
+          "name": "REDISLOCAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "orders-cache-check",
+              "leftValue": "={{ $json.propertyName }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        860,
+        0
+      ],
+      "id": "if-cache-orders",
+      "name": "Cache Hit?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nconst parsed = items\n  .map((item) => {\n    const raw = item.json.propertyName ?? item.json.value;\n    if (!raw) return null;\n    if (typeof raw === 'object') return raw;\n    try {\n      return JSON.parse(raw);\n    } catch (error) {\n      return {\n        success: false,\n        error: `cache_parse_error: ${error.message}`,\n        raw,\n      };\n    }\n  })\n  .filter(Boolean);\n\nif (!parsed.length) {\n  return [\n    {\n      json: {\n        success: true,\n        data: [],\n        source: 'cache-empty',\n      },\n    },\n  ];\n}\n\nreturn parsed.map((entry) => ({ json: entry }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1060,
+        -140
+      ],
+      "id": "code-parse-cache-orders",
+      "name": "Parse Cache"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DECLARE @Machine NVARCHAR(50) = N'{{ $('Prepare Params').item.json.machineCode }}';\nDECLARE @StartRaw VARCHAR(10) = '{{ $('Prepare Params').item.json.startDateSql }}';\nDECLARE @EndRaw   VARCHAR(10) = '{{ $('Prepare Params').item.json.endDateSql }}';\n\nIF (@Machine IS NULL OR LTRIM(RTRIM(@Machine)) = '')\nBEGIN\n    SELECT TOP 0\n        CAST(NULL AS NVARCHAR(100)) AS codigo_of,\n        CAST(NULL AS NVARCHAR(200)) AS descripcion,\n        CAST(NULL AS NVARCHAR(25)) AS fecha_inicio,\n        CAST(NULL AS NVARCHAR(25)) AS fecha_fin,\n        CAST(NULL AS NVARCHAR(25)) AS fecha_inicio_real,\n        CAST(NULL AS NVARCHAR(25)) AS fecha_fin_real,\n        CAST(NULL AS INT) AS total_producido,\n        CAST(NULL AS INT) AS total_planificado\n    WHERE 1 = 0;\n    RETURN;\nEND;\n\nDECLARE @StartDate DATETIME = CASE\n    WHEN LEN(@StartRaw) = 10 THEN CAST(@StartRaw AS DATE)\n    ELSE NULL\nEND;\n\nDECLARE @EndDate DATETIME = CASE\n    WHEN LEN(@EndRaw) = 10 THEN DATEADD(SECOND, 86399, CAST(@EndRaw AS DATETIME))\n    ELSE NULL\nEND;\n\nWITH OfData AS (\n    SELECT\n        ho.Cod_of AS codigo_of,\n        ho.Desc_of AS descripcion,\n        CONVERT(VARCHAR(19), ho.Fecha_ini, 126) AS fecha_inicio,\n        CONVERT(VARCHAR(19), ho.Fecha_fin, 126) AS fecha_fin,\n        CONVERT(VARCHAR(19), MIN(hp.Fecha_ini), 126) AS fecha_inicio_real,\n        CONVERT(VARCHAR(19), MAX(hp.Fecha_fin), 126) AS fecha_fin_real,\n        SUM(hp.Unidades_ok + hp.Unidades_nok + hp.Unidades_repro) AS total_producido,\n        ho.Unidades_planning AS total_planificado\n    FROM dbo.his_of ho WITH (NOLOCK)\n    INNER JOIN dbo.his_fase hf WITH (NOLOCK) ON ho.Id_his_of = hf.Id_his_of\n    INNER JOIN dbo.his_prod hp WITH (NOLOCK) ON hf.Id_his_fase = hp.Id_his_fase\n    INNER JOIN dbo.cfg_maquina cm WITH (NOLOCK) ON hp.Id_maquina = cm.Id_maquina\n    WHERE ho.Activo = 1\n      AND cm.Cod_maquina = @Machine\n      AND hp.Activo = 1\n      AND (@StartDate IS NULL OR hp.Fecha_ini >= @StartDate)\n      AND (@EndDate   IS NULL OR hp.Fecha_fin <= @EndDate)\n    GROUP BY\n      ho.Cod_of,\n      ho.Desc_of,\n      ho.Fecha_ini,\n      ho.Fecha_fin,\n      ho.Unidades_planning\n)\nSELECT\n    codigo_of,\n    descripcion,\n    fecha_inicio,\n    fecha_fin,\n    fecha_inicio_real,\n    fecha_fin_real,\n    total_producido,\n    total_planificado\nFROM OfData\nORDER BY fecha_inicio_real DESC;\n"
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.1,
+      "position": [
+        1080,
+        140
+      ],
+      "id": "sql-fetch-orders",
+      "name": "Microsoft SQL - Orders",
+      "credentials": {
+        "microsoftSql": {
+          "id": "op1E2bL9q09CUAxH",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map((item) => item.json);\n\nconst toInt = (value) => {\n  if (value === null || value === undefined || value === '') return 0;\n  const num = Number(value);\n  return Number.isFinite(num) ? Math.round(num) : 0;\n};\n\nconst cacheKey = $item(0).$node['Prepare Params'].json.cacheKey;\nconst machineCode = ($item(0).$node['Prepare Params']?.json?.machineCode || '').trim() || null;\n\nreturn [\n  {\n    json: {\n      cacheKey,\n      success: true,\n      data: rows.map((row) => ({\n        codigo_of: row.codigo_of,\n        descripcion: row.descripcion,\n        fecha_inicio: row.fecha_inicio,\n        fecha_fin: row.fecha_fin,\n        fecha_inicio_real: row.fecha_inicio_real,\n        fecha_fin_real: row.fecha_fin_real,\n        total_producido: toInt(row.total_producido),\n        total_planificado: toInt(row.total_planificado),\n      })),\n      source: 'fresh-query',\n      meta: {\n        machineCode,\n        registros: rows.length,\n      }\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1260,
+        140
+      ],
+      "id": "code-build-orders",
+      "name": "Build Response"
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "={{ $json.cacheKey }}",
+        "value": "={{ JSON.stringify($json) }}",
+        "expire": true,
+        "ttl": 60
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1440,
+        140
+      ],
+      "id": "redis-set-orders",
+      "name": "Redis - Set Cache",
+      "credentials": {
+        "redis": {
+          "id": "Lrhc8rOAXwUSQ4SQ",
+          "name": "REDISLOCAL"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1660,
+        20
+      ],
+      "id": "merge-orders",
+      "name": "Merge Cached & Fresh"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1860,
+        20
+      ],
+      "id": "respond-orders",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "connections": {
+    "Webhook - Orders": {
+      "main": [
+        [
+          {
+            "node": "Normalize Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Input": {
+      "main": [
+        [
+          {
+            "node": "Prepare Params",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Params": {
+      "main": [
+        [
+          {
+            "node": "Redis - Get Cache",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis - Get Cache": {
+      "main": [
+        [
+          {
+            "node": "Cache Hit?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cache Hit?": {
+      "main": [
+        [
+          {
+            "node": "Parse Cache",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Microsoft SQL - Orders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Cache": {
+      "main": [
+        [
+          {
+            "node": "Merge Cached & Fresh",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Microsoft SQL - Orders": {
+      "main": [
+        [
+          {
+            "node": "Build Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Response": {
+      "main": [
+        [
+          {
+            "node": "Redis - Set Cache",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis - Set Cache": {
+      "main": [
+        [
+          {
+            "node": "Merge Cached & Fresh",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Cached & Fresh": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "meta": {
+    "instanceId": "scada-statistics-orders"
+  }
+}

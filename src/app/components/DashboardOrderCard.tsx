@@ -18,6 +18,7 @@ import type { MachineStatus } from "../../../types/machine";
 import CountUp from "../../../components/CountUp";
 import LoopText from "../../../components/LoopText";
 // import { ShiftProgressBar } from "../../../components/ShiftProgressBar"; // ⚠️ DESATIVADO - API não existe mais
+import { MachineStatisticsModal } from "./MachineStatisticsModal";
 
 import {
   getMetricSquareClasses,
@@ -747,6 +748,33 @@ export default function DashboardOrderCard({
     webhookUrl: "https://n8n.lexusfx.com/webhook/calidad",
   });
 
+  const modalTotalNOK = useMemo(
+    () =>
+      (calidadNOKData ?? []).reduce(
+        (sum, item) => sum + (item?.Unidades ?? 0),
+        0,
+      ),
+    [calidadNOKData],
+  );
+
+  const modalUniqueDefectTypes = useMemo(() => {
+    const set = new Set(
+      (calidadNOKData ?? [])
+        .map((item) => item?.Tipodefecto)
+        .filter(Boolean),
+    );
+    return set.size;
+  }, [calidadNOKData]);
+
+  const modalUniqueCenters = useMemo(() => {
+    const set = new Set(
+      (calidadNOKData ?? [])
+        .map((item) => item?.descCT || item?.ct)
+        .filter(Boolean),
+    );
+    return set.size;
+  }, [calidadNOKData]);
+
   // 🔥 CONSUMIR PROGRESO DO TURNO DA API N8N
   const {
     segments: progresoSegments,
@@ -1048,6 +1076,9 @@ export default function DashboardOrderCard({
 
   // Estado para el modal de detalles de calidad NOK
   const [showNOKModal, setShowNOKModal] = useState(false);
+
+  // Estado para el modal de estadísticas
+  const [showStatisticsModal, setShowStatisticsModal] = useState(false);
 
   // Estados para atualização suave dos valores numéricos
   const [animatedValues, setAnimatedValues] = useState({
@@ -1913,7 +1944,7 @@ export default function DashboardOrderCard({
                     onClick={(e) => {
                       e.stopPropagation();
                       setShowOptionsMenu(false);
-                      // Adicione ação aqui
+                      setShowStatisticsModal(true);
                     }}
                     style={{
                       width: "100%",
@@ -3046,6 +3077,7 @@ export default function DashboardOrderCard({
                         justifyContent: "space-between",
                         alignItems: "start",
                         marginBottom: "12px",
+                        gap: "16px",
                       }}
                     >
                       <div style={{ flex: 1 }}>
@@ -3055,6 +3087,7 @@ export default function DashboardOrderCard({
                             fontWeight: 700,
                             color: "#212529",
                             marginBottom: "4px",
+                            lineHeight: 1.3,
                           }}
                         >
                           {defecto.Defecto || "Defecto no identificado"}
@@ -3070,7 +3103,17 @@ export default function DashboardOrderCard({
                           }}
                         >
                           {defecto.Tipodefecto && (
-                            <span>{defecto.Tipodefecto}</span>
+                            <span
+                              style={{
+                                background: "rgba(0, 123, 255, 0.08)",
+                                color: "#0d6efd",
+                                fontWeight: 600,
+                                padding: "4px 8px",
+                                borderRadius: "999px",
+                              }}
+                            >
+                              {defecto.Tipodefecto}
+                            </span>
                           )}
                           {(defecto.descCT || defecto.ct) && (
                             <span
@@ -3086,7 +3129,8 @@ export default function DashboardOrderCard({
                               }}
                             >
                               <span style={{ fontSize: "10px" }}>CT</span>
-                              {defecto.descCT || defecto.ct}
+                              {defecto.ct}
+                              {defecto.descCT ? ` · ${defecto.descCT}` : ""}
                             </span>
                           )}
                         </div>
@@ -3100,7 +3144,7 @@ export default function DashboardOrderCard({
                           borderRadius: "8px",
                           fontSize: "18px",
                           fontWeight: 700,
-                          minWidth: "60px",
+                          minWidth: "70px",
                           textAlign: "center",
                         }}
                       >
@@ -3112,7 +3156,7 @@ export default function DashboardOrderCard({
                       style={{
                         display: "grid",
                         gridTemplateColumns:
-                          "repeat(auto-fit, minmax(160px, 1fr))",
+                          "repeat(auto-fit, minmax(180px, 1fr))",
                         gap: "12px",
                         marginTop: "12px",
                         paddingTop: "12px",
@@ -3126,6 +3170,8 @@ export default function DashboardOrderCard({
                               fontSize: "11px",
                               color: "#6c757d",
                               marginBottom: "2px",
+                              textTransform: "uppercase",
+                              letterSpacing: "0.04em",
                             }}
                           >
                             Centro de Trabajo
@@ -3135,6 +3181,7 @@ export default function DashboardOrderCard({
                               fontSize: "13px",
                               fontWeight: 600,
                               color: "#495057",
+                              wordBreak: "break-word",
                             }}
                           >
                             {defecto.ct}
@@ -3148,6 +3195,8 @@ export default function DashboardOrderCard({
                             fontSize: "11px",
                             color: "#6c757d",
                             marginBottom: "2px",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.04em",
                           }}
                         >
                           Turno
@@ -3168,6 +3217,8 @@ export default function DashboardOrderCard({
                             fontSize: "11px",
                             color: "#6c757d",
                             marginBottom: "2px",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.04em",
                           }}
                         >
                           Fecha
@@ -3182,6 +3233,28 @@ export default function DashboardOrderCard({
                           {defecto["Time Period"] ?? "—"}
                         </div>
                       </div>
+                      <div>
+                        <div
+                          style={{
+                            fontSize: "11px",
+                            color: "#6c757d",
+                            marginBottom: "2px",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.04em",
+                          }}
+                        >
+                          Tipo de Defecto
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "13px",
+                            fontWeight: 600,
+                            color: "#495057",
+                          }}
+                        >
+                          {defecto.Tipodefecto ?? "—"}
+                        </div>
+                      </div>
                       {defecto.Cod_producto && (
                         <div>
                           <div
@@ -3189,6 +3262,8 @@ export default function DashboardOrderCard({
                               fontSize: "11px",
                               color: "#6c757d",
                               marginBottom: "2px",
+                              textTransform: "uppercase",
+                              letterSpacing: "0.04em",
                             }}
                           >
                             Producto
@@ -3198,6 +3273,7 @@ export default function DashboardOrderCard({
                               fontSize: "13px",
                               fontWeight: 600,
                               color: "#495057",
+                              wordBreak: "break-word",
                             }}
                           >
                             {defecto.Cod_producto}
@@ -3253,32 +3329,14 @@ export default function DashboardOrderCard({
           </div>
         </div>
       )}
+
+      {/* Modal de Estadísticas */}
+      <MachineStatisticsModal
+        isOpen={showStatisticsModal}
+        onClose={() => setShowStatisticsModal(false)}
+        machineCode={data.machineCode}
+        machineName={data.machineName}
+      />
     </>
   );
 }
-  const modalTotalNOK = useMemo(
-    () =>
-      (calidadNOKData ?? []).reduce(
-        (sum, item) => sum + (item?.Unidades ?? 0),
-        0,
-      ),
-    [calidadNOKData],
-  );
-
-  const modalUniqueDefectTypes = useMemo(() => {
-    const set = new Set(
-      (calidadNOKData ?? [])
-        .map((item) => item?.Tipodefecto)
-        .filter(Boolean),
-    );
-    return set.size;
-  }, [calidadNOKData]);
-
-  const modalUniqueCenters = useMemo(() => {
-    const set = new Set(
-      (calidadNOKData ?? [])
-        .map((item) => item?.descCT || item?.ct)
-        .filter(Boolean),
-    );
-    return set.size;
-  }, [calidadNOKData]);

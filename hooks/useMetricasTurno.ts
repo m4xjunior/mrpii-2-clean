@@ -38,7 +38,7 @@ export function useMetricasTurno(
   const [error, setError] = useState<Error | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchData = useCallback(async () => {
@@ -99,7 +99,6 @@ export function useMetricasTurno(
       if (err?.name === 'AbortError') {
         return;
       }
-      console.error(`Error fetching métricas turno for ${ofCode}/${machineId}:`, err);
       setError(err instanceof Error ? err : new Error(String(err)));
       // ✅ NÃO limpar dados antigos em caso de erro - manter último valor conhecido
       // setData(null);

@@ -52,7 +52,7 @@ interface UseVelocidadReturn {
  * const { data, loading, error, refresh } = useVelocidad('2025-SEC09-2877-2025-5811', 'DOBL8');
  *
  * // Acceder a los datos
- * console.log(data?.velocidad); // "182 u/h 19.81 seg/pza"
+ * // "182 u/h 19.81 seg/pza"
  * ```
  */
 export function useVelocidad(
@@ -71,7 +71,7 @@ export function useVelocidad(
   const [error, setError] = useState<Error | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   /**

@@ -1,0 +1,877 @@
+Query 1: Dados de Produção por Turno (com datas)
+
+-- Buscar dados agregados por turno para uma máquina em um período
+SELECT TOP 5
+    cm.Cod_maquina,
+    cm.Desc_maquina,
+    CONVERT(VARCHAR(10), hp.Dia_productivo, 111) AS fecha,
+    hp.Id_turno,
+    ct.Cod_turno,
+    ct.Desc_turno AS turno,
+    co.Cod_operario,
+    co.Desc_operario AS operario,
+    
+    -- Métricas OEE do turno
+    fhc.OEE_C AS oee,
+    fhc.Disp_C AS disponibilidad,
+    fhc.Rend_C AS rendimiento,
+    fhc.Cal_C AS calidad,
+    
+    -- Contadores de peças do turno
+    SUM(hp.Unidades_ok) AS piezas_ok,
+    SUM(hp.Unidades_nok) AS piezas_nok,
+    SUM(hp.Unidades_repro) AS piezas_rw,
+    
+    -- Tempos em horas
+    SUM(DATEDIFF(MINUTE, hp.Fecha_ini, hp.Fecha_fin)) / 60.0 AS total_horas,
+    SUM(ISNULL(hp.PNP, 0)) / 60.0 AS horas_paros,
+    
+    -- Atividades (preparação vs produção)
+    SUM(CASE WHEN ca.Cod_actividad = 'PREP' THEN DATEDIFF(MINUTE, hp.Fecha_ini, hp.Fecha_fin) ELSE 0 END) / 60.0 AS horas_preparacion,
+    SUM(CASE WHEN ca.Cod_actividad = 'PROD' THEN DATEDIFF(MINUTE, hp.Fecha_ini, hp.Fecha_fin) ELSE 0 END) / 60.0 AS horas_produccion
+
+FROM his_prod hp WITH (NOLOCK)
+INNER JOIN cfg_maquina cm WITH (NOLOCK) ON cm.Id_maquina = hp.Id_maquina
+INNER JOIN cfg_turno ct WITH (NOLOCK) ON ct.Id_turno = hp.Id_turno
+LEFT JOIN cfg_operario co WITH (NOLOCK) ON co.Id_operario = hp.Id_operario
+LEFT JOIN cfg_actividad ca WITH (NOLOCK) ON ca.Id_actividad = hp.Id_actividad
+
+-- JOIN com F_his_ct para pegar métricas oficiais MAPEX
+CROSS APPLY F_his_ct(
+    'WORKCENTER',
+    'DAY',
+    'TURNO',
+    DATEADD(DAY, -7, GETDATE()),
+    DATEADD(DAY, 1, GETDATE()),
+    0
+) fhc
+
+WHERE cm.Cod_maquina = 'DOBL5'  -- Exemplo
+  AND hp.Dia_productivo >= DATEADD(DAY, -7, GETDATE())
+  AND hp.Dia_productivo <= GETDATE()
+  AND hp.Activo = 1
+  AND fhc.WorkGroup = cm.Cod_maquina
+  AND fhc.timeperiod = CONVERT(VARCHAR(10), hp.Dia_productivo, 111)
+  AND fhc.desc_turno = ct.Desc_turno
+
+GROUP BY
+    cm.Cod_maquina,
+    cm.Desc_maquina,
+    hp.Dia_productivo,
+    hp.Id_turno,
+    ct.Cod_turno,
+    ct.Desc_turno,
+    co.Cod_operario,
+    co.Desc_operario,
+    fhc.OEE_C,
+    fhc.Disp_C,
+    fhc.Rend_C,
+    fhc.Cal_C
+
+ORDER BY hp.Dia_productivo DESC, hp.Id_turno;
+
+[
+  {
+    "Cod_maquina": "DOBL5",
+    "Desc_maquina": "BMS31",
+    "fecha": "2025/10/27",
+    "Id_turno": 1,
+    "Cod_turno": "M",
+    "turno": "MAÑANA",
+    "Cod_operario": "-",
+    "operario": "--",
+    "oee": 74.9,
+    "disponibilidad": 96.2,
+    "rendimiento": 77.8,
+    "calidad": 100,
+    "piezas_ok": 0,
+    "piezas_nok": 0,
+    "piezas_rw": 0,
+    "total_horas": 0.066666,
+    "horas_paros": 0,
+    "horas_preparacion": 0,
+    "horas_produccion": 0
+  },
+  {
+    "Cod_maquina": "DOBL5",
+    "Desc_maquina": "BMS31",
+    "fecha": "2025/10/27",
+    "Id_turno": 1,
+    "Cod_turno": "M",
+    "turno": "MAÑANA",
+    "Cod_operario": "14",
+    "operario": "MALAGON AGUADO, VANESA",
+    "oee": 74.9,
+    "disponibilidad": 96.2,
+    "rendimiento": 77.8,
+    "calidad": 100,
+    "piezas_ok": 3114,
+    "piezas_nok": 0,
+    "piezas_rw": 0,
+    "total_horas": 8.183333,
+    "horas_paros": 17.216666,
+    "horas_preparacion": 0,
+    "horas_produccion": 7.75
+  },
+  {
+    "Cod_maquina": "DOBL5",
+    "Desc_maquina": "BMS31",
+    "fecha": "2025/10/27",
+    "Id_turno": 2,
+    "Cod_turno": "T",
+    "turno": "TARDE",
+    "Cod_operario": "14",
+    "operario": "MALAGON AGUADO, VANESA",
+    "oee": 61.9,
+    "disponibilidad": 85.6,
+    "rendimiento": 72.3,
+    "calidad": 100,
+    "piezas_ok": 26,
+    "piezas_nok": 0,
+    "piezas_rw": 0,
+    "total_horas": 0.066666,
+    "horas_paros": 0.516666,
+    "horas_preparacion": 0,
+    "horas_produccion": 0.066666
+  },
+  {
+    "Cod_maquina": "DOBL5",
+    "Desc_maquina": "BMS31",
+    "fecha": "2025/10/27",
+    "Id_turno": 2,
+    "Cod_turno": "T",
+    "turno": "TARDE",
+    "Cod_operario": "2265",
+    "operario": "NICOLAS AGUILAR, CARLES",
+    "oee": 61.9,
+    "disponibilidad": 85.6,
+    "rendimiento": 72.3,
+    "calidad": 100,
+    "piezas_ok": 2784,
+    "piezas_nok": 0,
+    "piezas_rw": 0,
+    "total_horas": 8.183333,
+    "horas_paros": 70.766666,
+    "horas_preparacion": 0,
+    "horas_produccion": 7.7
+  },
+  {
+    "Cod_maquina": "DOBL5",
+    "Desc_maquina": "BMS31",
+    "fecha": "2025/10/27",
+    "Id_turno": 3,
+    "Cod_turno": "N",
+    "turno": "NOCHE",
+    "Cod_operario": "-",
+    "operario": "--",
+    "oee": 0,
+    "disponibilidad": 0,
+    "rendimiento": 0,
+    "calidad": 0,
+    "piezas_ok": 0,
+    "piezas_nok": 0,
+    "piezas_rw": 0,
+    "total_horas": 7.5,
+    "horas_paros": 0,
+    "horas_preparacion": 0,
+    "horas_produccion": 0
+  }
+]
+
+Query 2: Listar OFs Disponíveis de uma Máquina
+
+
+-- Listar todas as OFs de uma máquina (com ou sem filtro de datas)
+SELECT DISTINCT
+    ho.Cod_of AS codigo_of,
+    ho.Desc_of AS descricao_of,
+    ho.Fecha_ini AS fecha_inicio,
+    ho.Fecha_fin AS fecha_fin,
+    MIN(hp.Fecha_ini) AS fecha_inicio_real,
+    MAX(hp.Fecha_fin) AS fecha_fin_real,
+    SUM(hp.Unidades_ok + hp.Unidades_nok + hp.Unidades_repro) AS total_producido,
+    ho.Unidades_planning AS total_planificado
+
+FROM his_of ho WITH (NOLOCK)
+INNER JOIN his_fase hf WITH (NOLOCK) ON ho.Id_his_of = hf.Id_his_of
+INNER JOIN his_prod hp WITH (NOLOCK) ON hf.Id_his_fase = hp.Id_his_fase
+INNER JOIN cfg_maquina cm WITH (NOLOCK) ON hp.Id_maquina = cm.Id_maquina
+
+WHERE cm.Cod_maquina = 'DOBL5'  -- Exemplo
+  AND ho.Activo = 1
+  AND YEAR(ho.Fecha_ini) >= YEAR(GETDATE())
+  -- AND hp.Fecha_ini >= @startDate  -- Opcional
+  -- AND hp.Fecha_fin <= @endDate    -- Opcional
+
+GROUP BY
+    ho.Cod_of,
+    ho.Desc_of,
+    ho.Fecha_ini,
+    ho.Fecha_fin,
+    ho.Unidades_planning
+
+ORDER BY MIN(hp.Fecha_ini) DESC;
+
+[
+  {
+    "codigo_of": "2025-SEC09-2970-2025-5981",
+    "descricao_of": "P2JO.RSC.U.TRIM.WIRE.1176MM.2MM.COPO",
+    "fecha_inicio": "2025-10-22T00:00:00.000Z",
+    "fecha_fin": "2025-10-22T00:00:00.000Z",
+    "fecha_inicio_real": "2025-10-22T19:37:41.000Z",
+    "fecha_fin_real": "2025-10-28T15:24:50.000Z",
+    "total_producido": 22001,
+    "total_planificado": 25360
+  },
+  {
+    "codigo_of": "2025-SEC09-2893-2025-5845",
+    "descricao_of": "WIRE_FSC_NORMAL-SPORT_CENTRAL_M2_2MM_AU336_COPO",
+    "fecha_inicio": "2025-10-15T00:00:00.000Z",
+    "fecha_fin": "2025-10-15T00:00:00.000Z",
+    "fecha_inicio_real": "2025-10-15T14:37:59.000Z",
+    "fecha_fin_real": "2025-10-22T19:37:41.000Z",
+    "total_producido": 36120,
+    "total_planificado": 14280
+  },
+  {
+    "codigo_of": "2025-SEC09-2804-2025-5674",
+    "descricao_of": "SE270.RSB.FEEW.BASIS.1188MM.D2MM.PROSEAT",
+    "fecha_inicio": "2025-10-03T00:00:00.000Z",
+    "fecha_fin": "2025-10-03T00:00:00.000Z",
+    "fecha_inicio_real": "2025-10-07T15:48:17.000Z",
+    "fecha_fin_real": "2025-10-15T14:37:59.000Z",
+    "total_producido": 24780,
+    "total_planificado": 29400
+  },
+  {
+    "codigo_of": "2025-SEC09-2777-2025-5597",
+    "descricao_of": "P2JO.RSC.U.TRIM.WIRE.1176MM.2MM.COPO",
+    "fecha_inicio": "2025-09-30T00:00:00.000Z",
+    "fecha_fin": "2025-09-30T00:00:00.000Z",
+    "fecha_inicio_real": "2025-10-01T12:47:27.000Z",
+    "fecha_fin_real": "2025-10-07T15:48:17.000Z",
+    "total_producido": 26460,
+    "total_planificado": 25888
+  },
+  {
+    "codigo_of": "2025-SEC09-2748-2025-5543",
+    "descricao_of": "K0.FR03.U.WIRE.1572mm.5mm.C9D.LEAR",
+    "fecha_inicio": "2025-09-26T00:00:00.000Z",
+    "fecha_fin": "2025-09-26T00:00:00.000Z",
+    "fecha_inicio_real": "2025-09-30T10:25:37.000Z",
+    "fecha_fin_real": "2025-10-01T12:47:27.000Z",
+    "total_producido": 3544,
+    "total_planificado": 2600
+  },
+  {
+    "codigo_of": "2025-SEC09-2739-2025-5520",
+    "descricao_of": "K0.FR13.U.WIRE.1147mm.5mm.C9D.LEAR",
+    "fecha_inicio": "2025-09-25T00:00:00.000Z",
+    "fecha_fin": "2025-09-25T00:00:00.000Z",
+    "fecha_inicio_real": "2025-09-29T11:22:17.000Z",
+    "fecha_fin_real": "2025-09-30T10:25:37.000Z",
+    "total_producido": 1200,
+    "total_planificado": 1200
+  },
+  {
+    "codigo_of": "2025-SEC09-2737-2025-5518",
+    "descricao_of": "K0.FR08.STR.WIRE.1345mm.5mm.C9D.LEAR",
+    "fecha_inicio": "2025-09-25T00:00:00.000Z",
+    "fecha_fin": "2025-09-25T00:00:00.000Z",
+    "fecha_inicio_real": "2025-09-26T06:08:04.000Z",
+    "fecha_fin_real": "2025-09-29T11:22:17.000Z",
+    "total_producido": 1615,
+    "total_planificado": 1280
+  },
+  {
+    "codigo_of": "2025-SEC09-2700-2025-5433",
+    "descricao_of": "SE270.RSB.FEEW.BASIS.1188MM.D2MM.PROSEAT",
+    "fecha_inicio": "2025-09-22T00:00:00.000Z",
+    "fecha_fin": "2025-09-22T00:00:00.000Z",
+    "fecha_inicio_real": "2025-09-23T00:23:36.000Z",
+    "fecha_fin_real": "2025-09-29T08:45:13.000Z",
+    "total_producido": 16800,
+    "total_planificado": 16800
+  },
+  {
+    "codigo_of": "2025-SEC09-2688-2025-5407",
+    "descricao_of": "FRONT.SEAT.CUSHION.TRIM.WIRE.H-SHAPE",
+    "fecha_inicio": "2025-09-19T00:00:00.000Z",
+    "fecha_fin": "2025-09-19T00:00:00.000Z",
+    "fecha_inicio_real": "2025-09-22T16:21:05.000Z",
+    "fecha_fin_real": "2025-09-22T19:50:38.000Z",
+    "total_producido": 560,
+    "total_planificado": 500
+  },
+  {
+    "codigo_of": "2025-SEC09-2673-2025-5370",
+    "descricao_of": "FSC.BOLSTER.SUPPORT.WIRE.6MM",
+    "fecha_inicio": "2025-09-19T00:00:00.000Z",
+    "fecha_fin": "2025-09-19T00:00:00.000Z",
+    "fecha_inicio_real": "2025-09-19T08:56:55.000Z",
+    "fecha_fin_real": "2025-09-22T17:12:34.000Z",
+    "total_producido": 400,
+    "total_planificado": 400
+  },
+  {
+    "codigo_of": "2025-SEC09-2512-2025-5005",
+    "descricao_of": "SE270.RSB.FEEW.BASIS.1188MM.D2MM.PROSEAT",
+    "fecha_inicio": "2025-09-04T00:00:00.000Z",
+    "fecha_fin": "2025-09-04T00:00:00.000Z",
+    "fecha_inicio_real": "2025-09-10T22:13:07.000Z",
+    "fecha_fin_real": "2025-09-19T08:56:55.000Z",
+    "total_producido": 17667,
+    "total_planificado": 16800
+  },
+  {
+    "codigo_of": "2025-SEC09-2496-2025-4961",
+    "descricao_of": "P2JO.RSC.U.TRIM.WIRE.1176MM.2MM.COPO",
+    "fecha_inicio": "2025-09-01T00:00:00.000Z",
+    "fecha_fin": "2025-09-01T00:00:00.000Z",
+    "fecha_inicio_real": "2025-09-02T15:14:38.000Z",
+    "fecha_fin_real": "2025-09-10T20:51:30.000Z",
+    "total_producido": 23946,
+    "total_planificado": 21736
+  },
+  {
+    "codigo_of": "2025-SEC09-2294-2025-4476",
+    "descricao_of": "SE380.FSC.HIGH.WIRE.696mm.D2mm.PH.PROSEAT",
+    "fecha_inicio": "2025-07-21T00:00:00.000Z",
+    "fecha_fin": "2025-07-21T00:00:00.000Z",
+    "fecha_inicio_real": "2025-07-21T15:15:33.000Z",
+    "fecha_fin_real": "2025-09-02T15:14:38.000Z",
+    "total_producido": 18900,
+    "total_planificado": 18900
+  },
+  {
+    "codigo_of": "2025-SEC09-2235-2025-4279",
+    "descricao_of": "K0.FR03.U.WIRE.1572mm.5mm.C9D.LEAR",
+    "fecha_inicio": "2025-07-04T00:00:00.000Z",
+    "fecha_fin": "2025-07-04T00:00:00.000Z",
+    "fecha_inicio_real": "2025-07-18T11:41:40.000Z",
+    "fecha_fin_real": "2025-07-21T15:15:33.000Z",
+    "total_producido": 3900,
+    "total_planificado": 3900
+  },
+  {
+    "codigo_of": "2025-SEC09-2177-2025-4154",
+    "descricao_of": "P2JO.RSC.U.TRIM.WIRE.1176MM.2MM.COPO",
+    "fecha_inicio": "2025-07-03T00:00:00.000Z",
+    "fecha_fin": "2025-07-03T00:00:00.000Z",
+    "fecha_inicio_real": "2025-07-03T22:21:04.000Z",
+    "fecha_fin_real": "2025-07-18T11:41:40.000Z",
+    "total_producido": 38256,
+    "total_planificado": 37764
+  },
+  {
+    "codigo_of": "2025-SEC09-2165-2025-4136",
+    "descricao_of": "K0.FR13.U.WIRE.1147mm.5mm.C9D.LEAR",
+    "fecha_inicio": "2025-07-02T00:00:00.000Z",
+    "fecha_fin": "2025-07-02T00:00:00.000Z",
+    "fecha_inicio_real": "2025-07-02T20:06:39.000Z",
+    "fecha_fin_real": "2025-07-03T22:21:04.000Z",
+    "total_producido": 3600,
+    "total_planificado": 3600
+  },
+  {
+    "codigo_of": "2025-SEC09-2028-2025-3827",
+    "descricao_of": "SE270.RSB.FEEW.BASIS.1188MM.D2MM.PROSEAT",
+    "fecha_inicio": "2025-06-18T00:00:00.000Z",
+    "fecha_fin": "2025-06-18T00:00:00.000Z",
+    "fecha_inicio_real": "2025-06-18T13:24:50.000Z",
+    "fecha_fin_real": "2025-07-02T20:06:39.000Z",
+    "total_producido": 59698,
+    "total_planificado": 56280
+  },
+  {
+    "codigo_of": "2025-SEC09-1934-2025-3607",
+    "descricao_of": "P2JO.RSC.U.TRIM.WIRE.1176MM.2MM.COPO",
+    "fecha_inicio": "2025-06-06T00:00:00.000Z",
+    "fecha_fin": "2025-06-06T00:00:00.000Z",
+    "fecha_inicio_real": "2025-06-08T22:02:28.000Z",
+    "fecha_fin_real": "2025-06-18T13:24:50.000Z",
+    "total_producido": 59108,
+    "total_planificado": 58448
+  },
+  {
+    "codigo_of": "2025-SEC09-1922-2025-3575",
+    "descricao_of": "K0.FR03.U.WIRE.1572mm.5mm.C9D.LEAR",
+    "fecha_inicio": "2025-06-05T00:00:00.000Z",
+    "fecha_fin": "2025-06-05T00:00:00.000Z",
+    "fecha_inicio_real": "2025-06-05T20:22:27.000Z",
+    "fecha_fin_real": "2025-06-06T14:36:22.000Z",
+    "total_producido": 3600,
+    "total_planificado": 3900
+  },
+  {
+    "codigo_of": "2025-SEC09-1894-2025-3518",
+    "descricao_of": "K0.FR08.STR.WIRE.1345mm.5mm.C9D.LEAR",
+    "fecha_inicio": "2025-06-03T00:00:00.000Z",
+    "fecha_fin": "2025-06-03T00:00:00.000Z",
+    "fecha_inicio_real": "2025-06-05T07:52:45.000Z",
+    "fecha_fin_real": "2025-06-05T20:22:27.000Z",
+    "total_producido": 4000,
+    "total_planificado": 4000
+  },
+  {
+    "codigo_of": "2025-SEC09-1869-2025-3468",
+    "descricao_of": "SE270.RSB.FEEW.BASIS.1188MM.D2MM.PROSEAT",
+    "fecha_inicio": "2025-05-31T00:00:00.000Z",
+    "fecha_fin": "2025-05-31T00:00:00.000Z",
+    "fecha_inicio_real": "2025-06-02T09:45:53.000Z",
+    "fecha_fin_real": "2025-06-05T07:52:45.000Z",
+    "total_producido": 23461,
+    "total_planificado": 22995
+  },
+  {
+    "codigo_of": "2025-SEC09-1738-2025-3220",
+    "descricao_of": "P2JO.RSC.U.TRIM.WIRE.1176MM.2MM.COPO",
+    "fecha_inicio": "2025-05-22T00:00:00.000Z",
+    "fecha_fin": "2025-05-22T00:00:00.000Z",
+    "fecha_inicio_real": "2025-05-27T03:04:35.000Z",
+    "fecha_fin_real": "2025-06-02T09:45:53.000Z",
+    "total_producido": 36568,
+    "total_planificado": 35700
+  },
+  {
+    "codigo_of": "2025-SEC09-1706-2025-3142",
+    "descricao_of": "SE380.FSC.HIGH.WIRE.696mm.D2mm.PH.PROSEAT",
+    "fecha_inicio": "2025-05-20T00:00:00.000Z",
+    "fecha_fin": "2025-05-20T00:00:00.000Z",
+    "fecha_inicio_real": "2025-05-21T23:32:47.000Z",
+    "fecha_fin_real": "2025-05-27T03:04:35.000Z",
+    "total_producido": 18918,
+    "total_planificado": 18900
+  },
+  {
+    "codigo_of": "2025-SEC09-1699-2025-3122",
+    "descricao_of": "SE270.RSB.FEEW.BASIS.1188MM.D2MM.PROSEAT",
+    "fecha_inicio": "2025-05-20T00:00:00.000Z",
+    "fecha_fin": "2025-05-20T00:00:00.000Z",
+    "fecha_inicio_real": "2025-05-20T07:20:32.000Z",
+    "fecha_fin_real": "2025-05-22T04:55:25.000Z",
+    "total_producido": 15960,
+    "total_planificado": 13755
+  },
+  {
+    "codigo_of": "2025-SEC09-1682-2025-3096",
+    "descricao_of": "K0.FR03.U.WIRE.1572mm.5mm.C9D.LEAR",
+    "fecha_inicio": "2025-05-19T00:00:00.000Z",
+    "fecha_fin": "2025-05-19T00:00:00.000Z",
+    "fecha_inicio_real": "2025-05-19T18:08:59.000Z",
+    "fecha_fin_real": "2025-05-20T07:20:32.000Z",
+    "total_producido": 2600,
+    "total_planificado": 2600
+  },
+  {
+    "codigo_of": "2025-SEC09-1671-2025-3076",
+    "descricao_of": "K0.FR08.STR.WIRE.1345mm.5mm.C9D.LEAR",
+    "fecha_inicio": "2025-05-16T00:00:00.000Z",
+    "fecha_fin": "2025-05-16T00:00:00.000Z",
+    "fecha_inicio_real": "2025-05-19T02:16:08.000Z",
+    "fecha_fin_real": "2025-05-19T18:08:59.000Z",
+    "total_producido": 5000,
+    "total_planificado": 4480
+  },
+  {
+    "codigo_of": "2025-SEC09-1666-2025-3061",
+    "descricao_of": "K0.FR13.U.WIRE.1147mm.5mm.C9D.LEAR",
+    "fecha_inicio": "2025-05-15T00:00:00.000Z",
+    "fecha_fin": "2025-05-15T00:00:00.000Z",
+    "fecha_inicio_real": "2025-05-17T03:06:47.000Z",
+    "fecha_fin_real": "2025-05-19T02:16:08.000Z",
+    "total_producido": 2401,
+    "total_planificado": 2400
+  },
+  {
+    "codigo_of": "2025-SEC09-1640-2025-2992",
+    "descricao_of": "P2JO.RSC.U.TRIM.WIRE.1176MM.2MM.COPO",
+    "fecha_inicio": "2025-05-13T00:00:00.000Z",
+    "fecha_fin": "2025-05-13T00:00:00.000Z",
+    "fecha_inicio_real": "2025-05-15T10:35:39.000Z",
+    "fecha_fin_real": "2025-05-17T03:06:47.000Z",
+    "total_producido": 14321,
+    "total_planificado": 12180
+  },
+  {
+    "codigo_of": "2025-SEC09-1605-2025-2940",
+    "descricao_of": "SE270.RSB.FEEW.BASIS.1188MM.D2MM.PROSEAT",
+    "fecha_inicio": "2025-05-11T00:00:00.000Z",
+    "fecha_fin": "2025-05-11T00:00:00.000Z",
+    "fecha_inicio_real": "2025-05-13T05:54:59.000Z",
+    "fecha_fin_real": "2025-05-15T10:35:39.000Z",
+    "total_producido": 17185,
+    "total_planificado": 15680
+  },
+  {
+    "codigo_of": "2025-SEC09-1554-2025-2819",
+    "descricao_of": "SE380.FSC.HIGH.WIRE.696mm.D2mm.PH.PROSEAT",
+    "fecha_inicio": "2025-05-07T00:00:00.000Z",
+    "fecha_fin": "2025-05-07T00:00:00.000Z",
+    "fecha_inicio_real": "2025-05-07T09:47:02.000Z",
+    "fecha_fin_real": "2025-05-13T06:00:23.000Z",
+    "total_producido": 19250,
+    "total_planificado": 18900
+  },
+  {
+    "codigo_of": "2025-SEC09-1553-2025-2818",
+    "descricao_of": "P2JO.RSC.U.TRIM.WIRE.1176MM.2MM.COPO",
+    "fecha_inicio": "2025-05-07T00:00:00.000Z",
+    "fecha_fin": "2025-05-07T00:00:00.000Z",
+    "fecha_inicio_real": "2025-05-07T07:48:31.000Z",
+    "fecha_fin_real": "2025-05-07T09:47:02.000Z",
+    "total_producido": 11900,
+    "total_planificado": 42740
+  },
+  {
+    "codigo_of": "2025-SEC09-1470-2025-2651",
+    "descricao_of": "SE270.RSB.FEEW.BASIS.1188MM.D2MM.PROSEAT",
+    "fecha_inicio": "2025-04-28T00:00:00.000Z",
+    "fecha_fin": "2025-04-28T00:00:00.000Z",
+    "fecha_inicio_real": "2025-04-28T11:39:13.000Z",
+    "fecha_fin_real": "2025-05-05T10:40:52.000Z",
+    "total_producido": 10115,
+    "total_planificado": 15820
+  },
+  {
+    "codigo_of": "2025-SEC09-1436-2025-2578",
+    "descricao_of": "K0.FR03.U.WIRE.1572mm.5mm.C9D.LEAR",
+    "fecha_inicio": "2025-04-24T00:00:00.000Z",
+    "fecha_fin": "2025-04-24T00:00:00.000Z",
+    "fecha_inicio_real": "2025-04-25T16:29:24.000Z",
+    "fecha_fin_real": "2025-04-28T11:39:13.000Z",
+    "total_producido": 3343,
+    "total_planificado": 1300
+  },
+  {
+    "codigo_of": "2025-SEC09-1290-2025-2227",
+    "descricao_of": "P2JO.RSC.U.TRIM.WIRE.1176MM.2MM.COPO",
+    "fecha_inicio": "2025-04-10T00:00:00.000Z",
+    "fecha_fin": "2025-04-10T00:00:00.000Z",
+    "fecha_inicio_real": "2025-04-11T15:11:36.000Z",
+    "fecha_fin_real": "2025-05-07T07:48:31.000Z",
+    "total_producido": 21245,
+    "total_planificado": 34340
+  },
+  {
+    "codigo_of": "2025-SEC09-1242-2025-2117",
+    "descricao_of": "SE270.RSB.FEEW.BASIS.1188MM.D2MM.PROSEAT",
+    "fecha_inicio": "2025-04-07T00:00:00.000Z",
+    "fecha_fin": "2025-04-07T00:00:00.000Z",
+    "fecha_inicio_real": "2025-04-07T08:39:50.000Z",
+    "fecha_fin_real": "2025-04-11T15:11:36.000Z",
+    "total_producido": 18900,
+    "total_planificado": 16800
+  },
+  {
+    "codigo_of": "2025-SEC09-1151-2025-1944",
+    "descricao_of": "K0.FR03.U.WIRE.1572mm.5mm.C9D.LEAR",
+    "fecha_inicio": "2025-03-31T00:00:00.000Z",
+    "fecha_fin": "2025-03-31T00:00:00.000Z",
+    "fecha_inicio_real": "2025-04-02T08:15:36.000Z",
+    "fecha_fin_real": "2025-04-07T08:39:50.000Z",
+    "total_producido": 3906,
+    "total_planificado": 2600
+  },
+  {
+    "codigo_of": "2025-SEC09-1102-2025-1849",
+    "descricao_of": "SE270.RSB.FEEW.BASIS.1188MM.D2MM.PROSEAT",
+    "fecha_inicio": "2025-03-26T00:00:00.000Z",
+    "fecha_fin": "2025-03-26T00:00:00.000Z",
+    "fecha_inicio_real": "2025-03-27T02:05:19.000Z",
+    "fecha_fin_real": "2025-04-02T08:19:58.000Z",
+    "total_producido": 11900,
+    "total_planificado": 13020
+  },
+  {
+    "codigo_of": "2025-SEC09-1050-2025-1752",
+    "descricao_of": "P2JO.RSC.U.TRIM.WIRE.1176MM.2MM.COPO",
+    "fecha_inicio": "2025-03-24T00:00:00.000Z",
+    "fecha_fin": "2025-03-24T00:00:00.000Z",
+    "fecha_inicio_real": "2025-03-25T14:25:39.000Z",
+    "fecha_fin_real": "2025-03-27T02:05:19.000Z",
+    "total_producido": 11340,
+    "total_planificado": 5460
+  },
+  {
+    "codigo_of": "2025-SEC09-1025-2025-1706",
+    "descricao_of": "SE270.RSB.FEEW.BASIS.1188MM.D2MM.PROSEAT",
+    "fecha_inicio": "2025-03-22T00:00:00.000Z",
+    "fecha_fin": "2025-03-22T00:00:00.000Z",
+    "fecha_inicio_real": "2025-03-22T04:54:38.000Z",
+    "fecha_fin_real": "2025-03-25T14:25:39.000Z",
+    "total_producido": 7719,
+    "total_planificado": 4200
+  },
+  {
+    "codigo_of": "2025-SEC09-733-2025-1582",
+    "descricao_of": "P2JO.RSC.U.TRIM.WIRE.1176MM.2MM.COPO",
+    "fecha_inicio": "2025-03-12T00:00:00.000Z",
+    "fecha_fin": "2025-03-12T00:00:00.000Z",
+    "fecha_inicio_real": "2025-03-12T22:48:17.000Z",
+    "fecha_fin_real": "2025-03-22T04:54:38.000Z",
+    "total_producido": 9274,
+    "total_planificado": 9190
+  },
+  {
+    "codigo_of": "2025-SEC09-629-2025-1378",
+    "descricao_of": "SE270.RSB.FEEW.BASIS.1188MM.D2MM.PROSEAT",
+    "fecha_inicio": "2025-03-04T00:00:00.000Z",
+    "fecha_fin": "2025-03-04T00:00:00.000Z",
+    "fecha_inicio_real": "2025-03-06T22:43:45.000Z",
+    "fecha_fin_real": "2025-03-12T22:48:17.000Z",
+    "total_producido": 12684,
+    "total_planificado": 12180
+  },
+  {
+    "codigo_of": "2025-SEC09-668-2025-1459",
+    "descricao_of": "K0.FR13.U.WIRE.1147mm.5mm.C9D.LEAR",
+    "fecha_inicio": "2025-03-06T00:00:00.000Z",
+    "fecha_fin": "2025-03-06T00:00:00.000Z",
+    "fecha_inicio_real": "2025-03-06T19:07:04.000Z",
+    "fecha_fin_real": "2025-03-06T22:43:45.000Z",
+    "total_producido": 600,
+    "total_planificado": 600
+  },
+  {
+    "codigo_of": "2025-SEC09-665-2025-1455",
+    "descricao_of": "K0.FR03.U.WIRE.1572mm.5mm.C9D.LEAR",
+    "fecha_inicio": "2025-03-05T00:00:00.000Z",
+    "fecha_fin": "2025-03-05T00:00:00.000Z",
+    "fecha_inicio_real": "2025-03-06T00:22:36.000Z",
+    "fecha_fin_real": "2025-03-06T19:07:04.000Z",
+    "total_producido": 1302,
+    "total_planificado": 1300
+  },
+  {
+    "codigo_of": "2025-SEC09-645-2025-1410",
+    "descricao_of": "K0.FR08.STR.WIRE.1345mm.5mm.C9D.LEAR",
+    "fecha_inicio": "2025-03-05T00:00:00.000Z",
+    "fecha_fin": "2025-03-05T00:00:00.000Z",
+    "fecha_inicio_real": "2025-03-05T16:49:17.000Z",
+    "fecha_fin_real": "2025-03-06T00:22:36.000Z",
+    "total_producido": 1920,
+    "total_planificado": 1920
+  },
+  {
+    "codigo_of": "2025-SEC09-593-2025-1322",
+    "descricao_of": "FRONT.SEAT.CUSHION.TRIM.WIRE.H-SHAPE",
+    "fecha_inicio": "2025-02-27T00:00:00.000Z",
+    "fecha_fin": "2025-02-27T00:00:00.000Z",
+    "fecha_inicio_real": "2025-02-28T15:36:29.000Z",
+    "fecha_fin_real": "2025-02-28T19:09:31.000Z",
+    "total_producido": 280,
+    "total_planificado": 280
+  },
+  {
+    "codigo_of": "2025-SEC09-594-2025-1323",
+    "descricao_of": "WIRE_RSC_BASICO/SPORT U_1206MM_VW216SK216_COPO",
+    "fecha_inicio": "2025-02-27T00:00:00.000Z",
+    "fecha_fin": "2025-02-27T00:00:00.000Z",
+    "fecha_inicio_real": "2025-02-27T21:16:03.000Z",
+    "fecha_fin_real": "2025-02-27T21:18:13.000Z",
+    "total_producido": 420,
+    "total_planificado": 420
+  },
+  {
+    "codigo_of": "2025-SEC09-555-2025-1217",
+    "descricao_of": "P2JO.RSC.U.TRIM.WIRE.1176MM.2MM.COPO",
+    "fecha_inicio": "2025-02-24T00:00:00.000Z",
+    "fecha_fin": "2025-02-24T00:00:00.000Z",
+    "fecha_inicio_real": "2025-02-27T05:49:15.000Z",
+    "fecha_fin_real": "2025-03-05T16:49:17.000Z",
+    "total_producido": 22752,
+    "total_planificado": 22680
+  },
+  {
+    "codigo_of": "2025-SEC09-584-2025-1296",
+    "descricao_of": "FSC.BOLSTER.SUPPORT.WIRE.6MM",
+    "fecha_inicio": "2025-02-26T00:00:00.000Z",
+    "fecha_fin": "2025-02-26T00:00:00.000Z",
+    "fecha_inicio_real": "2025-02-26T15:46:40.000Z",
+    "fecha_fin_real": "2025-02-26T20:39:28.000Z",
+    "total_producido": 50,
+    "total_planificado": 50
+  },
+  {
+    "codigo_of": "2025-SEC09-533-2025-1179",
+    "descricao_of": "VW216.RSC.SIDE.WIRE.534mm.D2mm.ZN.PROSEAT",
+    "fecha_inicio": "2025-02-21T00:00:00.000Z",
+    "fecha_fin": "2025-02-21T00:00:00.000Z",
+    "fecha_inicio_real": "2025-02-21T09:42:02.000Z",
+    "fecha_fin_real": "2025-02-27T05:49:15.000Z",
+    "total_producido": 29400,
+    "total_planificado": 29212
+  },
+  {
+    "codigo_of": "2025-SEC09-516-2025-1146",
+    "descricao_of": "K0.FR03.U.WIRE.1572mm.5mm.C9D.LEAR",
+    "fecha_inicio": "2025-02-20T00:00:00.000Z",
+    "fecha_fin": "2025-02-20T00:00:00.000Z",
+    "fecha_inicio_real": "2025-02-20T02:16:42.000Z",
+    "fecha_fin_real": "2025-02-21T03:51:57.000Z",
+    "total_producido": 1310,
+    "total_planificado": 1300
+  },
+  {
+    "codigo_of": "2025-SEC09-425-2025-946",
+    "descricao_of": "WIRE_RSC_BASICO/SPORT U_1200MM_VW216SK216_COPO",
+    "fecha_inicio": "2025-02-11T00:00:00.000Z",
+    "fecha_fin": "2025-02-11T00:00:00.000Z",
+    "fecha_inicio_real": "2025-02-11T20:04:08.000Z",
+    "fecha_fin_real": "2025-02-11T22:47:36.000Z",
+    "total_producido": 420,
+    "total_planificado": 420
+  },
+  {
+    "codigo_of": "2025-SEC09-417-2025-921",
+    "descricao_of": "WIRE_FSC_BASICO/SPORT U_637MM_VW216SK216_COPO",
+    "fecha_inicio": "2025-02-10T00:00:00.000Z",
+    "fecha_fin": "2025-02-10T00:00:00.000Z",
+    "fecha_inicio_real": "2025-02-10T14:33:33.000Z",
+    "fecha_fin_real": "2025-02-11T20:04:08.000Z",
+    "total_producido": 840,
+    "total_planificado": 840
+  },
+  {
+    "codigo_of": "2025-SEC09-398-2025-873",
+    "descricao_of": "P2JO.RSC.U.TRIM.WIRE.1176MM.2MM.COPO",
+    "fecha_inicio": "2025-02-07T00:00:00.000Z",
+    "fecha_fin": "2025-02-07T00:00:00.000Z",
+    "fecha_inicio_real": "2025-02-07T21:02:21.000Z",
+    "fecha_fin_real": "2025-02-20T02:16:42.000Z",
+    "total_producido": 9500,
+    "total_planificado": 9025
+  },
+  {
+    "codigo_of": "2025-SEC09-372-2025-774",
+    "descricao_of": "K0.FR08.STR.WIRE.1345mm.5mm.C9D.LEAR",
+    "fecha_inicio": "2025-02-05T00:00:00.000Z",
+    "fecha_fin": "2025-02-05T00:00:00.000Z",
+    "fecha_inicio_real": "2025-02-06T22:32:34.000Z",
+    "fecha_fin_real": "2025-02-07T21:02:21.000Z",
+    "total_producido": 1280,
+    "total_planificado": 1280
+  },
+  {
+    "codigo_of": "2025-SEC09-366-2025-768",
+    "descricao_of": "K0.FR13.U.WIRE.1147mm.5mm.C9D.LEAR",
+    "fecha_inicio": "2025-02-05T00:00:00.000Z",
+    "fecha_fin": "2025-02-05T00:00:00.000Z",
+    "fecha_inicio_real": "2025-02-06T15:47:48.000Z",
+    "fecha_fin_real": "2025-02-06T22:32:34.000Z",
+    "total_producido": 1201,
+    "total_planificado": 1200
+  },
+  {
+    "codigo_of": "2025-SEC09-352-2025-734",
+    "descricao_of": "K0.FR03.U.WIRE.1572mm.5mm.C9D.LEAR",
+    "fecha_inicio": "2025-02-03T00:00:00.000Z",
+    "fecha_fin": "2025-02-03T00:00:00.000Z",
+    "fecha_inicio_real": "2025-02-05T17:28:08.000Z",
+    "fecha_fin_real": "2025-02-06T15:47:48.000Z",
+    "total_producido": 1020,
+    "total_planificado": 1300
+  },
+  {
+    "codigo_of": "2025-SEC09-319-2025-663",
+    "descricao_of": "SE270.RSB.FEEW.BASIS.1188MM.D2MM.PROSEAT",
+    "fecha_inicio": "2025-01-31T00:00:00.000Z",
+    "fecha_fin": "2025-01-31T00:00:00.000Z",
+    "fecha_inicio_real": "2025-02-02T21:57:08.000Z",
+    "fecha_fin_real": "2025-02-05T17:28:08.000Z",
+    "total_producido": 16800,
+    "total_planificado": 16800
+  },
+  {
+    "codigo_of": "2025-SEC09-272-2025-561",
+    "descricao_of": "P2JO.RSC.U.TRIM.WIRE.1176MM.2MM.COPO",
+    "fecha_inicio": "2025-01-27T00:00:00.000Z",
+    "fecha_fin": "2025-01-27T00:00:00.000Z",
+    "fecha_inicio_real": "2025-01-28T20:13:54.000Z",
+    "fecha_fin_real": "2025-02-02T21:57:08.000Z",
+    "total_producido": 22895,
+    "total_planificado": 18200
+  },
+  {
+    "codigo_of": "2025-SEC09-222-2025-430",
+    "descricao_of": "SE270.RSB.FEEW.BASIS.1188MM.D2MM.PROSEAT",
+    "fecha_inicio": "2025-01-21T00:00:00.000Z",
+    "fecha_fin": "2025-01-21T00:00:00.000Z",
+    "fecha_inicio_real": "2025-01-24T09:02:10.000Z",
+    "fecha_fin_real": "2025-01-28T20:13:54.000Z",
+    "total_producido": 15159,
+    "total_planificado": 14700
+  },
+  {
+    "codigo_of": "2025-SEC09-210-2025-406",
+    "descricao_of": "P2JO.RSC.U.TRIM.WIRE.1176MM.2MM.COPO",
+    "fecha_inicio": "2025-01-20T00:00:00.000Z",
+    "fecha_fin": "2025-01-20T00:00:00.000Z",
+    "fecha_inicio_real": "2025-01-21T23:04:48.000Z",
+    "fecha_fin_real": "2025-01-24T09:02:10.000Z",
+    "total_producido": 18658,
+    "total_planificado": 18200
+  },
+  {
+    "codigo_of": "2025-SEC09-194-2025-371",
+    "descricao_of": "K0.FR03.U.WIRE.1572mm.5mm.C9D.LEAR",
+    "fecha_inicio": "2025-01-17T00:00:00.000Z",
+    "fecha_fin": "2025-01-17T00:00:00.000Z",
+    "fecha_inicio_real": "2025-01-21T02:03:09.000Z",
+    "fecha_fin_real": "2025-01-21T23:04:48.000Z",
+    "total_producido": 2691,
+    "total_planificado": 2600
+  },
+  {
+    "codigo_of": "2025-SEC09-205-2025-397",
+    "descricao_of": "K0.FR13.U.WIRE.1147mm.5mm.C9D.LEAR",
+    "fecha_inicio": "2025-01-17T00:00:00.000Z",
+    "fecha_fin": "2025-01-17T00:00:00.000Z",
+    "fecha_inicio_real": "2025-01-20T14:44:03.000Z",
+    "fecha_fin_real": "2025-01-21T02:03:09.000Z",
+    "total_producido": 1200,
+    "total_planificado": 1200
+  },
+  {
+    "codigo_of": "2025-SEC09-132-2025-247",
+    "descricao_of": "VW216.RSC.SIDE.WIRE.534mm.D2mm.ZN.PROSEAT",
+    "fecha_inicio": "2025-01-15T00:00:00.000Z",
+    "fecha_fin": "2025-01-15T00:00:00.000Z",
+    "fecha_inicio_real": "2025-01-17T01:21:24.000Z",
+    "fecha_fin_real": "2025-01-20T14:44:03.000Z",
+    "total_producido": 14725,
+    "total_planificado": 14700
+  },
+  {
+    "codigo_of": "2025-SEC09-91-2025-165",
+    "descricao_of": "P2JO.RSC.U.TRIM.WIRE.1176MM.2MM.COPO",
+    "fecha_inicio": "2025-01-10T00:00:00.000Z",
+    "fecha_fin": "2025-01-10T00:00:00.000Z",
+    "fecha_inicio_real": "2025-01-15T21:16:57.000Z",
+    "fecha_fin_real": "2025-01-17T01:21:24.000Z",
+    "total_producido": 9240,
+    "total_planificado": 8998
+  },
+  {
+    "codigo_of": "2025-SEC09-61-2025-119",
+    "descricao_of": "SE380.FSC.HIGH.WIRE.696mm.D2mm.PH.PROSEAT",
+    "fecha_inicio": "2025-01-08T00:00:00.000Z",
+    "fecha_fin": "2025-01-08T00:00:00.000Z",
+    "fecha_inicio_real": "2025-01-13T17:26:07.000Z",
+    "fecha_fin_real": "2025-01-15T21:16:57.000Z",
+    "total_producido": 9943,
+    "total_planificado": 18900
+  },
+  {
+    "codigo_of": "2025-SEC09-24-2025-53",
+    "descricao_of": "SE270.RSB.FEEW.BASIS.1188MM.D2MM.PROSEAT",
+    "fecha_inicio": "2025-01-03T00:00:00.000Z",
+    "fecha_fin": "2025-01-03T00:00:00.000Z",
+    "fecha_inicio_real": "2025-01-09T00:31:51.000Z",
+    "fecha_fin_real": "2025-01-13T17:26:07.000Z",
+    "total_producido": 22716,
+    "total_planificado": 16380
+  }
+]
+

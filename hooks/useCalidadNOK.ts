@@ -17,6 +17,10 @@ interface CalidadDefecto {
   Tipodefecto?: string;
   /** Descripción del defecto */
   Defecto?: string;
+  /** Código del producto */
+  Cod_producto?: string;
+  /** Descripción del producto */
+  Desc_producto?: string;
   /** Número de unidades con este defecto */
   Unidades: number;
   /** Campos adicionales que puedan venir en la respuesta */
@@ -60,10 +64,10 @@ interface UseCalidadNOKReturn {
  * const { data, totalNOK, loading, error } = useCalidadNOK('2025-SEC09-2940-2025-5923', 'SOLD6');
  *
  * // Acceder al total
- * console.log(totalNOK); // 13
+ * // 13
  *
  * // Acceder a los detalles
- * console.log(data); // Array de defectos
+ * // Array de defectos
  * ```
  */
 export function useCalidadNOK(
@@ -83,7 +87,7 @@ export function useCalidadNOK(
   const [error, setError] = useState<Error | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastValidDataRef = useRef<CalidadDefecto[] | null>(null);
   const lastValidTotalRef = useRef<number>(0);
@@ -151,11 +155,6 @@ export function useCalidadNOK(
         machineId: machineId,
       };
 
-      console.log('🔴 [useCalidadNOK] Enviando request:', {
-        url: webhookUrl,
-        body: requestBody,
-      });
-
       const response = await fetch(webhookUrl, {
         method: 'POST',
         mode: 'cors',
@@ -167,12 +166,6 @@ export function useCalidadNOK(
         signal: abortControllerRef.current.signal,
       });
 
-      console.log('🔴 [useCalidadNOK] Response recibido:', {
-        status: response.status,
-        ok: response.ok,
-        statusText: response.statusText
-      });
-
       if (!response.ok) {
         throw new Error(`Error fetching calidad NOK: ${response.status} ${response.statusText}`);
       }
@@ -181,23 +174,16 @@ export function useCalidadNOK(
       let rawResponse: unknown;
       const responseText = await response.text();
 
-      console.log('[useCalidadNOK] Response text:', responseText);
-
       if (!responseText || responseText.trim() === '') {
         // Respuesta vacía = no hay defectos
-        console.log('[useCalidadNOK] Respuesta vacía, sin defectos');
         rawResponse = [];
       } else {
         try {
           rawResponse = JSON.parse(responseText);
         } catch (parseError) {
-          console.error('[useCalidadNOK] Error parseando JSON:', parseError);
-          console.error('Response text:', responseText);
           throw new Error('Error parseando respuesta del webhook');
         }
       }
-
-      console.log('[useCalidadNOK] Webhook response parseado:', rawResponse);
 
       let responseArray: unknown[] = [];
 
@@ -220,42 +206,47 @@ export function useCalidadNOK(
         const firstItem = responseArray[0];
 
         if (firstItem && typeof firstItem === 'object' && 'aviso' in firstItem) {
-          console.log('[useCalidadNOK] No hay datos para este turno:', firstItem);
           responseArray = [];
         }
       }
 
-      if (responseArray.length > 0 && responseArray[0] && typeof responseArray[0] === 'object' && 'propertyName' in responseArray[0]) {
-        console.log('[useCalidadNOK] Detectado formato propertyName, parseando...');
-        responseArray = responseArray
-          .map((item: any) => {
+      const normalizedRawItems = responseArray
+        .map((item) => {
+          if (!item || typeof item !== 'object') {
+            return null;
+          }
+
+          const record = item as Record<string, unknown>;
+          const propertyValue = record.propertyName;
+
+          if (typeof propertyValue === 'string') {
             try {
-              return JSON.parse(item.propertyName);
-            } catch (parseError) {
-              console.error('[useCalidadNOK] Error parseando propertyName:', parseError);
+              const parsed = JSON.parse(propertyValue);
+              return parsed && typeof parsed === 'object'
+                ? (parsed as Record<string, unknown>)
+                : null;
+            } catch {
               return null;
             }
-          })
-          .filter((item: any) => item !== null);
-      }
+          }
 
-      const normalizedItems = responseArray
+          return record;
+        })
+        .filter(
+          (item): item is Record<string, unknown> =>
+            item !== null && typeof item === 'object',
+        );
+
+      const normalizedItems = normalizedRawItems
         .map((item) => normalizeCalidadItem(item))
         .filter((item): item is CalidadDefecto => item !== null);
 
       if (responseArray.length > 0 && normalizedItems.length === 0) {
-        console.error('[useCalidadNOK] Items sin campo \"Unidades\" válido:', responseArray[0]);
         throw new Error('Formato de respuesta del webhook inválido - falta campo Unidades');
       }
 
       const total = normalizedItems.reduce((sum, item) => sum + (item.Unidades || 0), 0);
       const firstValue = normalizedItems.length > 0 ? normalizedItems[0].Unidades : 0;
-
-      console.log('✅ [useCalidadNOK] Datos de calidad obtenidos:', {
-        defectos: normalizedItems.length,
-        totalNOK: total,
-        firstValue,
-      });
 
       lastValidDataRef.current = normalizedItems;
       lastValidTotalRef.current = firstValue;
@@ -269,7 +260,6 @@ export function useCalidadNOK(
         return;
       }
 
-      console.error(`Error fetching calidad NOK for ${codigo_of}/${machineId}:`, err);
       setError(err instanceof Error ? err : new Error(String(err)));
       if (lastValidDataRef.current) {
         setData(lastValidDataRef.current);

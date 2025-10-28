@@ -43,16 +43,6 @@ interface UseMetricasOFReturn {
  * @param options - Opciones de configuración
  * @returns Datos de métricas, estado de carga y funciones de control
  *
- * @example
- * ```tsx
- * const { data, loading, error, refresh } = useMetricasOF('OF123456', 'DOBL10');
- *
- * // Acceder a los datos
- * console.log(data?.oee_of); // 87.3
- * console.log(data?.disponibilidad_of); // 92.5
- * console.log(data?.rendimiento_of); // 95.2
- * console.log(data?.calidad_of); // 98.1
- * ```
  */
 export function useMetricasOF(
   ofCode: string | null | undefined,
@@ -70,7 +60,7 @@ export function useMetricasOF(
   const [error, setError] = useState<Error | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   /**
@@ -106,11 +96,6 @@ export function useMetricasOF(
         }
       };
 
-      console.log('🔵 [useMetricasOF] Enviando request:', {
-        url: webhookUrl,
-        body: requestBody,
-      });
-
       const response = await fetch(webhookUrl, {
         method: 'POST',
         mode: 'cors',
@@ -122,48 +107,42 @@ export function useMetricasOF(
         signal: abortControllerRef.current.signal,
       });
 
-      console.log('🔵 [useMetricasOF] Response recibido:', {
-        status: response.status,
-        ok: response.ok,
-        statusText: response.statusText
-      });
-
       if (!response.ok) {
         throw new Error(`Error fetching métricas OF: ${response.status} ${response.statusText}`);
       }
 
-      const webhookResponse: any = await response.json();
+      const webhookResponse: unknown = await response.json();
 
-      console.log('🔵 [useMetricasOF] Webhook response parseado:', webhookResponse);
+      const responseDataRaw = Array.isArray(webhookResponse)
+        ? webhookResponse[0]
+        : webhookResponse;
 
-      // Validar que la respuesta tenga el formato esperado
-      const responseData = Array.isArray(webhookResponse) ? webhookResponse[0] : webhookResponse;
-
-      if (!responseData || typeof responseData !== 'object') {
-        console.error('❌ Formato inválido: se esperaba un objeto en la respuesta:', responseData);
+      if (!responseDataRaw || typeof responseDataRaw !== 'object') {
         throw new Error('Formato de respuesta del webhook inválido');
       }
 
-      // El webhook devuelve solo las métricas calculadas
-      const metricasData: MetricasOFData = {
-        oee_of: normalizeMetricValue(responseData.oee_of),
-        disponibilidad_of: normalizeMetricValue(responseData.disponibilidad_of),
-        rendimiento_of: normalizeMetricValue(responseData.rendimiento_of),
-        calidad_of: normalizeMetricValue(responseData.calidad_of),
-      };
+      const metricSource = responseDataRaw as Record<string, unknown>;
 
-      console.log('✅ [useMetricasOF] Métricas de la OF obtenidas:', metricasData);
+      const metricasData: MetricasOFData = {
+        oee_of: normalizeMetricValue(metricSource.oee_of),
+        disponibilidad_of: normalizeMetricValue(metricSource.disponibilidad_of),
+        rendimiento_of: normalizeMetricValue(metricSource.rendimiento_of),
+        calidad_of: normalizeMetricValue(metricSource.calidad_of),
+      };
 
       setData(metricasData);
       setLastUpdate(new Date());
       setError(null);
-    } catch (err: any) {
-      // Ignorar errores de abort
-      if (err.name === 'AbortError') {
+    } catch (err: unknown) {
+      if (
+        err &&
+        typeof err === 'object' &&
+        'name' in err &&
+        err.name === 'AbortError'
+      ) {
         return;
       }
 
-      console.error(`Error fetching métricas OF for ${ofCode}/${machineId}:`, err);
       setError(err instanceof Error ? err : new Error(String(err)));
       setData(null);
     } finally {
