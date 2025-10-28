@@ -1,13 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // URL do webhook N8N para buscar TODAS as máquinas de uma vez
-const N8N_WEBHOOK_MAQUINAS_URL = process.env.N8N_WEBHOOK_MAQUINAS_URL || 'http://localhost:5678/webhook/maquinas';
+const N8N_WEBHOOK_MAQUINAS_URL = process.env.N8N_WEBHOOK_MAQUINAS_URL || 'https://n8n.lexusfx.com/webhook/maquinas';
 
-// 🔥 OTIMIZAÇÃO: Timeout reduzido para 3 segundos (igual ao N8N)
+// 🔥 OTIMIZAÇÃO: Timeout configurável via .env
+// Local: 15s (compensar latência de rede)
+// Produção: 5s (Vercel tem conexão rápida)
 const REQUEST_TIMEOUT_MS = Math.max(
-  2000, // Mínimo 2 segundos
-  Number.parseInt(process.env.WEBHOOK_PROXY_TIMEOUT_MS ?? '3000', 10) || 3000
+  5000, // Mínimo 5 segundos
+  Number.parseInt(process.env.WEBHOOK_PROXY_TIMEOUT_MS ?? '15000', 10) || 15000
 );
+
+// Número de tentativas em caso de falha
+const MAX_RETRIES = 2;
 
 // Ativar logs apenas em desenvolvimento
 const isDev = process.env.NODE_ENV === 'development';
@@ -20,6 +25,53 @@ const isDev = process.env.NODE_ENV === 'development';
  *
  * @param req - A requisição recebida pelo Next.js
  */
+/**
+ * Função auxiliar para fazer fetch com retry
+ */
+async function fetchWithRetry(url: string, body: any, retries = MAX_RETRIES): Promise<Response> {
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify(body),
+          cache: 'no-store',
+          signal: controller.signal,
+          keepalive: true,
+        });
+
+        clearTimeout(timeoutId);
+        return response;
+      } catch (error) {
+        clearTimeout(timeoutId);
+        throw error;
+      }
+    } catch (error: any) {
+      lastError = error;
+
+      // Se não for a última tentativa, aguardar antes de tentar novamente
+      if (attempt < retries) {
+        const waitTime = Math.min(1000 * Math.pow(2, attempt), 3000); // Exponential backoff: 1s, 2s, 3s
+        if (isDev) {
+          console.log(`⚠️ [API Proxy] Tentativa ${attempt + 1} falhou, tentando novamente em ${waitTime}ms...`);
+        }
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      }
+    }
+  }
+
+  throw lastError || new Error('Falha após todas as tentativas');
+}
+
 export async function POST(req: NextRequest) {
   const startTime = Date.now();
 
@@ -33,32 +85,13 @@ export async function POST(req: NextRequest) {
       console.log('🔄 [API Proxy] Request:', { body, url: N8N_WEBHOOK_MAQUINAS_URL });
     }
 
-    // 🔥 OTIMIZAÇÃO 2: Timeout mais agressivo e fetch otimizado
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-
-    let n8nResponse: Response;
+    // 🔥 OTIMIZAÇÃO 2: Fetch com retry automático
     const fetchStartTime = Date.now();
-    try {
-      n8nResponse = await fetch(N8N_WEBHOOK_MAQUINAS_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify(body),
-        cache: 'no-store',
-        signal: controller.signal,
-        // 🔥 OTIMIZAÇÃO 3: Configurações de conexão otimizadas
-        keepalive: true,
-      });
+    const n8nResponse = await fetchWithRetry(N8N_WEBHOOK_MAQUINAS_URL, body);
 
-      const fetchTime = Date.now() - fetchStartTime;
-      if (isDev) {
-        console.log(`📡 [API Proxy] N8N respondeu em ${fetchTime}ms`);
-      }
-    } finally {
-      clearTimeout(timeoutId);
+    const fetchTime = Date.now() - fetchStartTime;
+    if (isDev) {
+      console.log(`📡 [API Proxy] N8N respondeu em ${fetchTime}ms`);
     }
 
     // 🔥 OTIMIZAÇÃO 4: Verificação rápida de erro
