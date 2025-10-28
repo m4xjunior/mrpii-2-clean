@@ -13,6 +13,7 @@ import { useMetricasOF } from "../../../hooks/useMetricasOF";
 import { useMetricasTurno } from "../../../hooks/useMetricasTurno";
 import { useVelocidad } from "../../../hooks/useVelocidad";
 import { useCalidadNOK } from "../../../hooks/useCalidadNOK";
+import { useProgreso } from "../../../hooks/useProgresso";
 import type { MachineStatus } from "../../../types/machine";
 import CountUp from "../../../components/CountUp";
 import LoopText from "../../../components/LoopText";
@@ -715,6 +716,18 @@ export default function DashboardOrderCard({
     refreshInterval: 30000,
     autoFetch: true,
     webhookUrl: "https://n8n.lexusfx.com/webhook/calidad",
+  });
+
+  // 🔥 CONSUMIR PROGRESO DO TURNO DA API N8N
+  const {
+    segments: progresoSegments,
+    totalMinutes: progresoTotalMinutes,
+    loading: progresoLoading,
+    error: progresoError,
+  } = useProgreso(machineId, {
+    refreshInterval: 30000,
+    autoFetch: true,
+    webhookUrl: "https://n8n.lexusfx.com/webhook/progresso",
   });
 
   // ✅ OPTIMISTIC UI: Memoizar dados com referência anterior
@@ -2424,6 +2437,76 @@ export default function DashboardOrderCard({
                 )}
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Barra de progresso agregado do turno (Resumen del Turno) */}
+        <div
+          className="ff-status-progress"
+          title={`Resumen del Turno · Total: ${progresoTotalMinutes}min`}
+          aria-label={`Resumen del turno com total de ${progresoTotalMinutes} minutos`}
+          style={{ marginTop: "8px" }}
+        >
+          {/* Título */}
+          <div style={{
+            fontSize: "0.65rem",
+            fontWeight: 700,
+            color: "#64748b",
+            marginBottom: "6px",
+            letterSpacing: "0.3px",
+            textTransform: "uppercase"
+          }}>
+            Resumen del Turno
+          </div>
+
+          {/* Barra de progresso */}
+          <div className="ff-status-progress__bar">
+            {progresoSegments.length === 0 || progresoTotalMinutes === 0 ? (
+              <div className="ff-status-progress__segment ff-status-progress__segment--empty" />
+            ) : (
+              progresoSegments.map((segment) => (
+                <div
+                  key={segment.type}
+                  className="ff-status-progress__segment"
+                  style={{
+                    width: `${segment.percent}%`,
+                    backgroundColor: segment.color,
+                  }}
+                  title={`${segment.label} · ${segment.formattedTime}`}
+                  aria-label={`${segment.label} por ${segment.formattedTime}`}
+                >
+                  <span className="ff-status-progress__segment-mask" />
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Legenda horizontal */}
+          <div style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "12px",
+            marginTop: "8px",
+            fontSize: "0.65rem",
+            color: "#64748b"
+          }}>
+            {progresoSegments.map((segment) => (
+              <div key={segment.type} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                <span style={{
+                  display: "inline-block",
+                  width: "10px",
+                  height: "10px",
+                  backgroundColor: segment.color,
+                  borderRadius: "2px"
+                }}></span>
+                <span style={{ fontWeight: 600 }}>
+                  {segment.label}
+                </span>
+                <span style={{ opacity: 0.8 }}>
+                  {segment.formattedTime}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
 
