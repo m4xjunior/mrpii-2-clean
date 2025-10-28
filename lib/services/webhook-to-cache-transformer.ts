@@ -19,7 +19,7 @@ export function transformWebhookToCache(
     const tempos = data.tiempos_segundos || data.tempos_segundos || {};
     const parametrosVel = data.parametros_velocidad || data.parametros_velocidade || {};
     const contexto = data.contexto_adicional || {};
-    const produto = data.producto || data.produto || {};
+    // const produto = data.producto || data.produto || data.product || {};
 
     // Calcula totais de produção
     const unitsOk = producaoTurno.unidades_ok || 0;
@@ -50,9 +50,9 @@ export function transformWebhookToCache(
       machineDescription: infoMaquina.descripcion || infoMaquina.descricao || '',
       status,
       oee: Number(metricasOee.oee_turno || 0),
-      availability: Number(metricasOee.disponibilidad_turno || metricasOee.disponibilidade_turno || 0),
-      performance: Number(metricasOee.rendimiento_turno || metricasOee.rendimento_turno || 0),
-      quality: Number(metricasOee.calidad_turno || metricasOee.qualidade_turno || 0),
+      availability: Number(metricasOee.disponibilidad_turno || 0),
+      performance: Number(metricasOee.rendimiento_turno || 0),
+      quality: Number(metricasOee.calidad_turno || 0),
       unitsOk,
       unitsNok,
       unitsRework,
@@ -62,7 +62,7 @@ export function transformWebhookToCache(
       currentActivity: atividade,
       stopReason: estadoAtual.motivo_parada || estadoAtual.motivo || '',
       currentOrder: String(infoMaquina.orden_fabricacion || ''),
-      currentProduct: produto.descripcion || produto.descricao || produto.codigo || '',
+      currentProduct: '',
       shift: contexto.turno || '',
       operator: contexto.operador || '',
       source,

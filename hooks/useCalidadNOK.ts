@@ -249,16 +249,18 @@ export function useCalidadNOK(
       }
 
       const total = normalizedItems.reduce((sum, item) => sum + (item.Unidades || 0), 0);
+      const firstValue = normalizedItems.length > 0 ? normalizedItems[0].Unidades : 0;
 
       console.log('✅ [useCalidadNOK] Datos de calidad obtenidos:', {
         defectos: normalizedItems.length,
         totalNOK: total,
+        firstValue,
       });
 
       lastValidDataRef.current = normalizedItems;
-      lastValidTotalRef.current = total;
+      lastValidTotalRef.current = firstValue;
       setData(normalizedItems);
-      setTotalNOK(total);
+      setTotalNOK(firstValue);
       setLastUpdate(new Date());
       setError(null);
     } catch (err: any) {

@@ -94,11 +94,12 @@ function formatMinutes(totalMinutes: number): string {
  *
  * @example
  * ```tsx
- * const { segments, totalMinutes, loading } = useProgreso('DOBL10');
+ * const { segments, totalMinutes, loading } = useProgreso('DOBL10', 'OF-123');
  * ```
  */
 export function useProgreso(
   machineCode: string | null | undefined,
+  orderCode: string | null | undefined,
   options: UseProgresoOptions = {}
 ): UseProgresoReturn {
   const {
@@ -113,7 +114,7 @@ export function useProgreso(
   const [error, setError] = useState<Error | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchData = useCallback(async () => {
@@ -133,13 +134,26 @@ export function useProgreso(
     setError(null);
 
     try {
+      const sanitizedOrderCode =
+        typeof orderCode === 'string'
+          ? orderCode.trim()
+          : orderCode ?? null;
+
+      const normalizedOrderCode =
+        sanitizedOrderCode && sanitizedOrderCode !== '--'
+          ? sanitizedOrderCode
+          : null;
+
       const response = await fetch(webhookUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: JSON.stringify({ machine_code: machineCode }),
+        body: JSON.stringify({
+          machine_code: machineCode,
+          order_code: normalizedOrderCode,
+        }),
         signal: abortControllerRef.current.signal,
       });
 
@@ -231,24 +245,21 @@ export function useProgreso(
       setTotalMinutes(total);
       setLastUpdate(new Date());
       setError(null);
-    } catch (err: any) {
-      // Ignorar errores de abort
-      if (err.name === 'AbortError') {
+    } catch (err: unknown) {
+      if (
+        err &&
+        typeof err === 'object' &&
+        'name' in err &&
+        err.name === 'AbortError'
+      ) {
         return;
       }
 
-      console.error(`Error fetching progreso data for machine ${machineCode}:`, err);
       setError(err instanceof Error ? err : new Error(String(err)));
-
-      // Manter dados anteriores em caso de erro
-      if (segments.length === 0) {
-        setSegments([]);
-        setTotalMinutes(0);
-      }
     } finally {
       setLoading(false);
     }
-  }, [machineCode, webhookUrl]);
+  }, [machineCode, webhookUrl, orderCode]);
 
   const refresh = useCallback(async () => {
     await fetchData();

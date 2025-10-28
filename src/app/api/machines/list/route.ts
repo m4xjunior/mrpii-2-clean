@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     request.nextUrl?.origin ??
     process.env.NEXT_PUBLIC_APP_URL ??
     process.env.APP_URL ??
-    'http://localhost:3000';
+    'https://scada.lexusfx.com';
 
   const proxyUrl = new URL('/api/webhook-maquinas-proxy', origin);
   const timestamp = new Date().toISOString();

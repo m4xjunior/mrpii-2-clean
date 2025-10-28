@@ -8,7 +8,7 @@ import {
   WebhookScadaResponse
 } from '../types/webhook-scada';
 import { MachineStatus } from '../types/machine';
-import { MetricasTurnoScada } from '../hooks/useMetricasTurnoScada';
+// import { MetricasTurnoScada } from '../hooks/useMetricasTurnoScada';
 import { MetricasOFData } from '../hooks/useMetricasOF';
 
 /**
@@ -866,7 +866,7 @@ function calculateRemainingTime(data: WebhookScadaData): string {
 export function findMachineInWebhookData(
   webhookResponse: WebhookScadaData[],
   machineId: string,
-  metricasTurnoArray?: MetricasTurnoScada[],
+  metricasTurnoArray?: any[],
   metricasOFArray?: MetricasOFData[]
 ): MachineStatus | null {
   const machineData = webhookResponse.find(m => m.Cod_maquina === machineId);

@@ -72,6 +72,18 @@ interface DetalleOFResponse {
     nok: number[];
     tiempoProduccion: number[];
   };
+  extra?: {
+    tempo?: WebhookMachineSummary['tempo'];
+    velocidade?: WebhookMachineSummary['velocidade'];
+    producao?: WebhookMachineSummary['producao'];
+    indicadores?: {
+      oeeTurno?: number;
+      disponibilidadTurno?: number;
+      rendimientoTurno?: number;
+      calidadTurno?: number;
+      faltantes?: number;
+    };
+  };
 }
 
 const parseDecimal = (value: unknown): number | null => {
@@ -119,9 +131,17 @@ const toProgress = (ok: number, planned: number): number =>
 
 const normalizeFechaString = (raw: string | undefined | null): string => {
   if (!raw || raw === 'N/A') {
-    return new Date().toLocaleDateString('es-ES');
+    return new Date().toISOString().split('T')[0];
   }
-  return raw;
+
+  const [datePart] = raw.trim().split(' ');
+  const [day, month, year] = datePart.split('/');
+
+  if (!day || !month || !year) {
+    return raw;
+  }
+
+  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
 };
 
 export async function GET(request: NextRequest) {
@@ -240,7 +260,7 @@ export async function GET(request: NextRequest) {
         unidadesOk: ok,
         unidadesNok: nok,
         unidadesRepro: rw,
-        tiempoProduccionHoras,
+        tiempoProduccionHoras: tempoProduccionHoras,
         tiempoParoHoras: Number(tempoRestanteHoras.toFixed(2)),
         eficiencia: Math.round(target.rendimiento_turno ?? progreso),
         calidad: Math.round(calidad),
@@ -250,6 +270,18 @@ export async function GET(request: NextRequest) {
         ok: [ok],
         nok: [nok],
         tiempoProduccion: [Math.round(tempoProduccionMin)],
+      },
+      extra: {
+        tempo: target.tempo,
+        velocidade: target.velocidade,
+        producao: target.producao,
+        indicadores: {
+          oeeTurno: target.oee_turno,
+          disponibilidadTurno: target.disponibilidad_turno,
+          rendimientoTurno: target.rendimiento_turno,
+          calidadTurno: target.calidad_turno,
+          faltantes: safeNumber(target.producao?.faltantes),
+        },
       },
     };
 

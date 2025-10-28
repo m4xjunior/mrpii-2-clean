@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // URL do seu webhook N8N (sempre usar o de produção, não o de teste)
-const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || 'http://localhost:5678/webhook/scada';
+const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || 'https://n8n.lexusfx.com/webhook/scada';
 
 /**
  * Rota de API que atua como proxy para o webhook do N8N.

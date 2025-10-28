@@ -25,7 +25,11 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git reset:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx vercel --prod)",
+      "Bash(vercel inspect:*)",
+      "Bash(chmod:*)"
     ],
     "deny": [],
     "ask": []

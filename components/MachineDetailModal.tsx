@@ -1,6 +1,6 @@
 "use client";
 
-import {
+import React, {
   useState,
   useEffect,
   CSSProperties,
@@ -1634,8 +1634,8 @@ function renderTabContent(
         themeColors,
         tableStyles,
         machine?.machine,
-        oeeHookData,
-        oeeHookLoading,
+        null, // oeeHookData
+        false, // oeeHookLoading
         isDark,
       );
     default:
@@ -2688,45 +2688,7 @@ function renderResumenContent(
                           Velocidad:
                         </span>
                         <span style={{ fontSize: 16, fontWeight: 700 }}>
-                          {velocidadLoading ? (
-                            <span
-                              style={{ color: "#6b7280", fontSize: "14px" }}
-                            >
-                              Cargando...
-                            </span>
-                          ) : velocidadError ? (
-                            <span
-                              style={{ color: "#dc3545", fontSize: "14px" }}
-                            >
-                              Error
-                            </span>
-                          ) : velocidadData?.velocidad ? (
-                            (() => {
-                              const velocidade = velocidadData.velocidad;
-                              const partes = velocidade.split(" ");
-                              const uh = partes.find((p) => p.includes("u/h"));
-                              const segPza = partes.find((p) =>
-                                p.includes("seg/pza"),
-                              );
-
-                              return (
-                                <div className="d-flex flex-column align-items-end">
-                                  <span>{uh || "—"}</span>
-                                  <span
-                                    style={{
-                                      fontSize: "12px",
-                                      color: "#6b7280",
-                                      fontWeight: "normal",
-                                    }}
-                                  >
-                                    {segPza || "—"}
-                                  </span>
-                                </div>
-                              );
-                            })()
-                          ) : (
-                            "—"
-                          )}
+                          —
                         </span>
                       </div>
                       <div className="d-flex justify-content-between">

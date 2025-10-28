@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, useRef } from 'react';
-import Calendar from 'react-calendar';
-import 'react-calendar/dist/Calendar.css';
+import React, { useState, useEffect, useRef } from "react";
+import Calendar from "react-calendar";
+import "react-calendar/dist/Calendar.css";
 import {
   ResponsiveContainer,
   BarChart,
@@ -11,10 +11,10 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend
-} from 'recharts';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+  Legend,
+} from "recharts";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 interface OF {
   codOf: string;
@@ -77,6 +77,30 @@ interface DetallesOF {
     nok: number[];
     tiempoProduccion: number[];
   };
+  extra?: {
+    tempo?: {
+      inicio_real?: string;
+      fim_estimado?: string;
+      tempo_restante_formato?: string;
+    };
+    velocidade?: {
+      formato_scada?: string;
+    };
+    producao?: {
+      planejadas?: number;
+      ok?: number;
+      nok?: number;
+      rw?: number;
+      faltantes?: number;
+    };
+    indicadores?: {
+      oeeTurno?: number;
+      disponibilidadTurno?: number;
+      rendimientoTurno?: number;
+      calidadTurno?: number;
+      faltantes?: number;
+    };
+  };
 }
 
 interface OFListModalEnhancedProps {
@@ -94,7 +118,7 @@ export function OFListModalEnhanced({
   machineCode,
   machineName,
   initialStartDate,
-  initialEndDate
+  initialEndDate,
 }: OFListModalEnhancedProps) {
   const [ofs, setOfs] = useState<OF[]>([]);
   const [loading, setLoading] = useState(false);
@@ -105,7 +129,9 @@ export function OFListModalEnhanced({
   const [itemsPerPage] = useState(10);
 
   // Filtros de fecha
-  const [fechaInicio, setFechaInicio] = useState<Date | null>(initialStartDate || null);
+  const [fechaInicio, setFechaInicio] = useState<Date | null>(
+    initialStartDate || null,
+  );
   const [fechaFin, setFechaFin] = useState<Date | null>(initialEndDate || null);
   const [showStartCalendar, setShowStartCalendar] = useState(false);
   const [showEndCalendar, setShowEndCalendar] = useState(false);
@@ -118,7 +144,12 @@ export function OFListModalEnhanced({
   // Paros por OF/Turno
   const [showParosModal, setShowParosModal] = useState(false);
   const [parosData, setParosData] = useState<ParoData[]>([]);
-  const [selectedParoInfo, setSelectedParoInfo] = useState<{codOf: string; fecha: string; turno: string; descTurno: string} | null>(null);
+  const [selectedParoInfo, setSelectedParoInfo] = useState<{
+    codOf: string;
+    fecha: string;
+    turno: string;
+    descTurno: string;
+  } | null>(null);
   const [loadingParos, setLoadingParos] = useState(false);
 
   // Menu de 3 pontos
@@ -157,11 +188,11 @@ export function OFListModalEnhanced({
         setOfs(data.data);
         setCurrentPage(1);
       } else {
-        setError(data.error || 'Error al cargar OFs');
+        setError(data.error || "Error al cargar OFs");
       }
     } catch (err) {
-      console.error('Error al buscar OFs:', err);
-      setError('Error al cargar datos');
+      console.error("Error al buscar OFs:", err);
+      setError("Error al cargar datos");
     } finally {
       setLoading(false);
     }
@@ -186,16 +217,21 @@ export function OFListModalEnhanced({
       if (data.success) {
         setDetallesOf(data.data);
       } else {
-        console.error('Error al cargar detalles:', data.error);
+        console.error("Error al cargar detalles:", data.error);
       }
     } catch (err) {
-      console.error('Error al buscar detalles:', err);
+      console.error("Error al buscar detalles:", err);
     } finally {
       setLoadingDetalles(false);
     }
   };
 
-  const fetchParosOF = async (codOf: string, fecha: string, turno: string, descTurno: string) => {
+  const fetchParosOF = async (
+    codOf: string,
+    fecha: string,
+    turno: string,
+    descTurno: string,
+  ) => {
     setLoadingParos(true);
     setSelectedParoInfo({ codOf, fecha, turno, descTurno });
 
@@ -208,11 +244,11 @@ export function OFListModalEnhanced({
         setParosData(data.data || []);
         setShowParosModal(true);
       } else {
-        console.error('Error al cargar paros:', data.error);
+        console.error("Error al cargar paros:", data.error);
         setParosData([]);
       }
     } catch (err) {
-      console.error('Error al buscar paros:', err);
+      console.error("Error al buscar paros:", err);
       setParosData([]);
     } finally {
       setLoadingParos(false);
@@ -220,19 +256,22 @@ export function OFListModalEnhanced({
   };
 
   const calcularEficienciaReal = (detalles: DetallesOF) => {
-    const tiempoTotal = detalles.totales.tiempoProduccionHoras + (detalles.totales.tiempoParoHoras || 0);
+    const tiempoTotal =
+      detalles.totales.tiempoProduccionHoras +
+      (detalles.totales.tiempoParoHoras || 0);
     if (tiempoTotal === 0) return 0;
 
     const tiempoProductivo = detalles.totales.tiempoProduccionHoras;
     const unidadesEsperadas = detalles.of.unidadesPlanning;
-    const unidadesProducidas = detalles.totales.unidadesOk + detalles.totales.unidadesRepro;
+    const unidadesProducidas =
+      detalles.totales.unidadesOk + detalles.totales.unidadesRepro;
 
     if (unidadesEsperadas === 0) return 0;
 
     const eficienciaTiempo = (tiempoProductivo / tiempoTotal) * 100;
     const eficienciaProduccion = (unidadesProducidas / unidadesEsperadas) * 100;
 
-    return Math.round(eficienciaTiempo * eficienciaProduccion / 100);
+    return Math.round((eficienciaTiempo * eficienciaProduccion) / 100);
   };
 
   const handleToggleExpand = (codOf: string) => {
@@ -246,29 +285,41 @@ export function OFListModalEnhanced({
   };
 
   const exportToCSV = () => {
-    const headers = ['Código OF', 'Producto', 'Fecha Inicio', 'Fecha Fin', 'Planejado', 'OK', 'NOK', 'Progreso'];
-    const csvData = ofs.map(of => [
+    const headers = [
+      "Código OF",
+      "Producto",
+      "Fecha Inicio",
+      "Fecha Fin",
+      "Planejado",
+      "OK",
+      "NOK",
+      "Progreso",
+    ];
+    const csvData = ofs.map((of) => [
       of.codOf,
       of.descProducto,
-      of.fechaInicio || '',
-      of.fechaFin || '',
+      of.fechaInicio || "",
+      of.fechaFin || "",
       of.unidadesPlanning,
       of.unidadesOk,
       of.unidadesNok,
-      `${of.progreso}%`
+      `${of.progreso}%`,
     ]);
 
     const csvContent = [
-      headers.join(','),
-      ...csvData.map(row => row.join(','))
-    ].join('\n');
+      headers.join(","),
+      ...csvData.map((row) => row.join(",")),
+    ].join("\n");
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `OFs_${machineCode}_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `OFs_${machineCode}_${new Date().toISOString().split("T")[0]}.csv`,
+    );
+    link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -280,22 +331,38 @@ export function OFListModalEnhanced({
   };
 
   const formatDuration = (minutes: number) => {
-    if (minutes === 0) return '-';
+    if (minutes === 0) return "-";
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+  };
+
+  const formatMetric = (
+    value: number | null | undefined,
+    fractionDigits = 0,
+  ) => {
+    if (value === null || value === undefined || Number.isNaN(value)) {
+      return "—";
+    }
+
+    return value.toLocaleString("es-ES", {
+      minimumFractionDigits: fractionDigits,
+      maximumFractionDigits: fractionDigits,
+    });
   };
 
   // Preparar dados do gráfico agrupando por data
   const prepareChartData = () => {
     if (!detallesOf) return [];
 
-    const dataByDate: { [key: string]: { ok: number; nok: number; repro: number } } = {};
+    const dataByDate: {
+      [key: string]: { ok: number; nok: number; repro: number };
+    } = {};
 
-    detallesOf.produccionPorDia.forEach(dia => {
-      const dateKey = new Date(dia.fecha).toLocaleDateString('es-ES', {
-        day: '2-digit',
-        month: '2-digit'
+    detallesOf.produccionPorDia.forEach((dia) => {
+      const dateKey = new Date(dia.fecha).toLocaleDateString("es-ES", {
+        day: "2-digit",
+        month: "2-digit",
       });
 
       if (!dataByDate[dateKey]) {
@@ -311,7 +378,7 @@ export function OFListModalEnhanced({
       fecha,
       OK: valores.ok,
       NOK: valores.nok,
-      Repro: valores.repro
+      Repro: valores.repro,
     }));
   };
 
@@ -323,7 +390,7 @@ export function OFListModalEnhanced({
 
     try {
       // Criar PDF
-      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdf = new jsPDF("p", "mm", "a4");
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
       let yPosition = 15;
@@ -331,12 +398,19 @@ export function OFListModalEnhanced({
       // Título
       pdf.setFontSize(18);
       pdf.setTextColor(220, 38, 38);
-      pdf.text(`Informe de Producción - OF ${codOf}`, pageWidth / 2, yPosition, { align: 'center' });
+      pdf.text(
+        `Informe de Producción - OF ${codOf}`,
+        pageWidth / 2,
+        yPosition,
+        { align: "center" },
+      );
       yPosition += 10;
 
       pdf.setFontSize(11);
       pdf.setTextColor(100, 100, 100);
-      pdf.text(`${machineName} (${machineCode})`, pageWidth / 2, yPosition, { align: 'center' });
+      pdf.text(`${machineName} (${machineCode})`, pageWidth / 2, yPosition, {
+        align: "center",
+      });
       yPosition += 10;
 
       // Linha separadora
@@ -350,11 +424,19 @@ export function OFListModalEnhanced({
       pdf.setTextColor(0, 0, 0);
       pdf.text(`Producto: ${detallesOf.of.descProducto}`, 15, yPosition);
       yPosition += 6;
-      pdf.text(`Fecha Inicio: ${detallesOf.of.fechaInicio || '-'}`, 15, yPosition);
+      pdf.text(
+        `Fecha Inicio: ${detallesOf.of.fechaInicio || "-"}`,
+        15,
+        yPosition,
+      );
       yPosition += 6;
-      pdf.text(`Fecha Fin: ${detallesOf.of.fechaFin || '-'}`, 15, yPosition);
+      pdf.text(`Fecha Fin: ${detallesOf.of.fechaFin || "-"}`, 15, yPosition);
       yPosition += 6;
-      pdf.text(`Unidades Planeadas: ${detallesOf.of.unidadesPlanning.toLocaleString()}`, 15, yPosition);
+      pdf.text(
+        `Unidades Planeadas: ${detallesOf.of.unidadesPlanning.toLocaleString()}`,
+        15,
+        yPosition,
+      );
       yPosition += 6;
       pdf.text(`Progreso: ${detallesOf.of.progreso}%`, 15, yPosition);
       yPosition += 10;
@@ -362,18 +444,21 @@ export function OFListModalEnhanced({
       // Totales
       pdf.setFontSize(12);
       pdf.setTextColor(220, 38, 38);
-      pdf.text('Totales de Producción', 15, yPosition);
+      pdf.text("Totales de Producción", 15, yPosition);
       yPosition += 8;
 
       pdf.setFontSize(10);
       pdf.setTextColor(0, 0, 0);
       const totalesData = [
-        ['Unidades OK:', detallesOf.totales.unidadesOk.toLocaleString()],
-        ['Unidades NOK:', detallesOf.totales.unidadesNok.toLocaleString()],
-        ['Reproceso:', detallesOf.totales.unidadesRepro.toLocaleString()],
-        ['Tiempo Producción:', `${Math.round(detallesOf.totales.tiempoProduccionHoras)}h`],
-        ['Eficiencia Real:', `${calcularEficienciaReal(detallesOf)}%`],
-        ['Calidad:', `${Math.round(detallesOf.totales.calidad)}%`]
+        ["Unidades OK:", detallesOf.totales.unidadesOk.toLocaleString()],
+        ["Unidades NOK:", detallesOf.totales.unidadesNok.toLocaleString()],
+        ["Reproceso:", detallesOf.totales.unidadesRepro.toLocaleString()],
+        [
+          "Tiempo Producción:",
+          `${Math.round(detallesOf.totales.tiempoProduccionHoras)}h`,
+        ],
+        ["Eficiencia Real:", `${calcularEficienciaReal(detallesOf)}%`],
+        ["Calidad:", `${Math.round(detallesOf.totales.calidad)}%`],
       ];
 
       totalesData.forEach(([label, value]) => {
@@ -385,19 +470,19 @@ export function OFListModalEnhanced({
       yPosition += 5;
 
       // Capturar gráfico
-      const chartElement = detailsRef.current.querySelector('.chart-container');
+      const chartElement = detailsRef.current.querySelector(".chart-container");
       if (chartElement && yPosition < pageHeight - 80) {
         const canvas = await html2canvas(chartElement as HTMLElement, {
           scale: 2,
-          backgroundColor: '#ffffff'
+          backgroundColor: "#ffffff",
         });
-        const imgData = canvas.toDataURL('image/png');
+        const imgData = canvas.toDataURL("image/png");
         const imgWidth = pageWidth - 30;
         const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
         pdf.setFontSize(12);
         pdf.setTextColor(220, 38, 38);
-        pdf.text('Evolución de Producción', 15, yPosition);
+        pdf.text("Evolución de Producción", 15, yPosition);
         yPosition += 8;
 
         if (yPosition + imgHeight > pageHeight - 15) {
@@ -405,7 +490,14 @@ export function OFListModalEnhanced({
           yPosition = 15;
         }
 
-        pdf.addImage(imgData, 'PNG', 15, yPosition, imgWidth, Math.min(imgHeight, 100));
+        pdf.addImage(
+          imgData,
+          "PNG",
+          15,
+          yPosition,
+          imgWidth,
+          Math.min(imgHeight, 100),
+        );
         yPosition += Math.min(imgHeight, 100) + 10;
       }
 
@@ -417,18 +509,26 @@ export function OFListModalEnhanced({
 
       pdf.setFontSize(12);
       pdf.setTextColor(220, 38, 38);
-      pdf.text('Producción por Día y Turno', 15, yPosition);
+      pdf.text("Producción por Día y Turno", 15, yPosition);
       yPosition += 8;
 
       // Headers de tabla
       pdf.setFontSize(9);
       pdf.setFillColor(220, 38, 38);
       pdf.setTextColor(255, 255, 255);
-      pdf.rect(15, yPosition - 4, pageWidth - 30, 6, 'F');
+      pdf.rect(15, yPosition - 4, pageWidth - 30, 6, "F");
 
       const colWidths = [25, 25, 20, 20, 20, 25, 25];
       let xPos = 15;
-      const headers = ['Fecha', 'Turno', 'OK', 'NOK', 'Repro', 'Tiempo', 'Velocidad'];
+      const headers = [
+        "Fecha",
+        "Turno",
+        "OK",
+        "NOK",
+        "Repro",
+        "Tiempo",
+        "Velocidad",
+      ];
       headers.forEach((header, i) => {
         pdf.text(header, xPos + 2, yPosition);
         xPos += colWidths[i];
@@ -446,7 +546,7 @@ export function OFListModalEnhanced({
         // Alternar cores de linha
         if (index % 2 === 0) {
           pdf.setFillColor(250, 250, 250);
-          pdf.rect(15, yPosition - 4, pageWidth - 30, 6, 'F');
+          pdf.rect(15, yPosition - 4, pageWidth - 30, 6, "F");
         }
 
         xPos = 15;
@@ -457,7 +557,7 @@ export function OFListModalEnhanced({
           dia.unidadesNok.toLocaleString(),
           dia.unidadesRepro.toLocaleString(),
           formatDuration(dia.tiempoProduccionMin),
-          `${dia.velocidadMedia.toFixed(1)} u/h`
+          `${dia.velocidadMedia.toFixed(1)} u/h`,
         ];
 
         rowData.forEach((data, i) => {
@@ -470,15 +570,22 @@ export function OFListModalEnhanced({
       // Footer
       pdf.setFontSize(8);
       pdf.setTextColor(150, 150, 150);
-      const timestamp = new Date().toLocaleString('es-ES');
+      const timestamp = new Date().toLocaleString("es-ES");
       pdf.text(`Generado: ${timestamp}`, 15, pageHeight - 10);
-      pdf.text('Sistema de Monitorización de Producción - MAPEX', pageWidth - 15, pageHeight - 10, { align: 'right' });
+      pdf.text(
+        "Sistema de Monitorización de Producción - MAPEX",
+        pageWidth - 15,
+        pageHeight - 10,
+        { align: "right" },
+      );
 
       // Descargar PDF
-      pdf.save(`OF_${codOf}_${machineCode}_${new Date().toISOString().split('T')[0]}.pdf`);
+      pdf.save(
+        `OF_${codOf}_${machineCode}_${new Date().toISOString().split("T")[0]}.pdf`,
+      );
     } catch (error) {
-      console.error('Error al exportar PDF:', error);
-      alert('Error al generar el PDF. Por favor, intente nuevamente.');
+      console.error("Error al exportar PDF:", error);
+      alert("Error al generar el PDF. Por favor, intente nuevamente.");
     } finally {
       setExportingPDF(false);
     }
@@ -488,33 +595,52 @@ export function OFListModalEnhanced({
   const exportAllOFsToExcel = () => {
     if (!ofs.length) return;
 
-    const headers = ['Código OF', 'Producto', 'Fecha Inicio', 'Fecha Fin', 'Planejado', 'OK', 'NOK', 'Duración (min)', 'Progreso (%)'];
-    const csvData = ofs.map(of => [
+    const headers = [
+      "Código OF",
+      "Producto",
+      "Fecha Inicio",
+      "Fecha Fin",
+      "Planejado",
+      "OK",
+      "NOK",
+      "Duración (min)",
+      "Progreso (%)",
+    ];
+    const csvData = ofs.map((of) => [
       of.codOf,
-      of.descProducto || '-',
-      of.fechaInicio || '-',
-      of.fechaFin || '-',
+      of.descProducto || "-",
+      of.fechaInicio || "-",
+      of.fechaFin || "-",
       of.unidadesPlanning,
       of.unidadesOk,
       of.unidadesNok,
       of.duracionMinutos,
-      of.progreso
+      of.progreso,
     ]);
 
     const csvContent = [
-      headers.join(','),
-      ...csvData.map(row => row.map(cell =>
-        typeof cell === 'string' && cell.includes(',') ? `"${cell}"` : cell
-      ).join(','))
-    ].join('\n');
+      headers.join(","),
+      ...csvData.map((row) =>
+        row
+          .map((cell) =>
+            typeof cell === "string" && cell.includes(",") ? `"${cell}"` : cell,
+          )
+          .join(","),
+      ),
+    ].join("\n");
 
-    const BOM = '\uFEFF';
-    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
+    const BOM = "\uFEFF";
+    const blob = new Blob([BOM + csvContent], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `Todas_OFs_${machineCode}_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `Todas_OFs_${machineCode}_${new Date().toISOString().split("T")[0]}.csv`,
+    );
+    link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -558,7 +684,9 @@ export function OFListModalEnhanced({
                   className="filter-date-btn"
                 >
                   <i className="fas fa-calendar-alt"></i>
-                  {fechaInicio ? fechaInicio.toLocaleDateString('es-ES') : 'Seleccionar'}
+                  {fechaInicio
+                    ? fechaInicio.toLocaleDateString("es-ES")
+                    : "Seleccionar"}
                 </button>
                 {showStartCalendar && (
                   <div className="calendar-dropdown">
@@ -583,7 +711,9 @@ export function OFListModalEnhanced({
                   className="filter-date-btn"
                 >
                   <i className="fas fa-calendar-check"></i>
-                  {fechaFin ? fechaFin.toLocaleDateString('es-ES') : 'Seleccionar'}
+                  {fechaFin
+                    ? fechaFin.toLocaleDateString("es-ES")
+                    : "Seleccionar"}
                 </button>
                 {showEndCalendar && (
                   <div className="calendar-dropdown">
@@ -609,11 +739,19 @@ export function OFListModalEnhanced({
           </div>
 
           <div className="of-actions">
-            <button onClick={exportToCSV} className="export-btn" disabled={ofs.length === 0}>
+            <button
+              onClick={exportToCSV}
+              className="export-btn"
+              disabled={ofs.length === 0}
+            >
               <i className="fas fa-file-csv"></i>
               Exportar Resumen
             </button>
-            <button onClick={exportAllOFsToExcel} className="export-btn export-all-btn" disabled={ofs.length === 0}>
+            <button
+              onClick={exportAllOFsToExcel}
+              className="export-btn export-all-btn"
+              disabled={ofs.length === 0}
+            >
               <i className="fas fa-file-excel"></i>
               Exportar Todas (Excel)
             </button>
@@ -641,7 +779,10 @@ export function OFListModalEnhanced({
               <i className="fas fa-inbox"></i>
               <p>No se encontraron OFs para esta máquina</p>
               {(fechaInicio || fechaFin) && (
-                <button onClick={clearFilters} className="clear-filters-btn-large">
+                <button
+                  onClick={clearFilters}
+                  className="clear-filters-btn-large"
+                >
                   Limpiar filtros de fecha
                 </button>
               )}
@@ -654,29 +795,35 @@ export function OFListModalEnhanced({
                 <table className="of-table">
                   <thead>
                     <tr>
-                      <th style={{ width: '40px' }}></th>
-                      <th style={{ minWidth: '200px' }}>Código OF</th>
-                      <th style={{ minWidth: '250px' }}>Producto</th>
+                      <th style={{ width: "40px" }}></th>
+                      <th style={{ minWidth: "200px" }}>Código OF</th>
+                      <th style={{ minWidth: "250px" }}>Producto</th>
                       <th>Fecha Inicio</th>
                       <th>Fecha Fin</th>
                       <th>Duración</th>
                       <th>Planejado</th>
                       <th>Piezas OK</th>
                       <th>Piezas NOK</th>
-                      <th style={{ minWidth: '150px' }}>Progreso</th>
+                      <th style={{ minWidth: "150px" }}>Progreso</th>
                     </tr>
                   </thead>
                   <tbody>
                     {currentOFs.map((of, index) => (
                       <React.Fragment key={`${of.codOf}-${index}`}>
-                        <tr className={expandedOf === of.codOf ? 'expanded-row' : ''}>
+                        <tr
+                          className={
+                            expandedOf === of.codOf ? "expanded-row" : ""
+                          }
+                        >
                           <td>
                             <button
                               onClick={() => handleToggleExpand(of.codOf)}
                               className="expand-btn"
                               title="Ver detalles"
                             >
-                              <i className={`fas fa-chevron-${expandedOf === of.codOf ? 'down' : 'right'}`}></i>
+                              <i
+                                className={`fas fa-chevron-${expandedOf === of.codOf ? "down" : "right"}`}
+                              ></i>
                             </button>
                           </td>
                           <td className="of-code">
@@ -684,27 +831,39 @@ export function OFListModalEnhanced({
                             <span className="of-code-text">{of.codOf}</span>
                           </td>
                           <td className="of-product" title={of.descProducto}>
-                            {of.descProducto || '-'}
+                            {of.descProducto || "-"}
                           </td>
-                          <td className="of-date">{of.fechaInicio || '-'}</td>
-                          <td className="of-date">{of.fechaFin || '-'}</td>
-                          <td className="of-duration">{formatDuration(of.duracionMinutos)}</td>
-                          <td className="of-number">{of.unidadesPlanning.toLocaleString()}</td>
+                          <td className="of-date">{of.fechaInicio || "-"}</td>
+                          <td className="of-date">{of.fechaFin || "-"}</td>
+                          <td className="of-duration">
+                            {formatDuration(of.duracionMinutos)}
+                          </td>
+                          <td className="of-number">
+                            {of.unidadesPlanning.toLocaleString()}
+                          </td>
                           <td className="of-number of-ok">
-                            <span className="badge badge-ok">{of.unidadesOk.toLocaleString()}</span>
+                            <span className="badge badge-ok">
+                              {of.unidadesOk.toLocaleString()}
+                            </span>
                           </td>
                           <td className="of-number of-nok">
-                            <span className="badge badge-nok">{of.unidadesNok.toLocaleString()}</span>
+                            <span className="badge badge-nok">
+                              {of.unidadesNok.toLocaleString()}
+                            </span>
                           </td>
                           <td className="of-progress-cell">
                             <div className="progress-container">
                               <div className="progress-bar">
                                 <div
                                   className="progress-fill"
-                                  style={{ width: `${Math.min(of.progreso, 100)}%` }}
+                                  style={{
+                                    width: `${Math.min(of.progreso, 100)}%`,
+                                  }}
                                 />
                               </div>
-                              <span className="progress-text">{of.progreso}%</span>
+                              <span className="progress-text">
+                                {of.progreso}%
+                              </span>
                             </div>
                           </td>
                         </tr>
@@ -727,155 +886,404 @@ export function OFListModalEnhanced({
                                         className="export-pdf-btn"
                                         disabled={exportingPDF}
                                       >
-                                        <i className={`fas ${exportingPDF ? 'fa-spinner fa-spin' : 'fa-file-pdf'}`}></i>
-                                        {exportingPDF ? 'Generando PDF...' : 'Exportar OF a PDF'}
+                                        <i
+                                          className={`fas ${exportingPDF ? "fa-spinner fa-spin" : "fa-file-pdf"}`}
+                                        ></i>
+                                        {exportingPDF
+                                          ? "Generando PDF..."
+                                          : "Exportar OF a PDF"}
                                       </button>
                                     </div>
 
-                                    <div className="detail-sections" ref={detailsRef}>
-                                    {/* Totales */}
-                                    <div className="detail-section">
-                                      <h4><i className="fas fa-chart-bar"></i> Totales</h4>
-                                      <div className="totales-grid">
-                                        <div className="total-card ok">
-                                          <i className="fas fa-check-circle total-icon"></i>
-                                          <span className="total-label">Unidades OK</span>
-                                          <span className="total-value">{detallesOf.totales.unidadesOk.toLocaleString()}</span>
-                                        </div>
-                                        <div className="total-card nok">
-                                          <i className="fas fa-times-circle total-icon"></i>
-                                          <span className="total-label">Unidades NOK</span>
-                                          <span className="total-value">{detallesOf.totales.unidadesNok.toLocaleString()}</span>
-                                        </div>
-                                        <div className="total-card repro">
-                                          <i className="fas fa-sync-alt total-icon"></i>
-                                          <span className="total-label">Reproceso</span>
-                                          <span className="total-value">{detallesOf.totales.unidadesRepro.toLocaleString()}</span>
-                                        </div>
-                                        <div className="total-card time">
-                                          <i className="fas fa-clock total-icon"></i>
-                                          <span className="total-label">Tiempo Producción</span>
-                                          <span className="total-value">{Math.round(detallesOf.totales.tiempoProduccionHoras)}h</span>
-                                        </div>
-                                        <div className="total-card efficiency">
-                                          <i className="fas fa-chart-line total-icon"></i>
-                                          <span className="total-label">Eficiencia Real</span>
-                                          <span className="total-value">{calcularEficienciaReal(detallesOf)}%</span>
-                                        </div>
-                                        <div className="total-card quality">
-                                          <i className="fas fa-star total-icon"></i>
-                                          <span className="total-label">Calidad</span>
-                                          <span className="total-value">{Math.round(detallesOf.totales.calidad)}%</span>
-                                        </div>
-                                      </div>
-                                    </div>
-
-                                    {/* Gráfico */}
-                                    {prepareChartData().length > 0 && (
+                                    <div
+                                      className="detail-sections"
+                                      ref={detailsRef}
+                                    >
+                                      {/* Totales */}
                                       <div className="detail-section">
-                                        <h4><i className="fas fa-chart-area"></i> Evolución de Producción por Día</h4>
-                                        <div className="chart-container">
-                                          <ResponsiveContainer width="100%" height={350}>
-                                            <BarChart data={prepareChartData()} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                                              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                                              <XAxis
-                                                dataKey="fecha"
-                                                tick={{ fill: '#6b7280', fontSize: 12 }}
-                                              />
-                                              <YAxis
-                                                tick={{ fill: '#6b7280', fontSize: 12 }}
-                                              />
-                                              <Tooltip
-                                                contentStyle={{
-                                                  backgroundColor: '#ffffff',
-                                                  border: '1px solid #e5e7eb',
-                                                  borderRadius: '8px',
-                                                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                                                }}
-                                                formatter={(value: number) => value.toLocaleString()}
-                                              />
-                                              <Legend
-                                                wrapperStyle={{ paddingTop: '20px' }}
-                                                iconType="circle"
-                                              />
-                                              <Bar dataKey="OK" fill="#22c55e" radius={[4, 4, 0, 0]} />
-                                              <Bar dataKey="NOK" fill="#dc2626" radius={[4, 4, 0, 0]} />
-                                              <Bar dataKey="Repro" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                                            </BarChart>
-                                          </ResponsiveContainer>
+                                        <h4>
+                                          <i className="fas fa-chart-bar"></i>{" "}
+                                          Totales
+                                        </h4>
+                                        <div className="totales-grid">
+                                          <div className="total-card ok">
+                                            <i className="fas fa-check-circle total-icon"></i>
+                                            <span className="total-label">
+                                              Unidades OK
+                                            </span>
+                                            <span className="total-value">
+                                              {detallesOf.totales.unidadesOk.toLocaleString()}
+                                            </span>
+                                          </div>
+                                          <div className="total-card nok">
+                                            <i className="fas fa-times-circle total-icon"></i>
+                                            <span className="total-label">
+                                              Unidades NOK
+                                            </span>
+                                            <span className="total-value">
+                                              {detallesOf.totales.unidadesNok.toLocaleString()}
+                                            </span>
+                                          </div>
+                                          <div className="total-card repro">
+                                            <i className="fas fa-sync-alt total-icon"></i>
+                                            <span className="total-label">
+                                              Reproceso
+                                            </span>
+                                            <span className="total-value">
+                                              {detallesOf.totales.unidadesRepro.toLocaleString()}
+                                            </span>
+                                          </div>
+                                          <div className="total-card time">
+                                            <i className="fas fa-clock total-icon"></i>
+                                            <span className="total-label">
+                                              Tiempo Producción
+                                            </span>
+                                            <span className="total-value">
+                                              {Math.round(
+                                                detallesOf.totales
+                                                  .tiempoProduccionHoras,
+                                              )}
+                                              h
+                                            </span>
+                                          </div>
+                                          <div className="total-card efficiency">
+                                            <i className="fas fa-chart-line total-icon"></i>
+                                            <span className="total-label">
+                                              Eficiencia Real
+                                            </span>
+                                            <span className="total-value">
+                                              {calcularEficienciaReal(
+                                                detallesOf,
+                                              )}
+                                              %
+                                            </span>
+                                          </div>
+                                          <div className="total-card quality">
+                                            <i className="fas fa-star total-icon"></i>
+                                            <span className="total-label">
+                                              Calidad
+                                            </span>
+                                            <span className="total-value">
+                                              {Math.round(
+                                                detallesOf.totales.calidad,
+                                              )}
+                                              %
+                                            </span>
+                                          </div>
                                         </div>
                                       </div>
-                                    )}
 
-                                    {/* Tabla de producción */}
-                                    <div className="detail-section">
-                                      <h4><i className="fas fa-table"></i> Producción por Día y Turno</h4>
-                                      <div className="detail-table-wrapper">
-                                        <table className="detail-table">
-                                          <thead>
-                                            <tr>
-                                              <th>Fecha</th>
-                                              <th>Turno</th>
-                                              <th>OK</th>
-                                              <th>NOK</th>
-                                              <th>Repro</th>
-                                              <th>Tiempo Prod.</th>
-                                              <th>Actividad</th>
-                                              <th>Velocidad</th>
-                                              <th style={{ width: '50px' }}></th>
-                                            </tr>
-                                          </thead>
-                                          <tbody>
-                                            {detallesOf.produccionPorDia.map((dia, idx) => (
-                                              <tr key={idx}>
-                                                <td className="date-cell">{dia.fecha}</td>
-                                                <td><span className="turno-badge">{dia.descTurno}</span></td>
-                                                <td className="number-cell">
-                                                  <span className="badge badge-ok">{dia.unidadesOk.toLocaleString()}</span>
-                                                </td>
-                                                <td className="number-cell">
-                                                  <span className="badge badge-nok">{dia.unidadesNok.toLocaleString()}</span>
-                                                </td>
-                                                <td className="number-cell">
-                                                  <span className="badge badge-repro">{dia.unidadesRepro.toLocaleString()}</span>
-                                                </td>
-                                                <td className="time-cell">{formatDuration(dia.tiempoProduccionMin)}</td>
-                                                <td>
-                                                  <span className="actividad-badge">{dia.descActividad}</span>
-                                                </td>
-                                                <td className="velocity-cell">{dia.velocidadMedia.toFixed(1)} u/h</td>
-                                                <td className="actions-cell">
-                                                  <div className="actions-menu">
-                                                    <button
-                                                      className="menu-trigger"
-                                                      onClick={() => setOpenMenuIndex(openMenuIndex === idx ? null : idx)}
-                                                      title="Ver paros"
-                                                    >
-                                                      <i className="fas fa-ellipsis-v"></i>
-                                                    </button>
-                                                    {openMenuIndex === idx && (
-                                                      <div className="menu-dropdown">
-                                                        <button
-                                                          onClick={() => {
-                                                            fetchParosOF(of.codOf, dia.fecha, dia.turno, dia.descTurno);
-                                                            setOpenMenuIndex(null);
-                                                          }}
-                                                          className="menu-item"
-                                                        >
-                                                          <i className="fas fa-pause-circle"></i>
-                                                          Ver Paros
-                                                        </button>
-                                                      </div>
-                                                    )}
-                                                  </div>
-                                                </td>
+                                      {detallesOf.extra && (
+                                        <div className="detail-section">
+                                          <h4>
+                                            <i className="fas fa-info-circle"></i>{" "}
+                                            Indicadores del Turno
+                                          </h4>
+                                          <div className="detail-info-grid">
+                                            <div className="info-card">
+                                              <span className="info-label">
+                                                Inicio real
+                                              </span>
+                                              <span className="info-value">
+                                                {detallesOf.extra?.tempo
+                                                  ?.inicio_real || "—"}
+                                              </span>
+                                            </div>
+                                            <div className="info-card">
+                                              <span className="info-label">
+                                                Fin estimado
+                                              </span>
+                                              <span className="info-value">
+                                                {detallesOf.extra?.tempo
+                                                  ?.fim_estimado || "—"}
+                                              </span>
+                                            </div>
+                                            <div className="info-card">
+                                              <span className="info-label">
+                                                Tiempo restante
+                                              </span>
+                                              <span className="info-value">
+                                                {detallesOf.extra?.tempo
+                                                  ?.tempo_restante_formato ||
+                                                  "—"}
+                                              </span>
+                                            </div>
+                                            <div className="info-card">
+                                              <span className="info-label">
+                                                Velocidad SCADA
+                                              </span>
+                                              <span className="info-value">
+                                                {detallesOf.extra?.velocidade
+                                                  ?.formato_scada || "—"}
+                                              </span>
+                                            </div>
+                                            <div className="info-card">
+                                              <span className="info-label">
+                                                Planeadas
+                                              </span>
+                                              <span className="info-value">
+                                                {detallesOf.extra?.producao?.planejadas?.toLocaleString(
+                                                  "es-ES",
+                                                ) || "—"}
+                                              </span>
+                                            </div>
+                                            <div className="info-card">
+                                              <span className="info-label">
+                                                Faltantes
+                                              </span>
+                                              <span className="info-value">
+                                                {detallesOf.extra?.producao?.faltantes?.toLocaleString(
+                                                  "es-ES",
+                                                ) || "—"}
+                                              </span>
+                                            </div>
+                                            <div className="info-card">
+                                              <span className="info-label">
+                                                OEE turno
+                                              </span>
+                                              <span className="info-value">
+                                                {formatMetric(
+                                                  detallesOf.extra?.indicadores
+                                                    ?.oeeTurno,
+                                                  1,
+                                                )}
+                                                %
+                                              </span>
+                                            </div>
+                                            <div className="info-card">
+                                              <span className="info-label">
+                                                Disponibilidad
+                                              </span>
+                                              <span className="info-value">
+                                                {formatMetric(
+                                                  detallesOf.extra?.indicadores
+                                                    ?.disponibilidadTurno,
+                                                  1,
+                                                )}
+                                                %
+                                              </span>
+                                            </div>
+                                            <div className="info-card">
+                                              <span className="info-label">
+                                                Rendimiento
+                                              </span>
+                                              <span className="info-value">
+                                                {formatMetric(
+                                                  detallesOf.extra?.indicadores
+                                                    ?.rendimientoTurno,
+                                                  1,
+                                                )}
+                                                %
+                                              </span>
+                                            </div>
+                                            <div className="info-card">
+                                              <span className="info-label">
+                                                Calidad
+                                              </span>
+                                              <span className="info-value">
+                                                {formatMetric(
+                                                  detallesOf.extra?.indicadores
+                                                    ?.calidadTurno,
+                                                  1,
+                                                )}
+                                                %
+                                              </span>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {/* Gráfico */}
+                                      {prepareChartData().length > 0 && (
+                                        <div className="detail-section">
+                                          <h4>
+                                            <i className="fas fa-chart-area"></i>{" "}
+                                            Evolución de Producción por Día
+                                          </h4>
+                                          <div className="chart-container">
+                                            <ResponsiveContainer
+                                              width="100%"
+                                              height={350}
+                                            >
+                                              <BarChart
+                                                data={prepareChartData()}
+                                                margin={{
+                                                  top: 20,
+                                                  right: 30,
+                                                  left: 20,
+                                                  bottom: 5,
+                                                }}
+                                              >
+                                                <CartesianGrid
+                                                  strokeDasharray="3 3"
+                                                  stroke="#e5e7eb"
+                                                />
+                                                <XAxis
+                                                  dataKey="fecha"
+                                                  tick={{
+                                                    fill: "#6b7280",
+                                                    fontSize: 12,
+                                                  }}
+                                                />
+                                                <YAxis
+                                                  tick={{
+                                                    fill: "#6b7280",
+                                                    fontSize: 12,
+                                                  }}
+                                                />
+                                                <Tooltip
+                                                  contentStyle={{
+                                                    backgroundColor: "#ffffff",
+                                                    border: "1px solid #e5e7eb",
+                                                    borderRadius: "8px",
+                                                    boxShadow:
+                                                      "0 4px 12px rgba(0,0,0,0.1)",
+                                                  }}
+                                                  formatter={(value: number) =>
+                                                    value.toLocaleString()
+                                                  }
+                                                />
+                                                <Legend
+                                                  wrapperStyle={{
+                                                    paddingTop: "20px",
+                                                  }}
+                                                  iconType="circle"
+                                                />
+                                                <Bar
+                                                  dataKey="OK"
+                                                  fill="#22c55e"
+                                                  radius={[4, 4, 0, 0]}
+                                                />
+                                                <Bar
+                                                  dataKey="NOK"
+                                                  fill="#dc2626"
+                                                  radius={[4, 4, 0, 0]}
+                                                />
+                                                <Bar
+                                                  dataKey="Repro"
+                                                  fill="#f59e0b"
+                                                  radius={[4, 4, 0, 0]}
+                                                />
+                                              </BarChart>
+                                            </ResponsiveContainer>
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {/* Tabla de producción */}
+                                      <div className="detail-section">
+                                        <h4>
+                                          <i className="fas fa-table"></i>{" "}
+                                          Producción por Día y Turno
+                                        </h4>
+                                        <div className="detail-table-wrapper">
+                                          <table className="detail-table">
+                                            <thead>
+                                              <tr>
+                                                <th>Fecha</th>
+                                                <th>Turno</th>
+                                                <th>OK</th>
+                                                <th>NOK</th>
+                                                <th>Repro</th>
+                                                <th>Tiempo Prod.</th>
+                                                <th>Actividad</th>
+                                                <th>Velocidad</th>
+                                                <th
+                                                  style={{ width: "50px" }}
+                                                ></th>
                                               </tr>
-                                            ))}
-                                          </tbody>
-                                        </table>
+                                            </thead>
+                                            <tbody>
+                                              {detallesOf.produccionPorDia.map(
+                                                (dia, idx) => (
+                                                  <tr key={idx}>
+                                                    <td className="date-cell">
+                                                      {dia.fecha}
+                                                    </td>
+                                                    <td>
+                                                      <span className="turno-badge">
+                                                        {dia.descTurno}
+                                                      </span>
+                                                    </td>
+                                                    <td className="number-cell">
+                                                      <span className="badge badge-ok">
+                                                        {dia.unidadesOk.toLocaleString()}
+                                                      </span>
+                                                    </td>
+                                                    <td className="number-cell">
+                                                      <span className="badge badge-nok">
+                                                        {dia.unidadesNok.toLocaleString()}
+                                                      </span>
+                                                    </td>
+                                                    <td className="number-cell">
+                                                      <span className="badge badge-repro">
+                                                        {dia.unidadesRepro.toLocaleString()}
+                                                      </span>
+                                                    </td>
+                                                    <td className="time-cell">
+                                                      {formatDuration(
+                                                        dia.tiempoProduccionMin,
+                                                      )}
+                                                    </td>
+                                                    <td>
+                                                      <span className="actividad-badge">
+                                                        {dia.descActividad}
+                                                      </span>
+                                                    </td>
+                                                    <td className="velocity-cell">
+                                                      {dia.velocidadMedia.toFixed(
+                                                        1,
+                                                      )}{" "}
+                                                      u/h
+                                                    </td>
+                                                    <td className="actions-cell">
+                                                      <div className="actions-menu">
+                                                        <button
+                                                          className="menu-trigger"
+                                                          onClick={() =>
+                                                            setOpenMenuIndex(
+                                                              openMenuIndex ===
+                                                                idx
+                                                                ? null
+                                                                : idx,
+                                                            )
+                                                          }
+                                                          title="Ver paros"
+                                                        >
+                                                          <i className="fas fa-ellipsis-v"></i>
+                                                        </button>
+                                                        {openMenuIndex ===
+                                                          idx && (
+                                                          <div className="menu-dropdown">
+                                                            <button
+                                                              onClick={() => {
+                                                                fetchParosOF(
+                                                                  of.codOf,
+                                                                  dia.fecha,
+                                                                  dia.turno,
+                                                                  dia.descTurno,
+                                                                );
+                                                                setOpenMenuIndex(
+                                                                  null,
+                                                                );
+                                                              }}
+                                                              className="menu-item"
+                                                            >
+                                                              <i className="fas fa-pause-circle"></i>
+                                                              Ver Paros
+                                                            </button>
+                                                          </div>
+                                                        )}
+                                                      </div>
+                                                    </td>
+                                                  </tr>
+                                                ),
+                                              )}
+                                            </tbody>
+                                          </table>
+                                        </div>
                                       </div>
                                     </div>
-                                  </div>
                                   </>
                                 )}
                               </div>
@@ -900,11 +1308,14 @@ export function OFListModalEnhanced({
                   </button>
 
                   <div className="pagination-info">
-                    Página {currentPage} de {totalPages} ({ofs.length} OFs totales)
+                    Página {currentPage} de {totalPages} ({ofs.length} OFs
+                    totales)
                   </div>
 
                   <button
-                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                    onClick={() =>
+                      setCurrentPage(Math.min(totalPages, currentPage + 1))
+                    }
                     disabled={currentPage === totalPages}
                     className="pagination-btn"
                   >
@@ -920,7 +1331,10 @@ export function OFListModalEnhanced({
         <div className="of-modal-footer">
           <div className="of-count">
             <i className="fas fa-list"></i>
-            <span>{ofs.length} {ofs.length === 1 ? 'OF encontrada' : 'OFs encontradas'}</span>
+            <span>
+              {ofs.length}{" "}
+              {ofs.length === 1 ? "OF encontrada" : "OFs encontradas"}
+            </span>
           </div>
           <button onClick={onClose} className="of-close-btn">
             Cerrar
@@ -931,17 +1345,26 @@ export function OFListModalEnhanced({
       {/* Modal de Paros */}
       {showParosModal && selectedParoInfo && (
         <>
-          <div className="paros-modal-backdrop" onClick={() => setShowParosModal(false)} />
+          <div
+            className="paros-modal-backdrop"
+            onClick={() => setShowParosModal(false)}
+          />
           <div className="paros-modal">
             <div className="paros-modal-header">
               <div className="paros-modal-title">
                 <i className="fas fa-pause-circle"></i>
                 <div>
                   <h3>Paros de Producción</h3>
-                  <p>OF: {selectedParoInfo.codOf} • {selectedParoInfo.fecha} • {selectedParoInfo.descTurno}</p>
+                  <p>
+                    OF: {selectedParoInfo.codOf} • {selectedParoInfo.fecha} •{" "}
+                    {selectedParoInfo.descTurno}
+                  </p>
                 </div>
               </div>
-              <button onClick={() => setShowParosModal(false)} className="paros-modal-close">
+              <button
+                onClick={() => setShowParosModal(false)}
+                className="paros-modal-close"
+              >
                 <i className="fas fa-times"></i>
               </button>
             </div>
@@ -970,7 +1393,9 @@ export function OFListModalEnhanced({
                       </div>
                       <div className="paro-info">
                         <h4>{paro.descParo}</h4>
-                        <span className="paro-duration">{formatDuration(paro.duracionMin)}</span>
+                        <span className="paro-duration">
+                          {formatDuration(paro.duracionMin)}
+                        </span>
                       </div>
                     </div>
                   ))}
@@ -979,7 +1404,10 @@ export function OFListModalEnhanced({
             </div>
 
             <div className="paros-modal-footer">
-              <button onClick={() => setShowParosModal(false)} className="paros-close-btn">
+              <button
+                onClick={() => setShowParosModal(false)}
+                className="paros-close-btn"
+              >
                 Cerrar
               </button>
             </div>
@@ -1267,7 +1695,9 @@ export function OFListModalEnhanced({
           gap: 1rem;
         }
 
-        .of-spinner, .detail-spinner, .paros-spinner {
+        .of-spinner,
+        .detail-spinner,
+        .paros-spinner {
           width: 48px;
           height: 48px;
           border: 4px solid #f3f4f6;
@@ -1276,23 +1706,29 @@ export function OFListModalEnhanced({
           animation: spin 0.8s linear infinite;
         }
 
-        .detail-spinner, .paros-spinner {
+        .detail-spinner,
+        .paros-spinner {
           width: 36px;
           height: 36px;
           border-width: 3px;
         }
 
         @keyframes spin {
-          to { transform: rotate(360deg); }
+          to {
+            transform: rotate(360deg);
+          }
         }
 
-        .of-loading p, .of-error p, .of-empty p {
+        .of-loading p,
+        .of-error p,
+        .of-empty p {
           font-size: 1rem;
           color: #6b7280;
           margin: 0;
         }
 
-        .of-error i, .of-empty i {
+        .of-error i,
+        .of-empty i {
           font-size: 3rem;
           color: #d1d5db;
         }
@@ -1405,7 +1841,7 @@ export function OFListModalEnhanced({
         }
 
         .of-code-text {
-          font-family: 'Monaco', 'Courier New', monospace;
+          font-family: "Monaco", "Courier New", monospace;
           font-size: 0.875rem;
         }
 
@@ -1575,7 +2011,8 @@ export function OFListModalEnhanced({
           background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
         }
 
-        .total-card.efficiency, .total-card.quality {
+        .total-card.efficiency,
+        .total-card.quality {
           border-color: #dc2626;
           background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
         }
@@ -1585,11 +2022,51 @@ export function OFListModalEnhanced({
           margin-bottom: 0.5rem;
         }
 
-        .total-card.ok .total-icon { color: #16a34a; }
-        .total-card.nok .total-icon { color: #dc2626; }
-        .total-card.repro .total-icon { color: #d97706; }
-        .total-card.time .total-icon { color: #2563eb; }
-        .total-card.efficiency .total-icon, .total-card.quality .total-icon { color: #dc2626; }
+        .detail-info-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+          gap: 1rem;
+        }
+
+        .info-card {
+          background: white;
+          border: 1px solid #e5e7eb;
+          border-radius: 10px;
+          padding: 1rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.4rem;
+        }
+
+        .info-label {
+          font-size: 0.85rem;
+          color: #6b7280;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        .info-value {
+          font-size: 1.1rem;
+          font-weight: 600;
+          color: #1f2937;
+        }
+
+        .total-card.ok .total-icon {
+          color: #16a34a;
+        }
+        .total-card.nok .total-icon {
+          color: #dc2626;
+        }
+        .total-card.repro .total-icon {
+          color: #d97706;
+        }
+        .total-card.time .total-icon {
+          color: #2563eb;
+        }
+        .total-card.efficiency .total-icon,
+        .total-card.quality .total-icon {
+          color: #dc2626;
+        }
 
         .total-label {
           font-size: 0.875rem;
@@ -1840,7 +2317,8 @@ export function OFListModalEnhanced({
           min-height: 200px;
         }
 
-        .paros-loading, .paros-empty {
+        .paros-loading,
+        .paros-empty {
           display: flex;
           flex-direction: column;
           align-items: center;

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // URL do webhook N8N para buscar TODAS as máquinas de uma vez
-const N8N_WEBHOOK_MAQUINAS_URL = process.env.N8N_WEBHOOK_MAQUINAS_URL || 'http://localhost:5678/webhook/maquinas';
+const N8N_WEBHOOK_MAQUINAS_URL = process.env.N8N_WEBHOOK_MAQUINAS_URL || 'https://n8n.lexusfx.com/webhook/maquinas';
 
 /**
  * Rota de API que atua como proxy para o webhook de TODAS AS MÁQUINAS do N8N.
