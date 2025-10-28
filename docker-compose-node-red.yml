@@ -1,0 +1,135 @@
+version: '3.8'
+
+services:
+  # Node-RED para comunicação com PLCs Siemens
+  node-red:
+    image: nodered/node-red:latest
+    container_name: nodered-scada
+    restart: unless-stopped
+    ports:
+      - "1880:1880"
+    volumes:
+      # Persistir dados e flows
+      - ./node-red-data:/data
+      # Importar flows automaticamente
+      - ./docs/node-red-flows:/data/flows-import:ro
+    environment:
+      - TZ=Europe/Madrid
+      - NODE_RED_ENABLE_PROJECTS=true
+      - NODE_RED_ENABLE_SAFE_MODE=false
+    networks:
+      - scada-network
+    # Instalar nodes necessários na inicialização
+    command: >
+      sh -c "
+      npm install --prefix /data
+        node-red-contrib-s7
+        node-red-dashboard
+        node-red-contrib-opcua &&
+      npm start -- --userDir /data
+      "
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:1880"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # N8N (se não estiver rodando externamente)
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n-scada
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    volumes:
+      - ./n8n-data:/home/node/.n8n
+    environment:
+      - TZ=Europe/Madrid
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=admin123
+      - WEBHOOK_URL=https://n8n.lexusfx.com
+      - N8N_HOST=0.0.0.0
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - NODE_ENV=production
+    networks:
+      - scada-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:5678/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # PostgreSQL para armazenar histórico (opcional)
+  postgres:
+    image: postgres:15-alpine
+    container_name: scada-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=scada
+      - POSTGRES_USER=scada
+      - POSTGRES_PASSWORD=scada123
+      - TZ=Europe/Madrid
+    networks:
+      - scada-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U scada"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis para cache (opcional)
+  redis:
+    image: redis:7-alpine
+    container_name: scada-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./redis-data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - scada-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Grafana para dashboards (opcional)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: scada-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana-data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    networks:
+      - scada-network
+    depends_on:
+      - postgres
+
+networks:
+  scada-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/16
+
+volumes:
+  node-red-data:
+  n8n-data:
+  postgres-data:
+  redis-data:
+  grafana-data:
