@@ -1106,6 +1106,7 @@ export default function DashboardOrderCard({
   // Estado para controlar exibição da descrição do status
   const [showStatusDescription, setShowStatusDescription] = useState(false);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+  const [showConfigSubmenu, setShowConfigSubmenu] = useState(false);
   const [statusElapsedSeconds, setStatusElapsedSeconds] = useState(0);
   const [statusSegments, setStatusSegments] = useState<StatusSegment[]>([]);
   const statusSegmentsRef = useRef<StatusSegment[]>([]);
@@ -1701,11 +1702,66 @@ export default function DashboardOrderCard({
     }
   }, [ofCode]);
 
+  // Function to reset progress bar
+  const resetProgressBar = useCallback(() => {
+    if (progressStorageKey) {
+      try {
+        window.localStorage.removeItem(progressStorageKey);
+        statusSegmentsRef.current = [];
+        setStatusSegments([]);
+        setShowConfigSubmenu(false);
+        setShowOptionsMenu(false);
+        console.log(`[${machineId}] Progress bar reset`);
+      } catch (error) {
+        console.error(`[${machineId}] Error resetting progress bar:`, error);
+      }
+    }
+  }, [progressStorageKey, machineId]);
+
+  // Function to restore historical progress (for X days back)
+  const restoreHistoricalProgress = useCallback((daysBack: number) => {
+    if (progressStorageKey) {
+      try {
+        const raw = window.localStorage.getItem(progressStorageKey);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          const cutoffDate = Date.now() - (daysBack * 24 * 60 * 60 * 1000);
+
+          // Filter segments to only include those from the last X days
+          const filteredSegments = parsed.segments?.filter((seg: StatusSegment) => {
+            return seg.start >= cutoffDate;
+          }) || [];
+
+          if (filteredSegments.length > 0) {
+            statusSegmentsRef.current = filteredSegments;
+            setStatusSegments(filteredSegments);
+
+            // Update localStorage with filtered data
+            const updatedData = {
+              ...parsed,
+              segments: filteredSegments,
+            };
+            window.localStorage.setItem(progressStorageKey, JSON.stringify(updatedData));
+          } else {
+            // No segments in range, reset
+            resetProgressBar();
+          }
+        }
+        setShowConfigSubmenu(false);
+        setShowOptionsMenu(false);
+        console.log(`[${machineId}] Progress restored to last ${daysBack} days`);
+      } catch (error) {
+        console.error(`[${machineId}] Error restoring historical progress:`, error);
+      }
+    }
+  }, [progressStorageKey, machineId, resetProgressBar]);
+
   // Fechar menu de opções ao clicar fora
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (showOptionsMenu) {
         setShowOptionsMenu(false);
+        setShowConfigSubmenu(false);
       }
     };
 
@@ -1970,31 +2026,107 @@ export default function DashboardOrderCard({
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setShowOptionsMenu(false);
-                      // Adicione ação aqui
+                      setShowConfigSubmenu(!showConfigSubmenu);
                     }}
                     style={{
                       width: "100%",
                       padding: "12px 16px",
                       border: "none",
-                      background: "transparent",
+                      background: showConfigSubmenu ? "#f8fafc" : "transparent",
                       cursor: "pointer",
                       textAlign: "left",
                       fontSize: "14px",
                       color: "#334155",
                       transition: "background-color 0.2s",
                       borderTop: "1px solid #e2e8f0",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.backgroundColor = "#f8fafc";
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = "transparent";
+                      if (!showConfigSubmenu) {
+                        e.currentTarget.style.backgroundColor = "transparent";
+                      }
                     }}
                   >
-                    <i className="fas fa-cog" style={{ marginRight: "8px" }}></i>
-                    Configurar
+                    <span>
+                      <i className="fas fa-cog" style={{ marginRight: "8px" }}></i>
+                      Configurar Progreso
+                    </span>
+                    <i className={`fas fa-chevron-${showConfigSubmenu ? 'up' : 'down'}`} style={{ fontSize: "12px" }}></i>
                   </button>
+                  {showConfigSubmenu && (
+                    <div
+                      style={{
+                        background: "#f8fafc",
+                        paddingLeft: "12px",
+                      }}
+                    >
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          resetProgressBar();
+                        }}
+                        style={{
+                          width: "100%",
+                          padding: "10px 16px",
+                          border: "none",
+                          background: "transparent",
+                          cursor: "pointer",
+                          textAlign: "left",
+                          fontSize: "13px",
+                          color: "#64748b",
+                          transition: "background-color 0.2s",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = "#e2e8f0";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = "transparent";
+                        }}
+                      >
+                        <i className="fas fa-redo" style={{ marginRight: "8px" }}></i>
+                        Reiniciar progreso
+                      </button>
+                      <div style={{ borderTop: "1px solid #e2e8f0", margin: "4px 16px" }}>
+                        <div style={{ padding: "8px 0", fontSize: "12px", color: "#94a3b8", fontWeight: 500 }}>
+                          Restaurar histórico
+                        </div>
+                      </div>
+                      {[1, 3, 7, 15, 30].map((days) => (
+                        <button
+                          key={days}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            restoreHistoricalProgress(days);
+                          }}
+                          style={{
+                            width: "100%",
+                            padding: "10px 16px",
+                            border: "none",
+                            background: "transparent",
+                            cursor: "pointer",
+                            textAlign: "left",
+                            fontSize: "13px",
+                            color: "#64748b",
+                            transition: "background-color 0.2s",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = "#e2e8f0";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = "transparent";
+                          }}
+                        >
+                          <i className="fas fa-history" style={{ marginRight: "8px" }}></i>
+                          Últimos {days} {days === 1 ? 'día' : 'días'}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();

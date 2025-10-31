@@ -1,0 +1,21 @@
+.rotating-text-scada .text-rotate-word {
+  display: inline-flex;
+  transition: all 0.5s ease-in-out;
+}
+
+.text-rotate-element {
+  opacity: 0;
+  transform: translateY(-20px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  display: inline-block;
+}
+
+.text-rotate-word.visible .text-rotate-element {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* We need a state to handle the exit animation.
+   Let's refine the React component to add/remove a class that triggers the animation.
+   For now, this is a starting point. The logic in the component will need adjustment
+   to handle enter/exit animations gracefully. */

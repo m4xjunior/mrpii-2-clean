@@ -4,7 +4,7 @@ import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "SCADA - Sistema MRPII",
+  title: "Scada - Grupo KH",
   description: "Sistema de monitoramento industrial SCADA baseado no MRPII",
 };
 

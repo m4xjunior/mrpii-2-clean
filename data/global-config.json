@@ -1,0 +1,18 @@
+{
+  "hero": {
+    "sistema": "Sistema",
+    "scada": [
+      "SCADA",
+      "KH"
+    ]
+  },
+  "dashboard": {
+    "cardsPerRow": 4,
+    "defaultFilter": "all"
+  },
+  "shifts": {
+    "hoursPerShift": 8,
+    "showHistoricalDays": 7
+  },
+  "lastUpdated": "2025-10-29T08:53:11.031Z"
+}

@@ -1676,6 +1676,10 @@ function renderOFContent(data: any, themeColors: any, cardStyles: any) {
             {[
               { label: "Código OF", value: data.Rt_Cod_of || "--" },
               {
+                label: "Código Producto",
+                value: data.product?.code || data.machine?.rt_Cod_producto || data.machine?.codigo_producto || "--",
+              },
+              {
                 label: "Producto",
                 value: data.Rt_Desc_producto || data.Rt_Desc_produto || "--",
               },

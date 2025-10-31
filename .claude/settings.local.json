@@ -29,7 +29,8 @@
       "Bash(npm run build:*)",
       "Bash(npx vercel --prod)",
       "Bash(vercel inspect:*)",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "Bash(npm view:*)"
     ],
     "deny": [],
     "ask": []

@@ -13,6 +13,7 @@ import DashboardOrderCard from "./components/DashboardOrderCard";
 import GooeyNav from "./components/GooeyNav";
 import UnifiedConfigModal from "./components/UnifiedConfigModal";
 import { useWebhookAllMachines } from "../../hooks/useWebhookMachine";
+import { useGlobalConfig } from "../../hooks/useGlobalConfig";
 import "./factory-floor.css";
 
 const STATUS_ORDER: Record<MachineStatus['status'], number> = {
@@ -331,6 +332,14 @@ export default function Dashboard() {
   // Usar el hook del theme switcher
   const { currentTheme } = useThemeSwitcher();
 
+  // Global configuration hook
+  const {
+    config: globalConfig,
+    loading: configLoading,
+    updateHeroConfig,
+    updateDashboardConfig,
+  } = useGlobalConfig();
+
   // Estado para controlar a configuração do título
   const [titleConfig, setTitleConfig] = useState<TitleConfig>(defaultConfig);
   const [showUnifiedConfig, setShowUnifiedConfig] = useState(false);
@@ -372,28 +381,41 @@ export default function Dashboard() {
     });
   };
 
-  // Carrega a configuração do localStorage ao iniciar o componente
+  // Sync titleConfig with global server config
   useEffect(() => {
-    try {
-      const savedConfig = localStorage.getItem('titleConfig');
-      if (savedConfig) {
-        const parsedConfig: TitleConfig = JSON.parse(savedConfig);
-        if (parsedConfig && typeof parsedConfig.sistema === 'string' && Array.isArray(parsedConfig.scada)) {
-          setTitleConfig(parsedConfig);
-        }
+    if (!configLoading && globalConfig) {
+      // Load from server first
+      const serverConfig: TitleConfig = {
+        sistema: globalConfig.hero.sistema,
+        scada: globalConfig.hero.scada,
+      };
+      setTitleConfig(serverConfig);
+
+      // Also sync visibleCount from server
+      setVisibleCount(globalConfig.dashboard.cardsPerRow);
+
+      // Update localStorage for backward compatibility
+      try {
+        localStorage.setItem('titleConfig', JSON.stringify(serverConfig));
+      } catch (_error) {
+        // Ignore localStorage errors
       }
-    } catch (_error) {
-      // console.error("Falha ao carregar configuração do título do localStorage:", error);
     }
-  }, []);
+  }, [configLoading, globalConfig]);
 
   // Função para salvar configuração
-  const handleSaveConfig = (config: TitleConfig) => {
+  const handleSaveConfig = async (config: TitleConfig) => {
     setTitleConfig(config);
     try {
+      // Save to server
+      await updateHeroConfig({
+        sistema: config.sistema,
+        scada: config.scada,
+      });
+      // Also save to localStorage for backward compatibility
       localStorage.setItem('titleConfig', JSON.stringify(config));
     } catch (error) {
-      // TODO: handle configuration persistence error if needed
+      console.error("Error saving configuration:", error);
     }
   };
 
@@ -556,10 +578,18 @@ export default function Dashboard() {
     }
   }, []);
 
-  const handleVisibleCountChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+  const handleVisibleCountChange = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
     const nextValue = Number(event.target.value);
-    setVisibleCount(Number.isFinite(nextValue) ? nextValue : 4);
-  }, []);
+    const cardsPerRow = Number.isFinite(nextValue) ? nextValue : 4;
+    setVisibleCount(cardsPerRow);
+
+    // Save to server
+    try {
+      await updateDashboardConfig({ cardsPerRow });
+    } catch (error) {
+      console.error("Error saving cards per row:", error);
+    }
+  }, [updateDashboardConfig]);
 
   const cardMinWidth = useMemo(() => {
     // Calcular largura baseado em cards por linha
