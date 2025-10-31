@@ -249,12 +249,11 @@ export function useCalidadNOK(
       console.log('[useCalidadNOK] Primer item:', normalizedItems[0]);
 
       const total = normalizedItems.reduce((sum, item) => sum + (item.Unidades || 0), 0);
-      const firstValue = normalizedItems.length > 0 ? normalizedItems[0].Unidades : 0;
 
       lastValidDataRef.current = normalizedItems;
-      lastValidTotalRef.current = firstValue;
+      lastValidTotalRef.current = total;
       setData(normalizedItems);
-      setTotalNOK(firstValue);
+      setTotalNOK(total);
       setLastUpdate(new Date());
       setError(null);
     } catch (err: any) {
