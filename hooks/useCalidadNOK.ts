@@ -155,16 +155,49 @@ export function useCalidadNOK(
         machineId: machineId,
       };
 
-      const response = await fetch(webhookUrl, {
-        method: 'POST',
-        mode: 'cors',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-        signal: abortControllerRef.current.signal,
-      });
+      // Tentar primeiro webhook n8n, depois fallback para API local
+      let response: Response;
+      let usedWebhook = webhookUrl;
+
+      try {
+        response = await fetch(webhookUrl, {
+          method: 'POST',
+          mode: 'cors',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+          signal: abortControllerRef.current.signal,
+        });
+
+        // Se webhook n8n retorna dados válidos, usar ele
+        if (response.ok) {
+          const testData = await response.clone().json();
+          // Verificar se tem dados válidos (não null)
+          if (Array.isArray(testData) && testData.length > 0 && testData[0]?.Unidades !== null) {
+            usedWebhook = webhookUrl;
+          } else {
+            throw new Error('Webhook n8n retornou dados vazios');
+          }
+        } else {
+          throw new Error(`Webhook n8n falhou: ${response.status}`);
+        }
+      } catch (webhookError) {
+        console.warn('Webhook n8n falhou, tentando API local:', webhookError);
+        // Fallback para API local
+        const localApiUrl = '/api/scada/nok-detallado';
+        response = await fetch(localApiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+          signal: abortControllerRef.current.signal,
+        });
+        usedWebhook = localApiUrl;
+      }
 
       if (!response.ok) {
         throw new Error(`Error fetching calidad NOK: ${response.status} ${response.statusText}`);
@@ -207,6 +240,11 @@ export function useCalidadNOK(
       if (normalizedItems.length === 0) {
         return; // Sai sem atualizar dados
       }
+
+      // Debug: Verificar dados normalizados
+      console.log('[useCalidadNOK] API usada:', usedWebhook);
+      console.log('[useCalidadNOK] Dados normalizados:', normalizedItems);
+      console.log('[useCalidadNOK] Primer item:', normalizedItems[0]);
 
       const total = normalizedItems.reduce((sum, item) => sum + (item.Unidades || 0), 0);
 
