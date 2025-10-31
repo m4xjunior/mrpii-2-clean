@@ -208,12 +208,6 @@ async function generateMachineInsights(machine: any) {
     ? Object.values(productCosts).reduce((sum, cost) => sum + cost, 0) / Object.keys(productCosts).length
     : 15.50; // Fallback al valor por defecto
 
-  console.log({
-    totalProductos: Object.keys(productCosts).length,
-    costoPromedio: costoPromedioProducto,
-    nota: 'Usado para calcular impacto económico de mejoras OEE'
-  });
-
   // Calcular OEE actual (estimación local con datos disponibles)
   const resultadoOEE = computeOEEFromSnapshot(productionData, downtimeEvents, {
     velocidad_actual: machine.velocidad_actual || 0,

@@ -102,12 +102,6 @@ export async function POST(request: NextRequest) {
 
     // Aquí se podría guardar en una tabla de configuración
     // Por ahora, simularemos el guardado
-    console.log({
-      cod_producto,
-      costo_unitario,
-      maquina_id,
-      producto: productExists[0].desc_producto
-    });
 
     return NextResponse.json({
       success: true,

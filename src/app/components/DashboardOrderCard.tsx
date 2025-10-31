@@ -982,19 +982,6 @@ export default function DashboardOrderCard({
       }
     : null;
 
-  // 🔍 DEBUG: Log consolidado de métricas turno
-  useEffect(() => {
-    if (data) {
-      console.log({
-        OEE_TURNO: data.oeeTurno,
-        DISP_TURNO: data.dispTurno,
-        REND_TURNO: data.rendTurno,
-        CAL_TURNO: data.calTurno,
-        '---': '---',
-        metricasTurnoData_completo: metricasTurnoData,
-      });
-    }
-  }, [data, machineId, metricasTurnoData]);
 
   // ✅ Conversión simple de velocidad (API ya envía valores parseados)
   const { velUphNumber, velUpsNumber } = useMemo(() => {
@@ -1196,10 +1183,6 @@ export default function DashboardOrderCard({
     try {
       window.localStorage.setItem(pointerKey, progressStorageKey);
     } catch (error) {
-      console.warn(
-        `[DashboardOrderCard] ${machineId}: unable to persist progress pointer`,
-        error,
-      );
     }
 
     const anchor = deriveAnchorFromProgressKey(progressStorageKey);

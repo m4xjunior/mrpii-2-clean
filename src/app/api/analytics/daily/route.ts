@@ -16,14 +16,6 @@ export async function GET(request: NextRequest) {
       ? Object.values(productCosts).reduce((sum, cost) => sum + cost, 0) / Object.keys(productCosts).length
       : 0; // Sin productos = costo cero
 
-    console.log({
-      totalProductos: Object.keys(productCosts).length,
-      costoPromedio: costoPromedioNok,
-      nota: Object.keys(productCosts).length > 0
-        ? 'Basado en costos reales de MAPEX'
-        : 'Sin productos activos - costo cero'
-    });
-
     // Consulta para obtener producción del día actual desde MAPEX
     const productionSql = `
       SELECT
