@@ -59,13 +59,6 @@ export async function GET(request: NextRequest) {
         : 'Sin productos activos - pérdidas en cero'
     };
 
-      ...data,
-      calculo_perdidas: costoPromedioNok > 0
-        ? `${totalNok} NOK × €${costoPromedioNok.toFixed(2)} = €${(totalNok * costoPromedioNok).toFixed(2)}`
-        : `${totalNok} NOK × €0.00 = €0.00 (sin productos activos)`,
-      costo_promedio_usado: costoPromedioNok
-    });
-
     return NextResponse.json({
       success: true,
       data,

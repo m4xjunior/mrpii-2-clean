@@ -1136,6 +1136,7 @@ export default function DashboardOrderCard({
         const storedKey = window.localStorage.getItem(pointerKey);
         return storedKey ?? null;
       } catch (error) {
+        console.warn(
           `[DashboardOrderCard] ${machineId}: unable to load stored progress key`,
           error,
         );
