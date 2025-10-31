@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { executeQuery } from 'lib/database/connection';
-import { getAllProductCosts } from '../../scada/costs-config/route';
+import { getAllProductCosts } from '../../scada/costs-config/utils';
 
 export async function GET(request: NextRequest) {
   try {

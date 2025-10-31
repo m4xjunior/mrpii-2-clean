@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { executeQuery } from 'lib/database/connection';
 import { generarAlertas, analizarParetoCausas } from 'lib/oee/calculations';
-import { getAllProductCosts } from '../../scada/costs-config/route';
+import { getAllProductCosts } from '../../scada/costs-config/utils';
 
 // Tipos locais para substituir os inexistentes
 interface DatosProduccion {

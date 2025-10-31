@@ -121,7 +121,8 @@ export async function POST(request: NextRequest) {
 // PUT: Update specific section of configuration
 export async function PUT(request: NextRequest) {
   try {
-    const { section, data } = await request.json();
+    const body = await request.json();
+    const { section, data } = body;
 
     if (!section || !data) {
       return NextResponse.json(
@@ -132,9 +133,12 @@ export async function PUT(request: NextRequest) {
 
     const currentConfig = loadConfig();
 
+    // Create updated config with proper typing
     const updatedConfig: GlobalConfig = {
       ...currentConfig,
-      [section]: { ...currentConfig[section as keyof GlobalConfig], ...data },
+      hero: section === 'hero' ? { ...currentConfig.hero, ...data } : currentConfig.hero,
+      dashboard: section === 'dashboard' ? { ...currentConfig.dashboard, ...data } : currentConfig.dashboard,
+      shifts: section === 'shifts' ? { ...currentConfig.shifts, ...data } : currentConfig.shifts,
       lastUpdated: new Date().toISOString(),
     };
 

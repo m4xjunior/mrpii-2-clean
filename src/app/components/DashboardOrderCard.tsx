@@ -1729,7 +1729,7 @@ export default function DashboardOrderCard({
 
           // Filter segments to only include those from the last X days
           const filteredSegments = parsed.segments?.filter((seg: StatusSegment) => {
-            return seg.start >= cutoffDate;
+            return seg.startMs >= cutoffDate;
           }) || [];
 
           if (filteredSegments.length > 0) {
