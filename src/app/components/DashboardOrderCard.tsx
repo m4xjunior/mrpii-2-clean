@@ -462,8 +462,21 @@ const getMachineStateInfo = (
 };
 
 // Função para obter cor baseada no estado
-const getStateColor = (stateText: string): string => {
+const getStateColor = (stateText: string, description?: string | null): string => {
   const state = stateText.toLowerCase();
+  const desc = description?.toLowerCase() || "";
+
+  // Detectar paros planificados (CAMBIO MP, mantenimiento preventivo, etc.)
+  const isPlannedStop = desc && (
+    desc.includes("cambio") ||
+    desc.includes("mp") ||
+    desc.includes("materia") ||
+    desc.includes("material") ||
+    desc.includes("preventivo") ||
+    desc.includes("planificado") ||
+    desc.includes("programado") ||
+    desc.includes("planeado")
+  );
 
   if (state.includes("producción")) {
     return "#28a745"; // Verde
@@ -485,11 +498,24 @@ const getStateColor = (stateText: string): string => {
     return "#fd7e14"; // Laranja escuro
   }
 
+  // Paros: cinza se for planificado, vermelho se for não planificado
   if (state.includes("cerrado") || state.includes("parada")) {
-    return "#dc3545"; // Vermelho
+    return isPlannedStop ? "#4a5568" : "#dc3545"; // Cinza escuro para planificado, vermelho para não planificado
   }
 
   return "#6c757d"; // Cinza padrão
+};
+
+const formatTimeFromMs = (timestampMs: number): string => {
+  const date = new Date(timestampMs);
+  if (Number.isNaN(date.getTime())) {
+    return "—";
+  }
+  return new Intl.DateTimeFormat("es-ES", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(date);
 };
 
 const formatDateTime = (iso?: string | null): string => {
@@ -959,7 +985,6 @@ export default function DashboardOrderCard({
   // 🔍 DEBUG: Log consolidado de métricas turno
   useEffect(() => {
     if (data) {
-      console.log(`📊 [${machineId}] TODAS MÉTRICAS TURNO:`, {
         OEE_TURNO: data.oeeTurno,
         DISP_TURNO: data.dispTurno,
         REND_TURNO: data.rendTurno,
@@ -1111,6 +1136,7 @@ export default function DashboardOrderCard({
   const [statusSegments, setStatusSegments] = useState<StatusSegment[]>([]);
   const statusSegmentsRef = useRef<StatusSegment[]>([]);
   const statusCurrentLabelRef = useRef<string | null>(null);
+  const optionsMenuRef = useRef<HTMLDivElement>(null);
   const statusStartTimeRef = useRef<number>(Date.now());
   const [progressStorageKey, setProgressStorageKey] = useState<string | null>(
     () => {
@@ -1122,7 +1148,6 @@ export default function DashboardOrderCard({
         const storedKey = window.localStorage.getItem(pointerKey);
         return storedKey ?? null;
       } catch (error) {
-        console.warn(
           `[DashboardOrderCard] ${machineId}: unable to load stored progress key`,
           error,
         );
@@ -1154,7 +1179,7 @@ export default function DashboardOrderCard({
     machineStateInfo.state === "PARADA" && machineStateInfo.description
       ? machineStateInfo.description
       : (machineStateInfo.state ?? "SIN ESTADO");
-  const statusColor = getStateColor(machineStateInfo.state);
+  const statusColor = getStateColor(machineStateInfo.state, machineStateInfo.description);
 
   const turnoMetricsLoading = metricasTurnoLoading && !metricasTurnoData;
 
@@ -1271,7 +1296,6 @@ export default function DashboardOrderCard({
         isRestoringTimelineRef.current = false;
         return;
       } catch (error) {
-        console.warn(
           `[DashboardOrderCard] ${machineId}: unable to migrate status progress`,
           error,
         );
@@ -1306,7 +1330,6 @@ export default function DashboardOrderCard({
             window.localStorage.removeItem(pointerKey);
           }
         } catch (error) {
-          console.warn(
             `[DashboardOrderCard] ${machineId}: storage cleanup failed`,
             error,
           );
@@ -1334,7 +1357,6 @@ export default function DashboardOrderCard({
         );
         lastPersistAtRef.current = now;
       } catch (error) {
-        console.warn(
           `[DashboardOrderCard] ${machineId}: unable to persist status progress`,
           error,
         );
@@ -1547,6 +1569,8 @@ export default function DashboardOrderCard({
           ? 100 / statusSegments.length
           : 0;
     const elapsedLabel = formatElapsedTime(Math.floor(durationMs / 1000));
+    const startTime = formatTimeFromMs(segment.startMs);
+    const endTime = segment.endMs ? formatTimeFromMs(segment.endMs) : "Actual";
 
     return {
       id: segment.id,
@@ -1557,6 +1581,8 @@ export default function DashboardOrderCard({
       elapsedLabel,
       startMs: segment.startMs,
       endMs: segment.endMs,
+      startTime,
+      endTime,
     };
   });
 
@@ -1589,7 +1615,6 @@ export default function DashboardOrderCard({
         setMachineFieldsData(result.data);
       }
     } catch (error) {
-      console.error("Error obteniendo datos de machine-fields:", error);
     } finally {
       setMachineFieldsLoading(false);
     }
@@ -1617,7 +1642,6 @@ export default function DashboardOrderCard({
         setPreparationData(result.data);
       }
     } catch (error) {
-      console.error("Error obteniendo datos de preparación:", error);
     } finally {
       setPreparationLoading(false);
     }
@@ -1649,7 +1673,6 @@ export default function DashboardOrderCard({
         setNokTurnoData(result.data);
       }
     } catch (error) {
-      console.error("Error obteniendo datos NOK turno:", error);
     } finally {
       setNokTurnoLoading(false);
     }
@@ -1681,7 +1704,6 @@ export default function DashboardOrderCard({
         setNokOfData(result.data);
       }
     } catch (error) {
-      console.error("Error obteniendo datos NOK OF:", error);
     } finally {
       setNokOfLoading(false);
     }
@@ -1711,9 +1733,7 @@ export default function DashboardOrderCard({
         setStatusSegments([]);
         setShowConfigSubmenu(false);
         setShowOptionsMenu(false);
-        console.log(`[${machineId}] Progress bar reset`);
       } catch (error) {
-        console.error(`[${machineId}] Error resetting progress bar:`, error);
       }
     }
   }, [progressStorageKey, machineId]);
@@ -1749,9 +1769,7 @@ export default function DashboardOrderCard({
         }
         setShowConfigSubmenu(false);
         setShowOptionsMenu(false);
-        console.log(`[${machineId}] Progress restored to last ${daysBack} days`);
       } catch (error) {
-        console.error(`[${machineId}] Error restoring historical progress:`, error);
       }
     }
   }, [progressStorageKey, machineId, resetProgressBar]);
@@ -1759,9 +1777,12 @@ export default function DashboardOrderCard({
   // Fechar menu de opções ao clicar fora
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (showOptionsMenu) {
-        setShowOptionsMenu(false);
-        setShowConfigSubmenu(false);
+      if (showOptionsMenu && optionsMenuRef.current) {
+        // Verificar se o clique foi fora do menu
+        if (!optionsMenuRef.current.contains(event.target as Node)) {
+          setShowOptionsMenu(false);
+          setShowConfigSubmenu(false);
+        }
       }
     };
 
@@ -1952,6 +1973,7 @@ export default function DashboardOrderCard({
               </button>
               {showOptionsMenu && (
                 <div
+                  ref={optionsMenuRef}
                   style={{
                     position: "absolute",
                     top: "100%",
@@ -2325,14 +2347,15 @@ export default function DashboardOrderCard({
             Métricas Turno
           </div>
 
-          {/* Grid responsivo 2-4 colunas */}
+          {/* Grid responsivo 2-4 colunas - Posições fixas */}
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(50px, 1fr))",
+              gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
               gap: "6px md:gap-2 lg:gap-3",
               marginBottom: "6px md:mb-2",
             }}
+            className="metric-squares-grid"
           >
             {/* OEE Turno */}
             <div
@@ -2599,16 +2622,13 @@ export default function DashboardOrderCard({
                   transition: "all 0.2s ease",
                 }}
                 onDoubleClick={() => {
-                  console.log("🔴 [NOK] Doble click detectado:", {
                     hasData: !!calidadNOKData,
                     dataLength: calidadNOKData?.length || 0,
                     totalNOK: totalNOK,
                   });
                   if (calidadNOKData && calidadNOKData.length > 0) {
-                    console.log("🔴 [NOK] Abriendo modal...");
                     setShowNOKModal(true);
                   } else {
-                    console.log("🔴 [NOK] No hay datos para mostrar");
                   }
                 }}
                 title={
@@ -2720,8 +2740,8 @@ export default function DashboardOrderCard({
                     width: `${segment.percent}%`,
                     backgroundColor: segment.color,
                   }}
-                  title={`${segment.label} · ${segment.elapsedLabel}`}
-                  aria-label={`${segment.label} por ${segment.elapsedLabel}`}
+                  title={`${segment.label} · Inicio: ${segment.startTime} · Fin: ${segment.endTime} · Duración: ${segment.elapsedLabel}`}
+                  aria-label={`${segment.label} desde ${segment.startTime} hasta ${segment.endTime} por ${segment.elapsedLabel}`}
                 >
                   {/* Intencionalmente sem conteúdo visível */}
                   <span className="ff-status-progress__segment-mask" />
@@ -2760,7 +2780,7 @@ export default function DashboardOrderCard({
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(45px, 1fr))",
+              gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
               gap: "4px md:gap-2 lg:gap-3",
               marginBottom: "4px md:mb-3",
             }}
@@ -2933,7 +2953,7 @@ export default function DashboardOrderCard({
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(50px, 1fr))",
+              gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
               gap: "3px md:gap-2 lg:gap-3",
               fontSize: "9px md:text-xs lg:text-sm",
             }}
