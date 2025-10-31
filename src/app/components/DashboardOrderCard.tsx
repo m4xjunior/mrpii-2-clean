@@ -3180,6 +3180,11 @@ export default function DashboardOrderCard({
                   gap: "12px",
                 }}
               >
+                {(() => {
+                  console.log('[Modal NOK] calidadNOKData:', calidadNOKData);
+                  console.log('[Modal NOK] Primer defecto:', calidadNOKData[0]);
+                  return null;
+                })()}
                 {calidadNOKData.map((defecto, index) => (
                   <div
                     key={index}

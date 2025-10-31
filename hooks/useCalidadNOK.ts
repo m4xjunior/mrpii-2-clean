@@ -245,6 +245,10 @@ export function useCalidadNOK(
         throw new Error('Formato de respuesta del webhook inválido - falta campo Unidades');
       }
 
+      // Debug: Verificar datos normalizados
+      console.log('[useCalidadNOK] Datos normalizados:', normalizedItems);
+      console.log('[useCalidadNOK] Primer item:', normalizedItems[0]);
+
       const total = normalizedItems.reduce((sum, item) => sum + (item.Unidades || 0), 0);
       const firstValue = normalizedItems.length > 0 ? normalizedItems[0].Unidades : 0;
 
