@@ -591,7 +591,7 @@ const VelocidadDisplay = React.memo(
       return (
         <div
           style={{
-            fontSize: "9px md:text-xs lg:text-sm",
+            fontSize: "10px",
             fontWeight: 600,
             color: "#6c757d",
             textAlign: "center",
@@ -606,7 +606,7 @@ const VelocidadDisplay = React.memo(
       return (
         <div
           style={{
-            fontSize: "9px md:text-xs lg:text-sm",
+            fontSize: "10px",
             fontWeight: 600,
             color: "#6c757d",
             textAlign: "center",
@@ -622,7 +622,7 @@ const VelocidadDisplay = React.memo(
         {velUph > 0 && (
           <div
             style={{
-              fontSize: "10px md:text-xs lg:text-sm",
+              fontSize: "11px",
               fontWeight: 600,
               color: "#0f172a",
               textAlign: "center",
@@ -634,7 +634,7 @@ const VelocidadDisplay = React.memo(
         {velUps > 0 && (
           <div
             style={{
-              fontSize: "9px md:text-[10px] lg:text-xs",
+              fontSize: "10px",
               fontWeight: 500,
               color: "#64748b",
               textAlign: "center",
@@ -2307,7 +2307,7 @@ export default function DashboardOrderCard({
         <div
           style={{
             margin: "6px 0 2px 0",
-            padding: `${combineClasses("px-3 md:px-4 lg:px-6 py-2 md:py-3 lg:py-4")}`,
+            padding: "12px 16px",
             background: "rgba(248, 249, 250, 0.95)",
             borderRadius: "4px",
             border: "1px solid rgba(233, 236, 239, 0.8)",
@@ -2319,12 +2319,12 @@ export default function DashboardOrderCard({
         >
           <div
             style={{
-              fontSize: "9px md:text-[10px] lg:text-[11px]",
+              fontSize: "10px",
               fontWeight: 700,
               color: "#495057",
               textTransform: "uppercase",
               letterSpacing: "0.3px",
-              marginBottom: "6px md:mb-3",
+              marginBottom: "8px",
               textAlign: "center",
             }}
           >
@@ -2336,8 +2336,8 @@ export default function DashboardOrderCard({
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-              gap: "6px md:gap-2 lg:gap-3",
-              marginBottom: "6px md:mb-2",
+              gap: "8px",
+              marginBottom: "6px",
             }}
             className="metric-squares-grid"
           >
@@ -2347,7 +2347,7 @@ export default function DashboardOrderCard({
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
-                padding: "4px md:px-2 md:py-3 lg:px-3 lg:py-4",
+                padding: "8px",
                 background: turnoMetricsLoading
                   ? "rgba(108, 117, 125, 0.1)"
                   : getOeeBackground(
@@ -2360,14 +2360,14 @@ export default function DashboardOrderCard({
                 borderRadius: "5px",
                 boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
                 border: "1px solid rgba(255,255,255,0.2)",
-                minHeight: "70px md:min-h-[100px] lg:min-h-[120px]",
+                minHeight: "100px",
                 justifyContent: "center",
               }}
               title={`OEE Turno: ${turnoMetricsLoading ? "Carregando..." : animatedValues.oeeTurno || data.oeeTurno || "N/A"}%`}
             >
               <div
                 style={{
-                  fontSize: "11px md:text-sm lg:text-base",
+                  fontSize: "13px",
                   fontWeight: 800,
                   color: "white",
                   textShadow: "0 1px 2px rgba(0,0,0,0.3)",
@@ -2386,7 +2386,7 @@ export default function DashboardOrderCard({
               </div>
               <div
                 style={{
-                  fontSize: "7px md:text-xs lg:text-sm",
+                  fontSize: "9px",
                   fontWeight: 700,
                   color: "rgba(255,255,255,0.9)",
                   textTransform: "uppercase",
@@ -2403,7 +2403,7 @@ export default function DashboardOrderCard({
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
-                padding: "4px md:px-2 md:py-3 lg:px-3 lg:py-4",
+                padding: "8px",
                 background: data.paroActivoDesc
                   ? "rgba(255, 193, 7, 0.15)"
                   : "rgba(255,255,255,0.8)",
@@ -2411,17 +2411,17 @@ export default function DashboardOrderCard({
                 border: data.paroActivoDesc
                   ? "1px solid rgba(255, 193, 7, 0.3)"
                   : "none",
-                minHeight: "70px md:min-h-[100px] lg:min-h-[120px]",
+                minHeight: "100px",
                 justifyContent: "center",
               }}
               title={`Disponibilidad Turno: ${turnoMetricsLoading ? "Carregando..." : animatedValues.dispTurno || data.dispTurno || "N/A"}%`}
             >
               <div
                 style={{
-                  fontSize: "13px md:text-base lg:text-lg",
+                  fontSize: "15px",
                   fontWeight: 700,
                   color: turnoMetricsLoading ? "#6c757d" : "#007bff",
-                  marginBottom: "3px md:mb-2",
+                  marginBottom: "4px",
                 }}
               >
                 {turnoMetricsLoading ? (
@@ -2439,11 +2439,11 @@ export default function DashboardOrderCard({
               </div>
               <div
                 style={{
-                  fontSize: "10px md:text-xs lg:text-sm",
+                  fontSize: "11px",
                   fontWeight: 600,
                   color: "#6c757d",
                   textTransform: "uppercase",
-                  marginBottom: "2px md:mb-2",
+                  marginBottom: "4px",
                 }}
               >
                 Disp
@@ -2454,11 +2454,11 @@ export default function DashboardOrderCard({
                   alignItems: "center",
                   justifyContent: "center",
                   gap: "2px",
-                  marginTop: "2px md:mt-2",
-                  paddingTop: "6px md:pt-2",
+                  marginTop: "4px",
+                  paddingTop: "6px",
                   borderTop: "1px solid rgba(0,0,0,0.1)",
                   width: "100%",
-                  fontSize: "8px md:text-xs",
+                  fontSize: "9px",
                 }}
               >
                 <i
@@ -2469,7 +2469,7 @@ export default function DashboardOrderCard({
                   }
                   style={{
                     color: data.paroActivoDesc ? "#ffc107" : "#28a745",
-                    fontSize: "8px md:text-xs",
+                    fontSize: "9px",
                   }}
                 ></i>
                 <div
@@ -2489,19 +2489,19 @@ export default function DashboardOrderCard({
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
-                padding: "4px md:px-2 md:py-3 lg:px-3 lg:py-4",
+                padding: "8px",
                 background: "rgba(255,255,255,0.8)",
                 borderRadius: "4px",
-                minHeight: "70px md:min-h-[100px] lg:min-h-[120px]",
+                minHeight: "100px",
                 justifyContent: "center",
               }}
             >
               <div
                 style={{
-                  fontSize: "13px md:text-base lg:text-lg",
+                  fontSize: "15px",
                   fontWeight: 700,
                   color: turnoMetricsLoading ? "#6c757d" : "#28a745",
-                  marginBottom: "3px md:mb-2",
+                  marginBottom: "4px",
                 }}
               >
                 {turnoMetricsLoading ? (
@@ -2519,11 +2519,11 @@ export default function DashboardOrderCard({
               </div>
               <div
                 style={{
-                  fontSize: "10px md:text-xs lg:text-sm",
+                  fontSize: "11px",
                   fontWeight: 600,
                   color: "#6c757d",
                   textTransform: "uppercase",
-                  marginBottom: "2px md:mb-2",
+                  marginBottom: "4px",
                 }}
               >
                 Rend
@@ -2555,19 +2555,19 @@ export default function DashboardOrderCard({
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
-                padding: "4px md:px-2 md:py-3 lg:px-3 lg:py-4",
+                padding: "8px",
                 background: "rgba(255,255,255,0.8)",
                 borderRadius: "4px",
-                minHeight: "70px md:min-h-[100px] lg:min-h-[120px]",
+                minHeight: "100px",
                 justifyContent: "center",
               }}
             >
               <div
                 style={{
-                  fontSize: "13px md:text-base lg:text-lg",
+                  fontSize: "15px",
                   fontWeight: 700,
                   color: turnoMetricsLoading ? "#6c757d" : "#ffc107",
-                  marginBottom: "3px md:mb-2",
+                  marginBottom: "4px",
                 }}
               >
                 {turnoMetricsLoading ? (
@@ -2585,18 +2585,18 @@ export default function DashboardOrderCard({
               </div>
               <div
                 style={{
-                  fontSize: "10px md:text-xs lg:text-sm",
+                  fontSize: "11px",
                   fontWeight: 600,
                   color: "#6c757d",
                   textTransform: "uppercase",
-                  marginBottom: "2px md:mb-1",
+                  marginBottom: "3px",
                 }}
               >
                 Calidad
               </div>
               <div
                 style={{
-                  fontSize: "10px md:text-xs lg:text-sm",
+                  fontSize: "11px",
                   fontWeight: 600,
                   color: "#dc3545",
                   cursor:
@@ -2734,7 +2734,7 @@ export default function DashboardOrderCard({
         <div
           style={{
             margin: "4px 0 4px 0",
-            padding: `${combineClasses("px-3 md:px-4 lg:px-6 py-2 md:py-3 lg:py-4")}`,
+            padding: "12px 16px",
             background: "rgba(248, 249, 250, 0.95)",
             borderRadius: "4px",
             border: "1px solid rgba(233, 236, 239, 0.8)",
@@ -2744,12 +2744,12 @@ export default function DashboardOrderCard({
         >
           <div
             style={{
-              fontSize: "9px md:text-[10px] lg:text-[11px]",
+              fontSize: "10px",
               fontWeight: 700,
               color: "#495057",
               textTransform: "uppercase",
               letterSpacing: "0.3px",
-              marginBottom: "4px md:mb-2",
+              marginBottom: "6px",
               textAlign: "center",
             }}
           >
@@ -2760,8 +2760,8 @@ export default function DashboardOrderCard({
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-              gap: "4px md:gap-2 lg:gap-3",
-              marginBottom: "4px md:mb-3",
+              gap: "8px",
+              marginBottom: "6px",
             }}
           >
             {/* OEE OF */}
@@ -2770,7 +2770,7 @@ export default function DashboardOrderCard({
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
-                padding: "4px md:px-2 md:py-2 lg:px-3 lg:py-3",
+                padding: "8px",
                 background: machineFieldsLoading
                   ? "rgba(108, 117, 125, 0.1)"
                   : getOeeBackground(
@@ -2781,13 +2781,13 @@ export default function DashboardOrderCard({
                 borderRadius: "6px",
                 boxShadow: "0 1px 8px rgba(0,0,0,0.1)",
                 border: "2px solid rgba(255,255,255,0.2)",
-                minHeight: "60px md:min-h-[80px] lg:min-h-[100px]",
+                minHeight: "80px",
                 justifyContent: "center",
               }}
             >
               <div
                 style={{
-                  fontSize: "12px md:text-base lg:text-lg",
+                  fontSize: "14px",
                   fontWeight: 800,
                   color: "white",
                   textShadow: "0 1px 2px rgba(0,0,0,0.3)",
@@ -2805,7 +2805,7 @@ export default function DashboardOrderCard({
               </div>
               <div
                 style={{
-                  fontSize: "8px md:text-xs lg:text-sm",
+                  fontSize: "10px",
                   fontWeight: 700,
                   color: "rgba(255,255,255,0.9)",
                   textTransform: "uppercase",
@@ -2842,16 +2842,16 @@ export default function DashboardOrderCard({
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",
-                  padding: "4px md:px-2 md:py-2 lg:px-3 lg:py-3",
+                  padding: "8px",
                   background: "rgba(255,255,255,0.8)",
                   borderRadius: "6px",
-                  minHeight: "60px md:min-h-[80px] lg:min-h-[100px]",
+                  minHeight: "80px",
                   justifyContent: "center",
                 }}
               >
                 <div
                   style={{
-                    fontSize: "12px md:text-base lg:text-lg",
+                    fontSize: "14px",
                     fontWeight: 700,
                     color: metric.color,
                   }}
@@ -2866,7 +2866,7 @@ export default function DashboardOrderCard({
                 </div>
                 <div
                   style={{
-                    fontSize: "8px md:text-xs lg:text-sm",
+                    fontSize: "10px",
                     fontWeight: 600,
                     color: "#6c757d",
                     textTransform: "uppercase",
@@ -2933,8 +2933,8 @@ export default function DashboardOrderCard({
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-              gap: "3px md:gap-2 lg:gap-3",
-              fontSize: "9px md:text-xs lg:text-sm",
+              gap: "8px",
+              fontSize: "10px",
             }}
           >
             {[
@@ -2973,7 +2973,7 @@ export default function DashboardOrderCard({
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",
-                  padding: "2px md:px-2 md:py-2 lg:px-3 lg:py-3",
+                  padding: "8px",
                   background: item.bg,
                   borderRadius: "4px",
                   border: `1px solid ${item.color}20`,
@@ -2981,7 +2981,7 @@ export default function DashboardOrderCard({
               >
                 <div
                   style={{
-                    fontSize: "11px md:text-sm lg:text-base",
+                    fontSize: "13px",
                     fontWeight: 700,
                     color: item.color,
                   }}
@@ -2990,7 +2990,7 @@ export default function DashboardOrderCard({
                 </div>
                 <div
                   style={{
-                    fontSize: "7px md:text-xs lg:text-sm",
+                    fontSize: "9px",
                     fontWeight: 600,
                     color: item.darkColor,
                     textTransform: "uppercase",
