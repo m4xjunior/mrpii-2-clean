@@ -622,7 +622,7 @@ const VelocidadDisplay = React.memo(
         {velUph > 0 && (
           <div
             style={{
-              fontSize: "11px",
+              fontSize: "13px",
               fontWeight: 600,
               color: "#0f172a",
               textAlign: "center",
@@ -634,7 +634,7 @@ const VelocidadDisplay = React.memo(
         {velUps > 0 && (
           <div
             style={{
-              fontSize: "10px",
+              fontSize: "13px",
               fontWeight: 500,
               color: "#64748b",
               textAlign: "center",
@@ -2458,7 +2458,7 @@ export default function DashboardOrderCard({
                   paddingTop: "6px",
                   borderTop: "1px solid rgba(0,0,0,0.1)",
                   width: "100%",
-                  fontSize: "9px",
+                  fontSize: "13px",
                 }}
               >
                 <i
@@ -2469,7 +2469,7 @@ export default function DashboardOrderCard({
                   }
                   style={{
                     color: data.paroActivoDesc ? "#ffc107" : "#28a745",
-                    fontSize: "9px",
+                    fontSize: "13px",
                   }}
                 ></i>
                 <div
@@ -2596,7 +2596,7 @@ export default function DashboardOrderCard({
               </div>
               <div
                 style={{
-                  fontSize: "11px",
+                  fontSize: "13px",
                   fontWeight: 600,
                   color: "#dc3545",
                   cursor:

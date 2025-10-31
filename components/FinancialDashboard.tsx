@@ -746,41 +746,6 @@ function FinancialInsights({ costAnalysis, totalLosses }: { costAnalysis: any[],
         </div>
       )}
 
-      {/* Theme Customizer */}
-      <div className="switcher-body">
-        <button className="btn btn-primary btn-switcher shadow-sm" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasScrolling" aria-controls="offcanvasScrolling">
-          <i className="bx bx-cog bx-spin"></i>
-        </button>
-        <div className="offcanvas offcanvas-end shadow border-start-0 p-2" data-bs-scroll="true" data-bs-backdrop="false" tabIndex={-1} id="offcanvasScrolling">
-          <div className="offcanvas-header border-bottom">
-            <h5 className="offcanvas-title" id="offcanvasScrollingLabel">Personalizador de Tema</h5>
-            <button type="button" className="btn-close text-reset" data-bs-dismiss="offcanvas"></button>
-          </div>
-          <div className="offcanvas-body">
-            <h6 className="mb-0">Variación de Tema</h6>
-            <hr />
-            <div className="form-check form-check-inline">
-              <input className="form-check-input" type="radio" name="inlineRadioOptions" id="lightmode" value="option1" defaultChecked />
-              <label className="form-check-label" htmlFor="lightmode">Claro</label>
-            </div>
-            <hr />
-            <div className="form-check form-check-inline">
-              <input className="form-check-input" type="radio" name="inlineRadioOptions" id="darkmode" value="option2" />
-              <label className="form-check-label" htmlFor="darkmode">Oscuro</label>
-            </div>
-            <hr />
-            <div className="form-check form-check-inline">
-              <input className="form-check-input" type="radio" name="inlineRadioOptions" id="darksidebar" value="option3" />
-              <label className="form-check-label" htmlFor="darksidebar">Barra Lateral Oscura</label>
-            </div>
-            <hr />
-            <div className="form-check form-check-inline">
-              <input className="form-check-input" type="radio" name="inlineRadioOptions" id="ColorLessIcons" value="option4" />
-              <label className="form-check-label" htmlFor="ColorLessIcons">Iconos sin Color</label>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

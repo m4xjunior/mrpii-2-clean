@@ -61,7 +61,6 @@ function loadConfig(): GlobalConfig {
     const config = JSON.parse(fileContent);
     return { ...DEFAULT_CONFIG, ...config };
   } catch (error) {
-    console.error("Error loading config:", error);
     return DEFAULT_CONFIG;
   }
 }
@@ -77,7 +76,6 @@ function saveConfig(config: GlobalConfig) {
       "utf-8"
     );
   } catch (error) {
-    console.error("Error saving config:", error);
     throw new Error("Failed to save configuration");
   }
 }

@@ -62,7 +62,6 @@ export function useOFsData() {
       setDateRange({ start: startDate || null, end: endDate || null });
 
     } catch (err) {
-      console.error('Erro ao buscar OFs:', err);
       setError(err instanceof Error ? err.message : 'Erro desconhecido');
       setOfs([]);
     } finally {

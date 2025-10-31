@@ -17,7 +17,6 @@ function useThemeSwitcher() {
   const [currentTheme, setCurrentTheme] = useState('light');
 
   useEffect(() => {
-    console.log('🎨 useThemeSwitcher: Inicializando...');
 
     // Cargar tema guardado en localStorage
     const savedTheme = localStorage.getItem('scada-theme') || 'light';
@@ -27,7 +26,6 @@ function useThemeSwitcher() {
     const handleThemeChange = (e: CustomEvent) => {
       const newTheme = e.detail.theme;
       setCurrentTheme(newTheme);
-      console.log('🔄 useThemeSwitcher: Tema cambiado a:', newTheme);
     };
 
     document.addEventListener('themeChange' as any, handleThemeChange);
@@ -53,14 +51,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   const [sidebarToggled, setSidebarToggled] = useState(false);
 
   useEffect(() => {
-    console.log('🏠 DashboardLayout: Tema actual:', currentTheme);
   }, [currentTheme]);
 
   // Listener para eventos da sidebar
   useEffect(() => {
     const handleSidebarToggle = (event: any) => {
       setSidebarToggled(event.detail.isMinimized);
-      console.log('📏 DashboardLayout: Sidebar toggle:', event.detail.isMinimized ? 'minimizada' : 'expandida');
     };
 
     document.addEventListener('sidebarToggle', handleSidebarToggle);
@@ -202,41 +198,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         <p className="mb-0">Sistema SCADA MRPII - © 2024 Grupo KH</p>
       </div>
 
-      {/* Theme Customizer */}
-      <div className="switcher-body">
-        <button className="btn btn-primary btn-switcher shadow-sm" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasScrolling" aria-controls="offcanvasScrolling">
-          <i className="bx bx-cog bx-spin"></i>
-        </button>
-        <div className="offcanvas offcanvas-end shadow border-start-0 p-2" data-bs-scroll="true" data-bs-backdrop="false" tabIndex={-1} id="offcanvasScrolling">
-          <div className="offcanvas-header border-bottom">
-            <h5 className="offcanvas-title" id="offcanvasScrollingLabel">Personalizador de Tema</h5>
-            <button type="button" className="btn-close text-reset" data-bs-dismiss="offcanvas"></button>
-          </div>
-          <div className="offcanvas-body">
-            <h6 className="mb-0">Variación de Tema</h6>
-            <hr />
-            <div className="form-check form-check-inline">
-              <input className="form-check-input" type="radio" name="inlineRadioOptions" id="lightmode" value="option1" defaultChecked />
-              <label className="form-check-label" htmlFor="lightmode">Claro</label>
-            </div>
-            <hr />
-            <div className="form-check form-check-inline">
-              <input className="form-check-input" type="radio" name="inlineRadioOptions" id="darkmode" value="option2" />
-              <label className="form-check-label" htmlFor="darkmode">Oscuro</label>
-            </div>
-            <hr />
-            <div className="form-check form-check-inline">
-              <input className="form-check-input" type="radio" name="inlineRadioOptions" id="darksidebar" value="option3" />
-              <label className="form-check-label" htmlFor="darksidebar">Barra Lateral Oscura</label>
-            </div>
-            <hr />
-            <div className="form-check form-check-inline">
-              <input className="form-check-input" type="radio" name="inlineRadioOptions" id="ColorLessIcons" value="option4" />
-              <label className="form-check-label" htmlFor="ColorLessIcons">Iconos sin Color</label>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

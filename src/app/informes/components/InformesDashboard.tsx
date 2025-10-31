@@ -48,7 +48,6 @@ export function InformesDashboard() {
   };
 
   const handleOpenMachineModal = () => {
-    console.log('Abrindo modal de máquina');
     closeStartCalendar();
     closeEndCalendar();
     closeOFModal();

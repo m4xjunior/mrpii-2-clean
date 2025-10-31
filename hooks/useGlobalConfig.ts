@@ -53,7 +53,6 @@ export function useGlobalConfig() {
       setConfig(data);
       setError(null);
     } catch (err) {
-      console.error("Error loading config:", err);
       setError(err instanceof Error ? err.message : "Unknown error");
       setConfig(DEFAULT_CONFIG);
     } finally {
@@ -78,7 +77,6 @@ export function useGlobalConfig() {
       setConfig(data);
       return data;
     } catch (err) {
-      console.error("Error saving config:", err);
       setError(err instanceof Error ? err.message : "Unknown error");
       throw err;
     }
@@ -102,7 +100,6 @@ export function useGlobalConfig() {
         setConfig(updatedConfig);
         return updatedConfig;
       } catch (err) {
-        console.error("Error updating config section:", err);
         setError(err instanceof Error ? err.message : "Unknown error");
         throw err;
       }
@@ -125,7 +122,6 @@ export function useGlobalConfig() {
       setConfig(data);
       return data;
     } catch (err) {
-      console.error("Error resetting config:", err);
       setError(err instanceof Error ? err.message : "Unknown error");
       throw err;
     }

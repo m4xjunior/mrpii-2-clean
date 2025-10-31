@@ -272,7 +272,6 @@ function useThemeSwitcher() {
   const [currentTheme, setCurrentTheme] = useState("light");
 
   useEffect(() => {
-    // console.log("🎨 useThemeSwitcher: Inicializando...");
 
     // Cargar tema guardado en localStorage
     const savedTheme = localStorage.getItem("scada-theme") || "light";
@@ -353,7 +352,6 @@ export default function Dashboard() {
     try {
       localStorage.setItem('titleConfig', JSON.stringify(config));
     } catch (error) {
-      console.error("Falha ao salvar configuração:", error);
     }
   };
 

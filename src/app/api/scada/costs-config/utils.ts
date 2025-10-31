@@ -16,7 +16,6 @@ export async function getProductCost(cod_producto: string): Promise<number> {
     const result = await executeQuery(sql, { cod_producto });
 
     if (!result || result.length === 0) {
-      console.warn(`⚠️ Producto ${cod_producto} no encontrado, usando costo por defecto €0`);
       return 0;
     }
 
@@ -25,8 +24,6 @@ export async function getProductCost(cod_producto: string): Promise<number> {
     return 0;
 
   } catch (error) {
-    console.error(`❌ Error obteniendo costo para ${cod_producto}:`, error);
-    console.warn('⚠️ Usando costo por defecto debido a error de conexión');
     return 0; // Fallback a valor por defecto
   }
 }
@@ -34,7 +31,6 @@ export async function getProductCost(cod_producto: string): Promise<number> {
 // Función para obtener todos los costos de productos para cálculos mensuales
 export async function getAllProductCosts(): Promise<{ [key: string]: number }> {
   try {
-    console.log('💰 Obteniendo todos los costos de productos');
 
     // Consulta para obtener todos los productos activos
     const sql = `
@@ -58,11 +54,9 @@ export async function getAllProductCosts(): Promise<{ [key: string]: number }> {
       });
     }
 
-    console.log(`💰 Costos obtenidos para ${Object.keys(costMap).length} productos`);
     return costMap;
 
   } catch (error) {
-    console.error('❌ Error obteniendo todos los costos:', error);
     return {}; // Retornar mapa vacío como fallback
   }
 }

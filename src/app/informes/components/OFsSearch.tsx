@@ -58,7 +58,6 @@ export function OFsSearch({ startDate, endDate }: OFsSearchProps) {
           setMachines([]);
         }
       } catch (err) {
-        console.error('Erro ao buscar máquinas:', err);
         setMachines([]); // Garantir que machines seja um array vazio em caso de erro
       } finally {
         setLoadingMachines(false);

@@ -48,7 +48,6 @@ export function OFListModal({ isOpen, onClose, machineCode, machineName }: OFLis
         setError(data.error || 'Erro ao carregar OFs');
       }
     } catch (err) {
-      console.error('Erro ao buscar OFs:', err);
       setError('Erro ao carregar dados');
     } finally {
       setLoading(false);

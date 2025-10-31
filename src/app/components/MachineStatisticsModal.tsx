@@ -206,7 +206,6 @@ export function MachineStatisticsModal({
 
       setOrders(result.data || []);
     } catch (error) {
-      console.error("Error fetching orders:", error);
       setOrdersError(
         error instanceof Error
           ? error.message
@@ -392,7 +391,6 @@ export function MachineStatisticsModal({
         alert("Error: " + (result.error || "No fue posible obtener datos"));
       }
     } catch (error) {
-      console.error("Error fetching statistics:", error);
       alert(
         `Error al cargar estadísticas: ${
           error instanceof Error ? error.message : "Error desconocido"

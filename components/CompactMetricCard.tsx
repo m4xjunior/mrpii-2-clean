@@ -46,6 +46,12 @@ export default function CompactMetricCard({
             background: `${accent}10`,
             border: `1px solid ${accent}25`,
             flexShrink: 0,
+            flexGrow: 0,
+            aspectRatio: "1",
+            minWidth: 34,
+            minHeight: 34,
+            maxWidth: 34,
+            maxHeight: 34,
           }}
         >
           <i className={iconClass} style={{ color: accent }} />

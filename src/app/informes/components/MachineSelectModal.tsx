@@ -48,7 +48,6 @@ export function MachineSelectModal({
       }
     } catch (err) {
       setError('Error de conexión');
-      console.error('Error fetching machines:', err);
     } finally {
       setLoading(false);
     }

@@ -26,7 +26,8 @@ const nextConfig = {
 
   // Configurações de imagens
   images: {
-    unoptimized: true,
+    unoptimized: false,
+    domains: ['localhost'],
   },
 
   // Configurações de webpack

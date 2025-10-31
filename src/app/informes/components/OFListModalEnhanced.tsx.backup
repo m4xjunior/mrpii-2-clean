@@ -162,7 +162,6 @@ export function OFListModalEnhanced({
         setError(data.error || 'Error al cargar OFs');
       }
     } catch (err) {
-      console.error('Error al buscar OFs:', err);
       setError('Error al cargar datos');
     } finally {
       setLoading(false);
@@ -188,10 +187,8 @@ export function OFListModalEnhanced({
       if (data.success) {
         setDetallesOf(data.data);
       } else {
-        console.error('Error al cargar detalles:', data.error);
       }
     } catch (err) {
-      console.error('Error al buscar detalles:', err);
     } finally {
       setLoadingDetalles(false);
     }
@@ -217,7 +214,6 @@ export function OFListModalEnhanced({
         setParosOf(data.data);
         setShowParosOf(true);
       } else {
-        console.error('Error al cargar paros de OF:', data.error);
       }
     } catch (err) {
       console.error('Error al buscar paros de OF:', err);

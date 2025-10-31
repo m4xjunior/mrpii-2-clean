@@ -18,8 +18,14 @@ export default function RootLayout({
       <head>
         <link
           rel="icon"
-          href="/assets/images/favicon-32x32.png"
+          href="/images/logo-icon.png"
           type="image/png"
+        />
+        <link
+          rel="icon"
+          href="/images/favicon-32x32.png"
+          type="image/png"
+          sizes="32x32"
         />
         <link
           href="/assets/plugins/vectormap/jquery-jvectormap-2.0.2.css"

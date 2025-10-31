@@ -855,7 +855,6 @@ export default function MachineDetailModal({
           setTabData(result.data);
         }
       } catch (error) {
-        console.error("Error al obtener datos de la pestaña:", error);
       } finally {
         setLoading(false);
       }
@@ -875,7 +874,6 @@ export default function MachineDetailModal({
         setOeeData(result.data);
       }
     } catch (error) {
-      console.error("Error obteniendo datos OEE:", error);
     }
   }, [machine]);
 
@@ -892,7 +890,6 @@ export default function MachineDetailModal({
         setShiftData(result.data);
       }
     } catch (error) {
-      console.error("Error obteniendo datos por turno:", error);
     } finally {
       setShiftLoading(false);
     }
@@ -915,7 +912,6 @@ export default function MachineDetailModal({
         setMachineFieldsData(result.data);
       }
     } catch (error) {
-      console.error("Error obteniendo datos de machine-fields:", error);
     } finally {
       setMachineFieldsLoading(false);
     }
