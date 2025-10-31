@@ -1,6 +1,6 @@
 /**
  * Hook para obtener los datos de calidad (NOK - defectos) desde el webhook
- * API: https://n8n.lexusfx.com/webhook/calidad
+ * API: https://n8n.lexusfx.com/webhook/popup
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
 
@@ -32,7 +32,7 @@ interface UseCalidadNOKOptions {
   refreshInterval?: number;
   /** Si debe hacer fetch automáticamente al montar (por defecto: true) */
   autoFetch?: boolean;
-  /** URL del webhook (por defecto: https://n8n.lexusfx.com/webhook/calidad) */
+  /** URL del webhook (por defecto: https://n8n.lexusfx.com/webhook/popup) */
   webhookUrl?: string;
 }
 
@@ -78,7 +78,7 @@ export function useCalidadNOK(
   const {
     refreshInterval = 0, // Por defecto sin auto-refresh
     autoFetch = true,
-    webhookUrl = 'http://localhost:5678/webhook/calidad',
+    webhookUrl = 'https://n8n.lexusfx.com/webhook/popup',
   } = options;
 
   const [data, setData] = useState<CalidadDefecto[] | null>(null);
