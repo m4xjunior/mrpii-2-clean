@@ -1136,10 +1136,6 @@ export default function DashboardOrderCard({
         const storedKey = window.localStorage.getItem(pointerKey);
         return storedKey ?? null;
       } catch (error) {
-        console.warn(
-          `[DashboardOrderCard] ${machineId}: unable to load stored progress key`,
-          error,
-        );
         return null;
       }
     },
@@ -1281,6 +1277,7 @@ export default function DashboardOrderCard({
         isRestoringTimelineRef.current = false;
         return;
       } catch (error) {
+        console.warn(
           `[DashboardOrderCard] ${machineId}: unable to migrate status progress`,
           error,
         );
@@ -1315,6 +1312,7 @@ export default function DashboardOrderCard({
             window.localStorage.removeItem(pointerKey);
           }
         } catch (error) {
+          console.warn(
             `[DashboardOrderCard] ${machineId}: storage cleanup failed`,
             error,
           );
@@ -1342,6 +1340,7 @@ export default function DashboardOrderCard({
         );
         lastPersistAtRef.current = now;
       } catch (error) {
+        console.warn(
           `[DashboardOrderCard] ${machineId}: unable to persist status progress`,
           error,
         );
