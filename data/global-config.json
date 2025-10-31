@@ -7,12 +7,12 @@
     ]
   },
   "dashboard": {
-    "cardsPerRow": 4,
+    "cardsPerRow": 2,
     "defaultFilter": "all"
   },
   "shifts": {
     "hoursPerShift": 8,
     "showHistoricalDays": 7
   },
-  "lastUpdated": "2025-10-31T11:05:06.247Z"
+  "lastUpdated": "2025-10-31T11:53:30.213Z"
 }

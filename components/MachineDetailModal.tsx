@@ -752,7 +752,7 @@ const ShiftProgressModal = ({ machine, themeColors, isMobile }: any) => {
 };
 
 export default function MachineDetailModal({
-  machine,
+  machine: initialMachine,
   isOpen,
   onClose,
 }: MachineDetailModalProps) {
@@ -792,24 +792,72 @@ export default function MachineDetailModal({
     loading: webhookLoading,
     error: webhookError,
     refresh: refreshWebhook,
-  } = useWebhookMachine(machine?.machine?.Cod_maquina || null, {
+  } = useWebhookMachine(initialMachine?.machine?.Cod_maquina || null, {
     refreshInterval: 30000, // Actualizar cada 30 segundos
     autoFetch: isOpen, // Solo fetch cuando el modal está abierto
   });
 
+  const machine =
+    webhookMachineData ?? initialMachine ?? null;
+  const machineCode =
+    machine?.machine?.Cod_maquina ??
+    initialMachine?.machine?.Cod_maquina ??
+    null;
+
   // 🔥 USAR WEBHOOK VELOCIDAD PARA UNIDADES HORA Y SEGUNDOS
   const currentOF =
-    machine?.currentOF && machine.currentOF !== "--" ? machine.currentOF : null;
+    machine?.currentOF && machine.currentOF !== "--"
+      ? machine.currentOF
+      : null;
 
   const {
     data: velocidadData,
     loading: velocidadLoading,
     error: velocidadError,
-  } = useVelocidad(currentOF, machine?.machine?.Cod_maquina || null, {
+  } = useVelocidad(currentOF, machineCode, {
     refreshInterval: 0, // Sin auto-refresh para velocidad
-    autoFetch: !!(currentOF && machine?.machine?.Cod_maquina), // 🔥 MODIFICADO: Não depende de isOpen
+    autoFetch: !!(currentOF && machineCode), // 🔥 MODIFICADO: Não depende de isOpen
+    webhookUrl: "https://n8n.lexusfx.com/webhook/velocidad",
   });
 
+  const velocidadLabel = useMemo(() => {
+    if (velocidadData?.velocidad) {
+      return velocidadData.velocidad;
+    }
+
+    const actual =
+      machine?.velocity?.current ??
+      machine?.rt_velocidad ??
+      null;
+
+    const segundosDesdeWebhook =
+      typeof velocidadData?.velocidad_ups === "string"
+        ? Number.parseFloat(
+            velocidadData.velocidad_ups
+              .replace(/[^\d,.\-]+/g, "")
+              .replace(",", "."),
+          )
+        : null;
+
+    const segundosPorPieza =
+      segundosDesdeWebhook ??
+      machine?.rt_tiempo_pieza ??
+      (actual && actual > 0 ? 3600 / actual : null);
+
+    if (actual && Number.isFinite(actual)) {
+      const parts = [`${Math.round(actual)} u/h`];
+      if (segundosPorPieza && Number.isFinite(segundosPorPieza)) {
+        parts.push(`${segundosPorPieza.toFixed(2)} seg/pza`);
+      }
+      return parts.join(" · ");
+    }
+
+    if (segundosPorPieza && Number.isFinite(segundosPorPieza)) {
+      return `${segundosPorPieza.toFixed(2)} seg/pza`;
+    }
+
+    return "—";
+  }, [velocidadData, machine]);
   // OEE data hook removed - using webhook data instead
 
   // 🔥 COMENTADO: Ya no necesitamos estos fetches porque usamos el webhook
@@ -1597,6 +1645,8 @@ function renderTabContent(
         cardStyles,
         shiftData,
         shiftLoading || false,
+        velocidadLabel,
+        velocidadLoading,
       );
     case "of":
       return data
@@ -2355,6 +2405,8 @@ function renderResumenContent(
   cardStyles: any,
   shiftData: any,
   shiftLoading: boolean,
+  velocidadLabel: string,
+  velocidadLoading: boolean,
 ) {
   return (
     <div className="resumen-content">
@@ -2688,7 +2740,9 @@ function renderResumenContent(
                           Velocidad:
                         </span>
                         <span style={{ fontSize: 16, fontWeight: 700 }}>
-                          —
+                          {velocidadLoading && velocidadLabel === "—"
+                            ? "Cargando..."
+                            : velocidadLabel}
                         </span>
                       </div>
                       <div className="d-flex justify-content-between">

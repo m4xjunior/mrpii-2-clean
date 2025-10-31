@@ -1,6 +1,6 @@
 /**
- * Hook para obtener los datos de calidad (NOK - defectos) desde la API local
- * Endpoint por defecto: /api/scada/nok-detallado
+ * Hook para obtener los datos de calidad (NOK - defectos) desde el webhook n8n
+ * Endpoint por defecto: https://n8n.lexusfx.com/webhook/calidad
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
 
@@ -32,7 +32,7 @@ interface UseCalidadNOKOptions {
   refreshInterval?: number;
   /** Si debe hacer fetch automáticamente al montar (por defecto: true) */
   autoFetch?: boolean;
-  /** Endpoint de la API (por defecto: /api/scada/nok-detallado) */
+  /** Endpoint de la API (por defecto: webhook n8n de calidad) */
   webhookUrl?: string;
 }
 
@@ -78,7 +78,7 @@ export function useCalidadNOK(
   const {
     refreshInterval = 0, // Por defecto sin auto-refresh
     autoFetch = true,
-    webhookUrl = '/api/scada/nok-detallado',
+    webhookUrl = process.env.NEXT_PUBLIC_WEBHOOK_CALIDAD || 'https://n8n.lexusfx.com/webhook/calidad',
   } = options;
 
   const [data, setData] = useState<CalidadDefecto[] | null>(null);
@@ -157,9 +157,10 @@ export function useCalidadNOK(
 
       const response = await fetch(webhookUrl, {
         method: 'POST',
+        mode: 'cors',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
+          Accept: 'application/json',
         },
         body: JSON.stringify(requestBody),
         signal: abortControllerRef.current.signal,
@@ -169,84 +170,43 @@ export function useCalidadNOK(
         throw new Error(`Error fetching calidad NOK: ${response.status} ${response.statusText}`);
       }
 
-      // Intentar parsear el JSON, manejar respuestas vacías
-      let rawResponse: unknown;
-      const responseText = await response.text();
+      const webhookResponse: unknown = await response.json();
+      const payload = Array.isArray(webhookResponse) ? webhookResponse[0] : webhookResponse;
 
-      if (!responseText || responseText.trim() === '') {
-        // Respuesta vacía = no hay defectos
-        rawResponse = [];
-      } else {
-        try {
-          rawResponse = JSON.parse(responseText);
-        } catch (parseError) {
-          throw new Error('Error parseando respuesta del webhook');
-        }
+      // ✅ Se resposta vazia, manter dados antigos (não fazer throw)
+      if (!payload || typeof payload !== 'object' || Object.keys(payload).length === 0) {
+        return; // Sai sem atualizar dados
       }
 
       let responseArray: unknown[] = [];
 
-      if (Array.isArray(rawResponse)) {
-        responseArray = rawResponse;
-      } else if (rawResponse && typeof rawResponse === "object") {
-        const wrapper = rawResponse as Record<string, unknown>;
-        if (Array.isArray((wrapper as { data?: unknown }).data)) {
-          responseArray = (wrapper as { data: unknown[] }).data;
-        } else if (Array.isArray((wrapper as { items?: unknown }).items)) {
-          responseArray = (wrapper as { items: unknown[] }).items;
-        } else {
-          responseArray = [rawResponse];
-        }
+      if (Array.isArray(payload)) {
+        responseArray = payload;
       } else {
-        throw new Error('Formato de respuesta del webhook inválido');
-      }
-
-      if (responseArray.length > 0) {
-        const firstItem = responseArray[0];
-
-        if (firstItem && typeof firstItem === 'object' && 'aviso' in firstItem) {
-          responseArray = [];
+        // Se for um objeto único, tentar encontrar array dentro dele
+        const wrapper = payload as Record<string, unknown>;
+        if (Array.isArray(wrapper.data)) {
+          responseArray = wrapper.data;
+        } else if (Array.isArray(wrapper.items)) {
+          responseArray = wrapper.items;
+        } else {
+          responseArray = [payload];
         }
       }
 
       const normalizedRawItems = responseArray
-        .map((item) => {
-          if (!item || typeof item !== 'object') {
-            return null;
-          }
-
-          const record = item as Record<string, unknown>;
-          const propertyValue = record.propertyName;
-
-          if (typeof propertyValue === 'string') {
-            try {
-              const parsed = JSON.parse(propertyValue);
-              return parsed && typeof parsed === 'object'
-                ? (parsed as Record<string, unknown>)
-                : null;
-            } catch {
-              return null;
-            }
-          }
-
-          return record;
-        })
-        .filter(
-          (item): item is Record<string, unknown> =>
-            item !== null && typeof item === 'object',
+        .filter((item): item is Record<string, unknown> =>
+          item !== null && typeof item === 'object'
         );
 
       const normalizedItems = normalizedRawItems
         .map((item) => normalizeCalidadItem(item))
         .filter((item): item is CalidadDefecto => item !== null);
 
-      if (responseArray.length > 0 && normalizedItems.length === 0) {
-        throw new Error('Formato de respuesta del webhook inválido - falta campo Unidades');
+      // Se não há dados normalizados válidos, manter dados antigos
+      if (normalizedItems.length === 0) {
+        return; // Sai sem atualizar dados
       }
-
-      // Debug: Verificar datos normalizados
-      console.log('[useCalidadNOK] Datos normalizados:', normalizedItems);
-      console.log('[useCalidadNOK] Primer item:', normalizedItems[0]);
 
       const total = normalizedItems.reduce((sum, item) => sum + (item.Unidades || 0), 0);
 

@@ -151,18 +151,9 @@ export async function GET(request: NextRequest) {
     }
 
     // URL del webhook de n8n para estadísticas de máquinas
-    const n8nWebhookUrl = process.env.N8N_WEBHOOK_MACHINE_STATISTICS_URL;
-
-    if (!n8nWebhookUrl) {
-      console.error('N8N_WEBHOOK_MACHINE_STATISTICS_URL no está configurada');
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Configuración de API no disponible',
-        } as StatisticsResponse,
-        { status: 500 }
-      );
-    }
+    const n8nWebhookUrl =
+      process.env.N8N_WEBHOOK_MACHINE_STATISTICS_URL ??
+      'https://n8n.lexusfx.com/webhook/statistics';
 
     const payload: Record<string, string> = {
       machineCode,

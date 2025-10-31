@@ -67,15 +67,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const webhookUrl = process.env.N8N_WEBHOOK_MACHINE_STATISTICS_ORDERS_URL;
-
-    if (!webhookUrl) {
-      console.error('N8N_WEBHOOK_MACHINE_STATISTICS_ORDERS_URL no está configurada');
-      return NextResponse.json<OrdersApiResponse>(
-        { success: false, data: [], error: 'Configuración de API no disponible' },
-        { status: 500 }
-      );
-    }
+    const webhookUrl =
+      process.env.N8N_WEBHOOK_MACHINE_STATISTICS_ORDERS_URL ??
+      'https://n8n.lexusfx.com/webhook/statistics/orders';
 
     const payload: Record<string, string> = { machineCode };
     if (hasStart) payload.startDate = startDateRaw!;
