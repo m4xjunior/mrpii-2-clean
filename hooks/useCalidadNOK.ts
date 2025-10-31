@@ -1,6 +1,6 @@
 /**
- * Hook para obtener los datos de calidad (NOK - defectos) desde el webhook
- * API: https://n8n.lexusfx.com/webhook/popup
+ * Hook para obtener los datos de calidad (NOK - defectos) desde la API local
+ * Endpoint por defecto: /api/scada/nok-detallado
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
 
@@ -32,7 +32,7 @@ interface UseCalidadNOKOptions {
   refreshInterval?: number;
   /** Si debe hacer fetch automáticamente al montar (por defecto: true) */
   autoFetch?: boolean;
-  /** URL del webhook (por defecto: https://n8n.lexusfx.com/webhook/popup) */
+  /** Endpoint de la API (por defecto: /api/scada/nok-detallado) */
   webhookUrl?: string;
 }
 
@@ -52,7 +52,7 @@ interface UseCalidadNOKReturn {
 }
 
 /**
- * Hook para obtener los datos de calidad (NOK) desde el webhook
+ * Hook para obtener los datos de calidad (NOK) desde la API local
  *
  * @param codigo_of - Código de la OF (ej: "2025-SEC09-2940-2025-5923")
  * @param machineId - Código de la máquina (ej: "SOLD6")
@@ -78,7 +78,7 @@ export function useCalidadNOK(
   const {
     refreshInterval = 0, // Por defecto sin auto-refresh
     autoFetch = true,
-    webhookUrl = 'https://n8n.lexusfx.com/webhook/popup',
+    webhookUrl = '/api/scada/nok-detallado',
   } = options;
 
   const [data, setData] = useState<CalidadDefecto[] | null>(null);
@@ -125,7 +125,7 @@ export function useCalidadNOK(
   };
 
   /**
-   * Función para hacer fetch de los datos del webhook
+   * Función para hacer fetch de los datos de la API
    */
   const fetchData = useCallback(async () => {
     // No hacer fetch si no hay codigo_of o machineId
@@ -157,7 +157,6 @@ export function useCalidadNOK(
 
       const response = await fetch(webhookUrl, {
         method: 'POST',
-        mode: 'cors',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',

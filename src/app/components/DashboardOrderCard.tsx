@@ -771,7 +771,6 @@ export default function DashboardOrderCard({
   } = useCalidadNOK(activeOfCode, machineId, {
     refreshInterval: 30000,
     autoFetch: true,
-    webhookUrl: "https://n8n.lexusfx.com/webhook/popup",
   });
 
   const modalTotalNOK = useMemo(
