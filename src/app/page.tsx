@@ -14,6 +14,7 @@ import GooeyNav from "./components/GooeyNav";
 import UnifiedConfigModal from "./components/UnifiedConfigModal";
 import { useWebhookAllMachines } from "../../hooks/useWebhookMachine";
 import { useGlobalConfig } from "../../hooks/useGlobalConfig";
+import RotatingText from "../../components/RotatingText";
 import "./factory-floor.css";
 
 const STATUS_ORDER: Record<MachineStatus['status'], number> = {
@@ -23,11 +24,6 @@ const STATUS_ORDER: Record<MachineStatus['status'], number> = {
   MANTENIMIENTO: 3,
   INACTIVA: 4,
 };
-
-// Componente RotatingText do ReactBits
-function cn(...classes: (string | undefined | null | boolean)[]) {
-  return classes.filter(Boolean).join(' ');
-}
 
 // Componente de configuração do título
 interface TitleConfig {
@@ -41,235 +37,6 @@ const defaultConfig: TitleConfig = {
 };
 
 const DEFAULT_CARDS_PER_ROW = 4;
-
-interface RotatingTextProps {
-  texts: string[];
-  transition?: { type: string; damping: number; stiffness: number };
-  initial?: { y: string; opacity: number };
-  animate?: { y: number; opacity: number };
-  exit?: { y: string; opacity: number };
-  animatePresenceMode?: 'wait' | 'sync' | 'popLayout';
-  animatePresenceInitial?: boolean;
-  rotationInterval?: number;
-  staggerDuration?: number;
-  staggerFrom?: 'first' | 'last' | 'center' | 'random' | number;
-  loop?: boolean;
-  auto?: boolean;
-  splitBy?: 'characters' | 'words' | 'lines' | string;
-  onNext?: (index: number) => void;
-  mainClassName?: string;
-  splitLevelClassName?: string;
-  elementLevelClassName?: string;
-  [key: string]: unknown;
-}
-
-interface RotatingTextRef {
-  next: () => void;
-  previous: () => void;
-  jumpTo: (index: number) => void;
-  reset: () => void;
-}
-
-const RotatingText = forwardRef<RotatingTextRef, RotatingTextProps>((props, ref) => {
-  const {
-    texts,
-    transition = { type: 'spring', damping: 25, stiffness: 300 },
-    initial = { y: '100%', opacity: 0 },
-    animate = { y: 0, opacity: 1 },
-    exit = { y: '-120%', opacity: 0 },
-    animatePresenceMode = 'wait',
-    animatePresenceInitial = false,
-    rotationInterval = 2000,
-    staggerDuration = 0,
-    staggerFrom = 'first',
-    loop = true,
-    auto = true,
-    splitBy = 'characters',
-    onNext,
-    mainClassName,
-    splitLevelClassName,
-    elementLevelClassName,
-    ...rest
-  } = props;
-
-  const [currentTextIndex, setCurrentTextIndex] = useState(0);
-
-  const splitIntoCharacters = (text: string) => {
-    if (typeof Intl !== 'undefined' && Intl.Segmenter) {
-      const segmenter = new Intl.Segmenter('en', { granularity: 'grapheme' });
-      return Array.from(segmenter.segment(text), segment => segment.segment);
-    }
-    return Array.from(text);
-  };
-
-  const elements = useMemo(() => {
-    // Validação para evitar crash se a lista de textos estiver vazia ou for inválida
-    if (!texts || (texts as string[]).length === 0) {
-      return [];
-    }
-
-    const currentText = (texts as string[])[currentTextIndex];
-    
-    // Validação adicional para garantir que currentText não seja undefined
-    if (!currentText) {
-      return [];
-    }
-
-    if (splitBy === 'characters') {
-      const words: string[] = currentText.split(' ');
-      return words.map((word: string, i: number) => ({
-        characters: splitIntoCharacters(word),
-        needsSpace: i !== words.length - 1
-      }));
-    }
-    if (splitBy === 'words') {
-      return currentText.split(' ').map((word: string, i: number, arr: string[]) => ({
-        characters: [word],
-        needsSpace: i !== arr.length - 1
-      }));
-    }
-    if (splitBy === 'lines') {
-      return currentText.split('\n').map((line: string, i: number, arr: string[]) => ({
-        characters: [line],
-        needsSpace: i !== arr.length - 1
-      }));
-    }
-
-    return currentText.split(splitBy as string).map((part: string, i: number, arr: string[]) => ({
-      characters: [part],
-      needsSpace: i !== arr.length - 1
-    }));
-  }, [texts, currentTextIndex, splitBy]);
-
-  const getStaggerDelay = useCallback(
-    (index: number, totalChars: number) => {
-      const total = totalChars;
-      const duration = staggerDuration as number;
-      if (staggerFrom === 'first') return index * duration;
-      if (staggerFrom === 'last') return (total - 1 - index) * duration;
-      if (staggerFrom === 'center') {
-        const center = Math.floor(total / 2);
-        return Math.abs(center - index) * duration;
-      }
-      if (staggerFrom === 'random') {
-        const randomIndex = Math.floor(Math.random() * total);
-        return Math.abs(randomIndex - index) * duration;
-      }
-      return Math.abs((staggerFrom as number) - index) * duration;
-    },
-    [staggerFrom, staggerDuration]
-  );
-
-  const handleIndexChange = useCallback(
-    (_newIndex: number) => {
-      setCurrentTextIndex(_newIndex);
-      if (onNext) (onNext as (index: number) => void)(_newIndex);
-    },
-    [onNext]
-  );
-
-  const next = useCallback(() => {
-    const nextIndex = currentTextIndex === (texts as string[]).length - 1 ? (loop ? 0 : currentTextIndex) : currentTextIndex + 1;
-    if (nextIndex !== currentTextIndex) {
-      handleIndexChange(nextIndex);
-    }
-  }, [currentTextIndex, texts, loop, handleIndexChange]);
-
-  const previous = useCallback(() => {
-    const prevIndex = currentTextIndex === 0 ? (loop ? (texts as string[]).length - 1 : currentTextIndex) : currentTextIndex - 1;
-    if (prevIndex !== currentTextIndex) {
-      handleIndexChange(prevIndex);
-    }
-  }, [currentTextIndex, texts, loop, handleIndexChange]);
-
-  const jumpTo = useCallback(
-    (index: number) => {
-      const validIndex = Math.max(0, Math.min(index, (texts as string[]).length - 1));
-      if (validIndex !== currentTextIndex) {
-        handleIndexChange(validIndex);
-      }
-    },
-    [texts, currentTextIndex, handleIndexChange]
-  );
-
-  const reset = useCallback(() => {
-    if (currentTextIndex !== 0) {
-      handleIndexChange(0);
-    }
-  }, [currentTextIndex, handleIndexChange]);
-
-  useImperativeHandle(
-    ref,
-    () => ({
-      next,
-      previous,
-      jumpTo,
-      reset
-    }),
-    [next, previous, jumpTo, reset]
-  );
-
-  useEffect(() => {
-    if (!auto) return;
-    const intervalId = setInterval(next, rotationInterval);
-    return () => clearInterval(intervalId);
-  }, [next, rotationInterval, auto]);
-
-  // Garante que o índice não fique fora dos limites se a lista de textos diminuir
-  // Garante que o índice não fique fora dos limites se a lista de textos diminuir
-  useEffect(() => {
-    if (texts && currentTextIndex >= (texts as string[]).length) {
-      setCurrentTextIndex(0);
-    }
-  }, [texts, currentTextIndex]);
-
-  // Validação para evitar crash se a lista de textos estiver vazia ou for inválida
-  if (!texts || (texts as string[]).length === 0) {
-    return null; // Não renderiza nada se não houver textos
-  }
-
-  return (
-    <motion.span className={cn('flex flex-wrap whitespace-pre-wrap relative', mainClassName as string)} {...rest} layout transition={transition as object}>
-      <AnimatePresence mode={animatePresenceMode as 'wait' | 'sync' | 'popLayout'} initial={animatePresenceInitial as boolean}>
-        <motion.span
-          key={currentTextIndex}
-          className={cn(splitBy === 'lines' ? 'text-rotate-lines' : 'text-rotate')}
-          layout
-          aria-hidden="true"
-        >
-          {elements.map((wordObj: { characters: string[]; needsSpace: boolean }, wordIndex: number, array: { characters: string[]; needsSpace: boolean }[]) => {
-            const previousCharsCount = array.slice(0, wordIndex).reduce((sum: number, word) => sum + word.characters.length, 0);
-            return (
-              <span key={wordIndex} className={cn('text-rotate-word', splitLevelClassName as string)}>
-                {wordObj.characters.map((char: string, charIndex: number) => (
-                  <motion.span
-                    key={charIndex}
-                    initial={initial as React.ComponentProps<typeof motion.span>['initial']}
-                    animate={animate as React.ComponentProps<typeof motion.span>['animate']}
-                    exit={exit as React.ComponentProps<typeof motion.span>['exit']}
-                    transition={{
-                      ...(transition as object),
-                      delay: getStaggerDelay(
-                        previousCharsCount + charIndex,
-                        array.reduce((sum: number, word) => sum + word.characters.length, 0)
-                      )
-                    }}
-                    className={cn('text-rotate-element', elementLevelClassName as string)}
-                  >
-                    {char}
-                  </motion.span>
-                ))}
-                {wordObj.needsSpace && <span className="text-rotate-space"> </span>}
-              </span>
-            );
-          })}
-        </motion.span>
-      </AnimatePresence>
-    </motion.span>
-  );
-});
-
-RotatingText.displayName = 'RotatingText';
 
 // Custom hook para manejar el tema
 function useThemeSwitcher() {
@@ -791,18 +558,8 @@ export default function Dashboard() {
               <span className="title-sistema">{titleConfig.sistema}</span>
             </div>
             <RotatingText
-              texts={titleConfig.scada.length > 0 ? titleConfig.scada : ['SCADA']}
-              mainClassName="rotating-text-scada"
-              staggerFrom={"center"}
-              initial={{ y: "100%", opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: "-120%", opacity: 0 }}
-              staggerDuration={0.025}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              rotationInterval={2500}
-              auto={true}
-              loop={true}
-              splitBy="characters"
+              words={titleConfig.scada.length > 0 ? titleConfig.scada : ['SCADA']}
+              period={2500}
             />
           </div>
         </div>
@@ -1037,8 +794,8 @@ export default function Dashboard() {
       <style jsx>{`
         .main-title-section {
           text-align: center;
-          margin-bottom: 2rem;
-          padding: 2rem 0;
+          margin-bottom: 1rem;
+          padding: 1rem 0;
           background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
           border-radius: 15px;
           box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
@@ -1086,95 +843,7 @@ export default function Dashboard() {
         }
 
 
-        /* CSS do RotatingText do ReactBits */
-        .text-rotate {
-          display: flex;
-          flex-wrap: wrap;
-          white-space: pre-wrap;
-          position: relative;
-        }
-
-        .text-rotate-sr-only {
-          position: absolute;
-          width: 1px;
-          height: 1px;
-          padding: 0;
-          margin: -1px;
-          overflow: hidden;
-          clip: rect(0, 0, 0, 0);
-          white-space: nowrap;
-          border: 0;
-        }
-
-        .text-rotate-word {
-          display: inline-flex;
-        }
-
-        .text-rotate-lines {
-          display: flex;
-          flex-direction: column;
-          width: 100%;
-        }
-
-        .text-rotate-element {
-          display: inline-block;
-          position: relative;
-        }
-
-        .text-rotate-space {
-          white-space: pre;
-        }
-
-        /* Classe para acessibilidade - Oculta o texto duplicado */
-        .sr-only {
-          position: absolute;
-          width: 1px;
-          height: 1px;
-          padding: 0;
-          margin: -1px;
-          overflow: hidden;
-          clip: rect(0, 0, 0, 0);
-          white-space: nowrap;
-          border-width: 0;
-        }
-
-        /* Correção para garantir que a classe sr-only do componente seja aplicada */
-        .rotating-text-scada > .sr-only,
-        .preview-scada > .sr-only {
-          position: absolute !important;
-          width: 1px !important;
-          height: 1px !important;
-          padding: 0 !important;
-          margin: -1px !important;
-          overflow: hidden !important;
-          clip: rect(0, 0, 0, 0) !important;
-          white-space: nowrap !important;
-          border-width: 0 !important;
-        }
-
-        /* Evitar duplicação de caracteres */
-        .rotating-text-scada .text-rotate-element {
-          font-family: inherit;
-          font-size: inherit;
-          color: inherit;
-          text-shadow: inherit;
-          letter-spacing: inherit;
-        }
-
-        /* Estilos específicos para o título SCADA */
-        .rotating-text-scada {
-          font-size: 2rem;
-          font-weight: 700;
-          color: #dc3545;
-          text-shadow: 2px 2px 4px rgba(220, 53, 69, 0.3);
-          letter-spacing: 4px;
-          line-height: 1;
-          margin-top: 0.5rem;
-          min-height: 2.5rem;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
+        /* Estilos foram movidos para RotatingText.css */
 
         @keyframes logo-pulse {
           0%, 100% { transform: scale(1); }
@@ -1255,7 +924,8 @@ export default function Dashboard() {
           width: 90%;
           max-width: 600px;
           max-height: 80vh;
-          overflow: hidden;
+          display: flex;
+          flex-direction: column;
           animation: dialog-appear 0.3s ease-out;
         }
 
@@ -1302,8 +972,9 @@ export default function Dashboard() {
 
         .config-dialog-body {
           padding: 2rem;
-          max-height: 60vh;
+          flex: 1;
           overflow-y: auto;
+          padding: 2rem;
         }
 
         .config-section {

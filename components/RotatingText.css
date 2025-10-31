@@ -1,21 +1,31 @@
 .rotating-text-scada .text-rotate-word {
   display: inline-flex;
-  transition: all 0.5s ease-in-out;
+  perspective: 300px;
 }
 
 .text-rotate-element {
-  opacity: 0;
-  transform: translateY(-20px);
-  transition: opacity 0.4s ease, transform 0.4s ease;
   display: inline-block;
+  opacity: 0;
+  transform-style: preserve-3d;
+  transform: rotateX(-90deg);
+  transition: transform 0.5s, opacity 0.5s;
 }
 
 .text-rotate-word.visible .text-rotate-element {
   opacity: 1;
-  transform: translateY(0);
+  transform: rotateX(0deg);
 }
-
-/* We need a state to handle the exit animation.
-   Let's refine the React component to add/remove a class that triggers the animation.
-   For now, this is a starting point. The logic in the component will need adjustment
-   to handle enter/exit animations gracefully. */
+/* Estilos específicos para o título SCADA */
+.rotating-text-scada {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #dc3545;
+  text-shadow: 2px 2px 4px rgba(220, 53, 69, 0.3);
+  letter-spacing: 4px;
+  line-height: 1;
+  margin-top: 0.5rem;
+  min-height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
