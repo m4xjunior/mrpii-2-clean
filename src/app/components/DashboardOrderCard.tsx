@@ -985,6 +985,7 @@ export default function DashboardOrderCard({
   // 🔍 DEBUG: Log consolidado de métricas turno
   useEffect(() => {
     if (data) {
+      console.log({
         OEE_TURNO: data.oeeTurno,
         DISP_TURNO: data.dispTurno,
         REND_TURNO: data.rendTurno,
@@ -2622,13 +2623,8 @@ export default function DashboardOrderCard({
                   transition: "all 0.2s ease",
                 }}
                 onDoubleClick={() => {
-                    hasData: !!calidadNOKData,
-                    dataLength: calidadNOKData?.length || 0,
-                    totalNOK: totalNOK,
-                  });
                   if (calidadNOKData && calidadNOKData.length > 0) {
                     setShowNOKModal(true);
-                  } else {
                   }
                 }}
                 title={

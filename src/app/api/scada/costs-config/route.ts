@@ -5,7 +5,6 @@ import { getProductCost, getAllProductCosts } from './utils';
 // API para configurar costos por producto/máquina
 export async function GET(request: NextRequest) {
   try {
-    console.log('⚙️ Obteniendo configuración de costos');
 
     // Obtener productos con sus máquinas asociadas
     const sql = `
@@ -51,7 +50,6 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    console.log('⚙️ Configuración de costos obtenida:', Object.keys(costConfig).length, 'productos');
 
     return NextResponse.json({
       success: true,
@@ -61,7 +59,6 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Error obteniendo configuración de costos:', error);
     return NextResponse.json({
       success: false,
       error: 'Error al obtener configuración de costos',
@@ -73,7 +70,6 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('💾 Configurando costo personalizado');
     const body = await request.json();
 
     const { cod_producto, costo_unitario, maquina_id } = body;
@@ -106,7 +102,7 @@ export async function POST(request: NextRequest) {
 
     // Aquí se podría guardar en una tabla de configuración
     // Por ahora, simularemos el guardado
-    console.log('💾 Costo configurado:', {
+    console.log({
       cod_producto,
       costo_unitario,
       maquina_id,
@@ -126,7 +122,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Error configurando costo:', error);
     return NextResponse.json({
       success: false,
       error: 'Error al configurar costo',

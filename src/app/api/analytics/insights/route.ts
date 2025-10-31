@@ -23,7 +23,6 @@ interface EventoParada {
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('🧠 Generando insights simplificados');
 
     // Obtener datos directamente de la API de máquinas que ya funciona
     const machinesResponse = await fetch('http://localhost:3000/api/scada/machines');
@@ -134,7 +133,6 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Error generando insights:', error);
     return NextResponse.json({
       success: false,
       error: 'Error al generar insights',
@@ -186,7 +184,6 @@ async function getCurrentMachinesData() {
   try {
     return await executeQuery(sql, undefined, 'mapex');
   } catch (error) {
-    console.warn('⚠️ Error al obtener datos de productos - retornando datos vacíos');
     return [];
   }
 }
@@ -211,7 +208,7 @@ async function generateMachineInsights(machine: any) {
     ? Object.values(productCosts).reduce((sum, cost) => sum + cost, 0) / Object.keys(productCosts).length
     : 15.50; // Fallback al valor por defecto
 
-  console.log('💰 Costo promedio para insights:', {
+  console.log({
     totalProductos: Object.keys(productCosts).length,
     costoPromedio: costoPromedioProducto,
     nota: 'Usado para calcular impacto económico de mejoras OEE'

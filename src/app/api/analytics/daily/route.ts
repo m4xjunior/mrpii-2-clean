@@ -4,7 +4,6 @@ import { getAllProductCosts } from '../../scada/costs-config/utils';
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('📅 Obteniendo resumen del día actual');
 
     // Obtener fecha actual
     const today = new Date();
@@ -17,7 +16,7 @@ export async function GET(request: NextRequest) {
       ? Object.values(productCosts).reduce((sum, cost) => sum + cost, 0) / Object.keys(productCosts).length
       : 0; // Sin productos = costo cero
 
-    console.log('💰 Costo promedio para cálculos diarios:', {
+    console.log({
       totalProductos: Object.keys(productCosts).length,
       costoPromedio: costoPromedioNok,
       nota: Object.keys(productCosts).length > 0
@@ -43,7 +42,6 @@ export async function GET(request: NextRequest) {
       ORDER BY cm.Cod_maquina
     `;
 
-    console.log('🔍 Consultando producción del día actual desde MAPEX');
     const machinesData = await executeQuery(productionSql, {
       startOfDay: startOfDay,
       endOfDay: endOfDay
@@ -69,7 +67,6 @@ export async function GET(request: NextRequest) {
         : 'Sin productos activos - pérdidas en cero'
     };
 
-    console.log('📅 Resumen del día actual:', {
       ...data,
       calculo_perdidas: costoPromedioNok > 0
         ? `${totalNok} NOK × €${costoPromedioNok.toFixed(2)} = €${(totalNok * costoPromedioNok).toFixed(2)}`
@@ -85,7 +82,6 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Error obteniendo datos del día actual:', error);
 
     // En caso de error, retornar datos vacíos
     const emptyData = {
